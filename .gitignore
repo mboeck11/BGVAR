@@ -1,0 +1,20 @@
+## R stuff and temporary files
+.Rproj.user
+
+.Rhistory
+.Rapp.history
+
+.RData
+.RDataTmp.Ruserdata
+
+.Renviron
+
+*.utf8.md
+*.knit.md
+
+*_cache/
+/cache/
+
+/*.tar.gz
+
+.DS_Store

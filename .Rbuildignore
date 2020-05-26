@@ -1,0 +1,9 @@
+^.*\.Rproj$
+^\.Rproj\.user$
+^cran-comments\.md$
+
+^doc$
+^Meta$
+^scripts$
+
+^README/.md$
