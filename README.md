@@ -7,7 +7,7 @@ Estimation of Bayesian Global Vector Autoregressions with different prior setups
 
 ## Installation
 
-You can install the latest development version of BGVAR from with:
+You can install the latest development version of BGVAR with:
 
 ``` r
 devtools::install_github("mboeck11/BGVAR")
