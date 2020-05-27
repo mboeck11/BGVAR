@@ -294,7 +294,7 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
-                            e_lambda=0.01,d_lambda=0.01,a_start=0.6,sample_A=FALSE) # NG
+                            e_lambda=0.01,d_lambda=0.01,a_start=0.7,sample_A=FALSE,a_log=TRUE) # NG
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0_sv","b0_sv","bmu","Bmu","shrink1","shrink2","shrink3",
                  "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","e_lambda","d_lambda","a_start","sample_A")
   if(is.null(hyperpara)){

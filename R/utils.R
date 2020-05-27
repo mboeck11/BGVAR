@@ -259,9 +259,13 @@
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
   class(Yraw) <- class(Wraw) <- "numeric"
   prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,3))
-  invisible(capture.output(
-    bvar<-BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara),
-    type="message"))
+  if(default_hyperpara[["a_log"]]){
+    default_hyperpara["a_start"] <- 1/log(ncol(Yraw))
+  }
+  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara)),type="message"))
+  if(is(bvar,"try-error")){
+    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara)
+  }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
   M <- ncol(Y); Mstar <- ncol(Wraw); bigT <- nrow(Y); K <- ncol(X)
