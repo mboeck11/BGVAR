@@ -397,7 +397,7 @@ lps <- function(object, ...){
   h        <- nrow(hold.out)
   K        <- ncol(hold.out)
   if(is.null(hold.out)){
-    stop("Please submit a forecast object that includes a hold out sample for evaluation (set h>0 in fcast)!")
+    stop("Please submit a forecast object that includes a hold out sample for evaluation (set h>0 when estimating the model with bgvar)!")
   }
   lps.stats  <- object$lps.stats
   lps.scores <- matrix(NA,h,K)
