@@ -4,7 +4,7 @@
 \alias{bgvar}
 \title{BGVAR}
 \usage{
-bgvar(Data, W, plag, saves=5000, burns=5000, prior="NG", SV=FALSE, h=0,
+bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
       thin=1, hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, 
       Wex.restr=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE)
 }

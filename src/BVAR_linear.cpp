@@ -78,8 +78,8 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   const double a_start = hyperparam["a_start"];
   const bool sample_A = hyperparam["sample_A"];
   // misc
-  const double a_i = hyperparam["a_i"];
-  const double b_i = hyperparam["b_i"];
+  const double a_1 = hyperparam["a_1"];
+  const double b_1 = hyperparam["b_1"];
   const double prmean = hyperparam["prmean"];
   const double Bsigma = hyperparam["Bsigma"];
   const double a0 = hyperparam["a0"];
@@ -434,7 +434,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
         Sv_para.row(mm) = para_sv.t();
         Sv_draw.col(mm) = cur_sv;
       }else{
-        sample_sig2(cur_sv, data_sv, a_i, b_i, T);
+        sample_sig2(cur_sv, data_sv, a_1, b_1, T);
         Sv_draw.col(mm) = log(cur_sv);
       }
     }

@@ -7,7 +7,7 @@
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
 #' 
 #' @usage 
-#' bgvar(Data, W, plag, saves=5000, burns=5000, prior="NG", SV=FALSE, h=0,
+#' bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
 #'       thin=1, hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, 
 #'       Wex.restr=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE)
 #' 
@@ -156,7 +156,7 @@
 #' @importFrom stats is.ts median time ts
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
-bgvar<-function(Data,W,plag,saves=5000,burns=5000,prior="NG",SV=FALSE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE){
+bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE){
   start.bgvar <- Sys.time()
   #------------------------------ NA checks  ------------------------------------------------------#
   # check NAs
@@ -290,100 +290,21 @@ bgvar<-function(Data,W,plag,saves=5000,burns=5000,prior="NG",SV=FALSE,h=0,thin=1
   args$thinsaves <- saves/thin
   # set default
   cat("Hyperparameter setup: \n")
-  default_hyperpara <- list(a_i=0.01,b_i=0.01, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
+  default_hyperpara <- list(a_1=0.01,b_1=0.01, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
-                            e_lambda=0.01,d_lambda=0.01,a_start=1,sample_A=TRUE) # NG
-  miscparas <- c("a_i","b_i","prmean","use_R")
-  svparas   <- c("Bsigma_sv","a0_sv","b0_sv","bmu","Bmu")
-  mnparas   <- c("shrink1","shrink2","shrink3","shrink4")
-  ssvsparas <- c("tau0","tau1","kappa0","kappa1","p_i","q_ij")
-  ngparas   <- c("e_lambda","d_lambda","a_start","sample_A")
-  # check MISC
+                            e_lambda=0.01,d_lambda=0.01,a_start=0.6,sample_A=FALSE) # NG
+  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0_sv","b0_sv","bmu","Bmu","shrink1","shrink2","shrink3",
+                 "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","e_lambda","d_lambda","a_start","sample_A")
   if(is.null(hyperpara)){
     cat("\t No hyperparameters are chosen, default setting applied.\n")
   }
-  if(!is.null(hyperpara)&&all(miscparas%in%names(hyperpara))){
-    for(para in miscparas){
+  if(!is.null(hyperpara)){
+    for(para in names(hyperpara)){
       default_hyperpara[para] <- hyperpara[para]
     }
-    cat("\t Default value for miscellaneous hyperparameters overwritten.\n")
-  }
-  if(!is.null(hyperpara)&&!all(miscparas%in%names(hyperpara))){
-    userpara <- names(hyperpara)[names(hyperpara)%in%miscparas]
-    for(para in userpara){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\t You have not submitted all miscellaneous hyperparameters needed for the estimation. Default values for remaing ones applied.\n")
-  }
-  # check SV
-  if(is.null(hyperpara)&&!SV){
-    cat("\tYou have not selected any hyperparameters for the MN prior. Standard setting used; for more details, see bgvar html help files.\n")
-  }
-  if(!is.null(hyperpara)&&all(svparas%in%names(hyperpara))){
-    for(para in svparas){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tDefault value for stochastic volatility hyperparameters overwritten.\n")
-  }
-  if(!is.null(hyperpara)&&!all(svparas%in%names(hyperpara))){
-    userpara <- names(hyperpara)[names(hyperpara)%in%svparas]
-    for(para in userpara){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tYou have not submitted all hyperparameters needed for stochastic volatility. Default values for remaing ones applied.\n")
-  }
-  # check MN
-  if(is.null(hyperpara)&&prior=="MN"){
-    cat("\tYou have not selected any hyperparameters for the MN prior. Standard setting used; for more details, see bgvar html help files.\n")
-  }
-  if(prior=="MN"&&!is.null(hyperpara)&&all(mnparas%in%names(hyperpara))){
-    for(para in mnparas){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tDefault hyperparameters for the MN prior overwritten.\n")
-  }
-  if(prior=="MN"&&!is.null(hyperpara)&&any(mnparas%in%names(hyperpara))){
-    userpara <- names(hyperpara)[names(hyperpara)%in%mnparas]
-    for(para in userpara){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tYou have not submitted all hyperparameters needed for the MN prior. Default values for remaing ones applied.\n")
-  }
-  # check SSVS
-  if(is.null(hyperpara)&&prior=="SSVS"){
-    cat("\tYou have not selected any hyperparameters for the SSVS prior. Standard setting used; for more details, see bgvar html help files.\n")
-  }
-  if(prior=="SSVS"&&!is.null(hyperpara)&&all(ssvsparas%in%names(hyperpara))){
-    for(para in ssvsparas){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tDefault hyperparameters for the SSVS prior overwritten.\n")
-  }
-  if(prior=="SSVS"&&!is.null(hyperpara)&&any(ssvsparas%in%names(hyperpara))){
-    userpara <- names(hyperpara)[names(hyperpara)%in%ssvsparas]
-    for(para in userpara){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tYou have not submitted all hyperparameters needed for the SSVS prior. Default values for remaing ones applied.\n")
-  }
-  # check NG
-  if(is.null(hyperpara)&&prior=="NG"){
-    cat("\tYou have not selected any hyperparameters for the NG prior. Standard setting used; for more details, see bgvar html help files.\n")
-  }
-  if(prior=="NG"&&!is.null(hyperpara)&&all(ngparas%in%names(hyperpara))){
-    for(para in ngparas){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tDefault hyperparameters for the NG prior overwritten.\n")
-  }
-  if(prior=="NG"&&!is.null(hyperpara)&&any(ngparas%in%names(hyperpara))){
-    userpara <- names(hyperpara)[names(hyperpara)%in%ngparas]
-    for(para in userpara){
-      default_hyperpara[para] <- hyperpara[para]
-    }
-    cat("\tYou have not submitted all hyperparameters needed for the NG prior. Default values for remaining ones applied.\n")
+    cat("\t Default values for chosen hyperparamters overwritten.\n")
   }
   #------------------------------ get weights -----------------------------------------------------------------#
   xglobal <- .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)

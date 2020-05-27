@@ -422,8 +422,8 @@
   prior     <- prior_in
   sv        <- sv_in
   prmean    <- hyperpara$prmean
-  a_i       <- hyperpara$a_i
-  b_i       <- hyperpara$b_i
+  a_1       <- hyperpara$a_1
+  b_1       <- hyperpara$b_1
   crit_eig  <- hyperpara$crit_eig
   Bsigma    <- hyperpara$Bsigma
   a0        <- hyperpara$a0
@@ -836,8 +836,8 @@
       }
     }else{
       for (jj in 1:M){
-        S_1 <- a_i+bigT/2
-        S_2 <- b_i+crossprod(Em_str[,jj])/2
+        S_1 <- a_1+bigT/2
+        S_2 <- b_1+crossprod(Em_str[,jj])/2
         
         sig_eta <- 1/rgamma(1,S_1,S_2)
         Sv_draw[,jj] <- log(sig_eta)

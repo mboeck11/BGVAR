@@ -18,3 +18,5 @@
 /*.tar.gz
 
 .DS_Store
+
+cran-comments.md
