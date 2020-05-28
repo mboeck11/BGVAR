@@ -393,7 +393,6 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
             double prodlambda = prod(lambdavec);
             lambda2_A(pp,1) = sample_lambda2(V_exo, A_tau(pp,1), d_lambda, e_lambda, d_exo, prodlambda);
             sample_theta(V_exo, A_exo, P_exo, lambda2_A(pp,1), A_tau(pp,1), r_exo, c_exo, false);
-            
             V_prior.rows(p*M+pp*Mstar, p*M+(pp+1)*Mstar-1) = V_exo;
             
             if(sample_A){

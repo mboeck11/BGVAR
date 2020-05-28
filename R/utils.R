@@ -831,11 +831,11 @@
     if (sv){
       pars_var <- matrix(0,3,M)
       for (jj in 1:M){
-        svdraw <- svsample2(Em_str[,jj],startpara=para(svl[[jj]]),startlatent=Sv_draw[,jj],
+        svdraw <- svsample2(Em_str[,jj],startpara=svl[[jj]]$para,startlatent=Sv_draw[,jj],
                             priormu=c(bmu,sqrt(Bmu)),priorphi=c(a0, b0), priorsigma=Bsigma)
         svl[[jj]] <- svdraw
         h_ <- exp(svdraw$latent)
-        pars_var[,jj] <- para(svl[[jj]])
+        pars_var[,jj] <- svl[[jj]]$para
         Sv_draw[,jj] <- log(h_)
       }
     }else{

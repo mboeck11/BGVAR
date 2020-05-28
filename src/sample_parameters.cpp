@@ -102,19 +102,20 @@ void sample_sig2(arma::vec& sig2_out, arma::vec& Em_str, const double a_i, const
   sig2_out.fill(sig2);
 }
 
-double sample_lambda2(arma::mat& V, const double& tau, const double d_lambda, const double e_lambda, const int d,
-                      const double prodlambda){
-  double dl = d_lambda + tau*d;
-  double el = e_lambda + 0.5*tau*accu(V)*prodlambda;
-  double lambda2 = R::rgamma(dl, 1/el);
-  return lambda2;
-}
-
 void res_protector(double& x){
   if (std::abs(x) < DBL_MIN * std::pow(10, 10)){
     double sign = std::copysign(1, x);
     x = DBL_MIN * std::pow(10, 10) * sign;
   }
+}
+
+double sample_lambda2(arma::mat& V, const double& tau, const double d_lambda, const double e_lambda, const int d,
+                      const double prodlambda){
+  double dl = d_lambda + tau*d;
+  double el = e_lambda + 0.5*tau*accu(V)*prodlambda;
+  double lambda2 = R::rgamma(dl, 1/el);
+  res_protector(lambda2);
+  return lambda2;
 }
 
 void sample_theta(arma::mat& tau2, arma::mat& coef, arma::mat& prior, const double& lambda2, const double& tau, const int r, int c, bool Hmat){

@@ -49,7 +49,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     List VAR = globalpost[0];
     mat Y = VAR["Y"];
     mat W = VAR["W"];
-    int M = Y.n_cols;
+    unsigned int M = Y.n_cols;
     
     List store   = VAR["store"];
     List Phi     = store["Phistore"];
@@ -88,7 +88,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       List VAR = globalpost[cc];
       mat Y = VAR["Y"];
       mat W = VAR["W"];
-      int M = Y.n_cols;
+      unsigned int M = Y.n_cols;
       
       List store   = VAR["store"];
       List Phi     = store["Phistore"];

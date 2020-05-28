@@ -13,10 +13,10 @@ void sample_arcoefs(arma::mat& A_out, arma::mat& H_out, arma::mat& Em_out, arma:
 
 void sample_sig2(arma::vec& sig2_out, arma::vec& Em_str, const double a_i, const double b_i, const double T);
 
+void res_protector(double& x);
+
 double sample_lambda2(arma::mat& V, const double& tau, const double d_lambda, const double e_lambda, const int d,
                       const double prodlambda);
-  
-void res_protector(double& x);
 
 void sample_theta(arma::mat& tau2, arma::mat& coef, arma::mat& prior, const double& lambda2, const double& tau, const int r, const int c, bool Hmat);
 

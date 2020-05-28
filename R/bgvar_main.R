@@ -302,7 +302,12 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   }
   if(!is.null(hyperpara)){
     for(para in names(hyperpara)){
+      if(!para%in%paras){
+        cat(paste0("\t ",para," no valid hyperparameter. Please check.\n"))
+        next
+      }
       default_hyperpara[para] <- hyperpara[para]
+      if(para=="a_start") a_log <- FALSE
     }
     cat("\t Default values for chosen hyperparamters overwritten.\n")
   }
