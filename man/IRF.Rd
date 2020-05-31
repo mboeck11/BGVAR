@@ -4,7 +4,8 @@
 \alias{IRF}
 \title{Impulse Response Functions}
 \usage{
-IRF(obj, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FALSE)
+IRF(obj, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FALSE, 
+           verbose=TRUE)
 }
 \arguments{
 \item{obj}{an object of class \code{bgvar}.}
@@ -27,6 +28,8 @@ IRF(obj, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FA
 \item{save.store}{If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.}
 
 \item{multithread}{If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
@@ -39,8 +42,6 @@ Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 \item{\code{A}}{ median posterior of global coefficient matrix.}
 \item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
 \item{\code{S}}{ posterior median of matrix with country variance-covariance matrices on the main diagonal.}
-\item{\code{xglobal}}{ dataset for whole model.}
-\item{\code{plag}}{ specified lag length.}
 \item{\code{Rmed}}{ posterior rotation matrix if \code{ident="sign"}.}
 }}
 \item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\itemize{
@@ -54,8 +55,29 @@ Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in Pesaran and Shin (1998), orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE)
+shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+
+sign.constr<-list()
+sign.constr$shock1$shock<-c("US.stir") 
+sign.constr$shock1$restrictions$res1<-c("US.y")
+sign.constr$shock1$restrictions$res2<-c("US.Dp")
+sign.constr$shock1$sign<-c(">","<","<")
+sign.constr$shock1$rest.horz<-c(1,1,1)
+sign.constr$shock1$constr<-c(1,1,1)
+sign.constr$shock1$scal=+100 
+sign.constr$MaxTries<-200
+irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+}
 \donttest{
-set.seed(571)
 # First example, a US monetary policy shock, quarterly data
 library(BGVAR)
 data(eerData)

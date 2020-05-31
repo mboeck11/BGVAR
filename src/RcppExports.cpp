@@ -7,8 +7,8 @@
 using namespace Rcpp;
 
 // BVAR_linear
-List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in, const SEXP saves_in, const SEXP burns_in, const SEXP cons_in, const SEXP trend_in, const SEXP sv_in, const SEXP thin_in, const SEXP prior_in, const SEXP hyperparam_in);
-RcppExport SEXP _BGVAR_BVAR_linear(SEXP Y_inSEXP, SEXP W_inSEXP, SEXP p_inSEXP, SEXP saves_inSEXP, SEXP burns_inSEXP, SEXP cons_inSEXP, SEXP trend_inSEXP, SEXP sv_inSEXP, SEXP thin_inSEXP, SEXP prior_inSEXP, SEXP hyperparam_inSEXP) {
+List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in, const SEXP saves_in, const SEXP burns_in, const SEXP cons_in, const SEXP trend_in, const SEXP sv_in, const SEXP thin_in, const SEXP prior_in, const SEXP hyperparam_in, const SEXP Ex_in);
+RcppExport SEXP _BGVAR_BVAR_linear(SEXP Y_inSEXP, SEXP W_inSEXP, SEXP p_inSEXP, SEXP saves_inSEXP, SEXP burns_inSEXP, SEXP cons_inSEXP, SEXP trend_inSEXP, SEXP sv_inSEXP, SEXP thin_inSEXP, SEXP prior_inSEXP, SEXP hyperparam_inSEXP, SEXP Ex_inSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -23,7 +23,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const SEXP >::type thin_in(thin_inSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type prior_in(prior_inSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type hyperparam_in(hyperparam_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Y_in, W_in, p_in, saves_in, burns_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in));
+    Rcpp::traits::input_parameter< const SEXP >::type Ex_in(Ex_inSEXP);
+    rcpp_result_gen = Rcpp::wrap(BVAR_linear(Y_in, W_in, p_in, saves_in, burns_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -41,8 +42,8 @@ BEGIN_RCPP
 END_RCPP
 }
 // gvar_stacking
-List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP saves_in, const SEXP thin_in, const SEXP trend_in, const SEXP eigen_in);
-RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobal_inSEXP, SEXP plag_inSEXP, SEXP globalpost_inSEXP, SEXP saves_inSEXP, SEXP thin_inSEXP, SEXP trend_inSEXP, SEXP eigen_inSEXP) {
+List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP saves_in, const SEXP thin_in, const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in);
+RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobal_inSEXP, SEXP plag_inSEXP, SEXP globalpost_inSEXP, SEXP saves_inSEXP, SEXP thin_inSEXP, SEXP trend_inSEXP, SEXP eigen_inSEXP, SEXP verbose_inSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -53,7 +54,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const SEXP >::type thin_in(thin_inSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type trend_in(trend_inSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type eigen_in(eigen_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal_in, plag_in, globalpost_in, saves_in, thin_in, trend_in, eigen_in));
+    Rcpp::traits::input_parameter< const SEXP >::type verbose_in(verbose_inSEXP);
+    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal_in, plag_in, globalpost_in, saves_in, thin_in, trend_in, eigen_in, verbose_in));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -89,9 +91,9 @@ END_RCPP
 }
 
 static const R_CallMethodDef CallEntries[] = {
-    {"_BGVAR_BVAR_linear", (DL_FUNC) &_BGVAR_BVAR_linear, 11},
+    {"_BGVAR_BVAR_linear", (DL_FUNC) &_BGVAR_BVAR_linear, 12},
     {"_BGVAR_do_rgig1", (DL_FUNC) &_BGVAR_do_rgig1, 3},
-    {"_BGVAR_gvar_stacking", (DL_FUNC) &_BGVAR_gvar_stacking, 7},
+    {"_BGVAR_gvar_stacking", (DL_FUNC) &_BGVAR_gvar_stacking, 8},
     {"_BGVAR_globalLik", (DL_FUNC) &_BGVAR_globalLik, 6},
     {"_BGVAR_dmvnrm_arma_fast", (DL_FUNC) &_BGVAR_dmvnrm_arma_fast, 4},
     {NULL, NULL, 0}

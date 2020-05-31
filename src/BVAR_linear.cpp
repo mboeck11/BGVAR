@@ -15,7 +15,7 @@ using namespace arma;
 List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
                  const SEXP saves_in, const SEXP burns_in,
                  const SEXP cons_in, const SEXP trend_in, const SEXP sv_in, const SEXP thin_in,
-                 const SEXP prior_in, const SEXP hyperparam_in) {
+                 const SEXP prior_in, const SEXP hyperparam_in, const SEXP Ex_in) {
   //----------------------------------------------------------------------------------------------------------------------
   // CONSTRUCT DATA
   //----------------------------------------------------------------------------------------------------------------------
@@ -32,6 +32,13 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
     Wraw = mat(Wr.begin(), Traw, Mstar, false);
   }
   
+  bool texo = false;
+  mat Exraw; NumericMatrix Er; int Mex=0;
+  if(Ex_in != R_NilValue){
+    texo = true; NumericMatrix Er(Ex_in); Mex = Er.ncol(); 
+    Exraw = mat(Er.begin(), Traw, Mex, false);
+  }
+  
   mat Xraw = mlag(Yraw,p,Traw,M);
   mat X0 = Xraw.submat(p,0,Traw-1,K-1);
   mat X = X0;
@@ -41,6 +48,10 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
     mat Wall = join_rows(Wraw,mlag(Wraw,p,Traw,Mstar));
     mat W0 = Wall.submat(p,0,Traw-1,Kstar-1);
     X = join_rows(X0,W0);
+  }
+  if(texo){
+    mat E0 = Exraw.submat(p,0,Traw-1,Mex-1);
+    X = join_rows(X,E0);
   }
   const bool cons = as<bool>(cons_in);
   if(cons){

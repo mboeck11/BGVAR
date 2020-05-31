@@ -11,12 +11,23 @@
 
 \item{...}{additional arguments.}
 }
+\value{
+Returns a numeric value with the corresponding BIC.
+}
 \description{
 Computes the Bayesian information criterion for an object \code{bgvar}.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+BIC(model.mn)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")

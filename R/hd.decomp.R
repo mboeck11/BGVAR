@@ -1,9 +1,10 @@
 #' @name hd.decomp
 #' @title Historical Decomposition
 #' @description A function that calculates historical decomposition (HD) of the time series and the structural error.
-#' @usage hd.decomp(obj, R=NULL)
+#' @usage hd.decomp(obj, R=NULL, verbose=TRUE)
 #' @param obj an item fitted by \code{IRF}.
 #' @param R If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
+#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix tha minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 #' @return Returns a list with the following objects \itemize{
 #' \item{\code{hd_array}}{ is a three-dimensional array with the first dimension referring to the K time series, the second to the T observations and the third dimensions containing the contribution of the shocks in explaining historically deviations in the time series from their trend. The third dimension is K+3, since the last three entries contain the contributions of the constant, the initial condition and a residual component that the contributions sum up to the original time series. If a trend i specified in the model the third dimension is K+3 with trend ordered after the constant.}
@@ -12,7 +13,19 @@
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @seealso \code{\link{bgvar}} and \code{\link{IRF}}.
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#'                       prior="SSVS",thin=1,eigen=TRUE)
+#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+#' irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' HD <- hd.decomp(irf.chol.us.mp)
+#' }
 #' \donttest{
 #' set.seed(571)
 #' library(BGVAR)
@@ -32,10 +45,10 @@
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
 #' @export
-hd.decomp<-function(obj, R=NULL){
+hd.decomp<-function(obj, R=NULL, verbose=TRUE){
   start.hd <- Sys.time()
   if(!inherits(obj, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
-  cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
+  if(verbose) cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- obj$model.obj$xglobal
   plag    <- obj$model.obj$plag
@@ -58,7 +71,7 @@ hd.decomp<-function(obj, R=NULL){
   rownames(R) <- colnames(R) <- varNames
   #------------------------checks-------------------------------------------------------------------#
   if(ident=="girf"){
-    print("Historical decomposition of the time series not implemented for GIRFs since cross-correlation is unequal to zero (and hence decompositions do not sum up to original time series).")
+    message("Historical decomposition of the time series not implemented for GIRFs since cross-correlation is unequal to zero (and hence decompositions do not sum up to original time series).")
     return(list(hd_array=NA,struc.shock=vv,xglobal=xglobal) )
   }
   #------ initialize objects -----------------------------------------------------------------------#
@@ -91,7 +104,7 @@ hd.decomp<-function(obj, R=NULL){
     vv[t,] <- Yhat-Xhat
   }
   #Start historical decompositions -------------------------------------------------------------------------------#
-  cat("Start computing HDs...\n")
+  if(verbose) cat("Start computing HDs...\n")
   HDshock_big <- array(0,c(plag*bigK,bigT,bigK))
   HDconst_big <- matrix(0,plag*bigK,bigT)
   HDinit_big  <- matrix(0,plag*bigK,bigT)
@@ -146,10 +159,10 @@ hd.decomp<-function(obj, R=NULL){
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
   out      <- structure(list(hd_array=hd_array,struc.shock=vv,x=x), class="bgvar.hd")
-  cat(paste("Size of object:", format(object.size(out),unit="MB")))
+  if(verbose) cat(paste("Size of object:", format(object.size(out),unit="MB")))
   end.hd <- Sys.time()
   diff.hd <- difftime(end.hd,start.hd,units="mins")
   mins.hd <- round(diff.hd,0); secs.hd <- round((diff.hd-floor(diff.hd))*60,0)
-  cat(paste("\nNeeded time for computation: ",mins.hd," ",ifelse(mins.hd==1,"min","mins")," ",secs.hd, " ",ifelse(secs.hd==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nNeeded time for computation: ",mins.hd," ",ifelse(mins.hd==1,"min","mins")," ",secs.hd, " ",ifelse(secs.hd==1,"second.","seconds.\n"),sep=""))
   return(out)
 }

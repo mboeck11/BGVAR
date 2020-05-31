@@ -19,14 +19,22 @@
 Plots the fitted values in red of either the country VARs or the GVAR (default) along with the original data.
 }
 \examples{
-\donttest{
-set.seed(571)
+\dontshow{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC <- NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.mn<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="MN",
-                  OE.weights=OE.weights)
-plot(model.mn, resp="AT")
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+plot(model.ssvs, resp="EA") 
+}
+\donttest{
+library(BGVAR)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+summary(model.ssvs)
+plot(model.ssvs, resp="EA")
 }
 }

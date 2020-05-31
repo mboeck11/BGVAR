@@ -19,16 +19,24 @@
 Plots the predictions of an object of class \code{bgvar.predict}.
 }
 \examples{
-\donttest{
-set.seed(571)
+\dontshow{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC <- NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.mn <- bgvar(Data=monthlyData,W=W,plag=1,saves=100,burns=100,prior="MN",
-                    OE.weights=OE.weights)
-fcast <- predict(model.mn)
-plot(fcast, resp="US.p", Cut=20)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE)
+fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+plot(fcast, resp="US.Dp", Cut=20)
+}
+\donttest{
+library(BGVAR)
+data(eerData)
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE)
+fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+plot(fcast, resp="US.Dp", Cut=20)
 }
 }
 \author{

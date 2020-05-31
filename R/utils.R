@@ -252,9 +252,11 @@
 #' @name .BVAR_linear_wrapper
 #' @noRd
 #' @importFrom utils capture.output
-.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, saves, burns, trend, SV, thin, default_hyperpara){
+.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, saves, burns, trend, SV, thin, default_hyperpara, Ex){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
+  Exraw <- NULL
+  if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
   all  <- t(W%*%t(xglobal))
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
   class(Yraw) <- class(Wraw) <- "numeric"
@@ -262,15 +264,18 @@
   if(default_hyperpara[["a_log"]]){
     default_hyperpara["a_start"] <- 1/log(ncol(Yraw))
   }
-  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara)),type="message"))
+  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)),type="message"))
   if(is(bvar,"try-error")){
-    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara)
+    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)
   }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
   M <- ncol(Y); Mstar <- ncol(Wraw); bigT <- nrow(Y); K <- ncol(X)
+  if(!is.null(Exraw)) Mex <- ncol(Exraw)
   xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
-              paste(rep("Wexlag",Mstar),rep(seq(1,plag),each=Mstar),sep=""),"cons")
+              paste(rep("Wexlag",Mstar),rep(seq(1,plag),each=Mstar),sep=""))
+  if(!is.null(Exraw)) xnames <- c(xnames,paste(rep("Tex",Mex)))
+  xnames <- c(xnames,"cons")
   if(trend) xnames <- c(xnames,"trend")
   colnames(X) <- xnames
   #-----------------------------------------get containers ------------------------------------------#
@@ -278,14 +283,13 @@
   # splitting up stores
   dims          <- dimnames(A_store)[[2]]
   a0store       <- adrop(A_store[,which(dims=="cons"),,drop=FALSE],drop=2)
+  a1store <- Exstore <- NULL
   if(trend){
     a1store     <- adrop(A_store[,which(dims=="trend"),,drop=FALSE],drop=2)
-  }else{
-    a1store     <- NULL
   }
-  #dummiespost   <- A_store[,which(dims=="Dummies"),,drop=FALSE] #coefficients for the dummies
-  #postExpost    <- A_store[,which(dims=="Exogenous"),,drop=FALSE] #coefficients for the cont.exogenous
-  #postExlpost   <- A_store[,which(dims=="ExogenousLag"),,drop=FALSE] #coefficients for the lagged. ex
+  if(!is.null(Exraw)){
+    Exstore     <- A_store[,which(dims=="Tex"),,drop=FALSE]
+  }
   Lambda0store  <- A_store[,which(dims=="Wex"),,drop=FALSE]
   Lambdastore   <- NULL
   Phistore    <- NULL
@@ -343,7 +347,7 @@
   }else{
     lambda2_store <- tau_store <- lambda2_post <- tau_post <- NA
   }
-  store <- list(A_store=A_store,a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,Phistore=Phistore,SIGMA_store=SIGMA_store,SIGMAmed_store=SIGMAmed_store,L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,lambda2_store=lambda2_store,tau_store=tau_store)
+  store <- list(A_store=A_store,a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,Phistore=Phistore,Exstore=Exstore,SIGMA_store=SIGMA_store,SIGMAmed_store=SIGMAmed_store,L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,lambda2_store=lambda2_store,tau_store=tau_store)
   #------------------------------------ compute posteriors -------------------------------------------#
   A_post      <- apply(A_store,c(2,3),median)
   SIGMA_post  <- apply(SIGMA_store,c(2,3,4),median)
@@ -353,22 +357,21 @@
   res_post    <- apply(res_store,c(2,3),median)
   # splitting up posteriors
   a0post      <- A_post[which(dims=="cons"),,drop=FALSE]
+  a1post <- Expost <- NULL
   if(trend){
     a1post    <- A_post[which(dims=="trend"),,drop=FALSE]
-  }else{
-    a1post    <- NULL
   }
-  #dummies <- A_post[which(dims=="Dummies"),] #coefficients for the dummies
-  #postEx <- A_post[which(dims=="Exogenous"),] #coefficients for the cont.exogenous
-  #postExl <- A_post[which(dims=="ExogenousLag"),] #coefficients for the lagged. ex
+  if(!is.null(Exraw)){
+    Expost    <- A_post[which(dims=="Tex"),,drop=FALSE]
+  }
   Lambda0post <- A_post[which(dims=="Wex"),,drop=FALSE]
   Lambdapost  <- NULL
-  Phipost   <- NULL
+  Phipost     <- NULL
   for(jj in 1:plag){
     Lambdapost <- rbind(Lambdapost,A_post[which(dims==paste("Wexlag",jj,sep="")),,drop=FALSE])
-    Phipost  <- rbind(Phipost,A_post[which(dims==paste("Ylag",jj,sep="")),,drop=FALSE])
+    Phipost    <- rbind(Phipost,A_post[which(dims==paste("Ylag",jj,sep="")),,drop=FALSE])
   }
-  post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,Phipost=Phipost,SIGMA_post=SIGMA_post,S_post=S_post,Sig=Sig,theta_post=theta_post,vola_post=vola_post,pars_post=pars_post,res_post=res_post,shrink_post=shrink_post,PIP=PIP,PIP_omega=PIP_omega,lambda2_post=lambda2_post,tau_post=tau_post)
+  post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,Phipost=Phipost,Expost=Expost,SIGMA_post=SIGMA_post,S_post=S_post,Sig=Sig,theta_post=theta_post,vola_post=vola_post,pars_post=pars_post,res_post=res_post,shrink_post=shrink_post,PIP=PIP,PIP_omega=PIP_omega,lambda2_post=lambda2_post,tau_post=tau_post)
   return(list(Y=Y,X=X,W=W,store=store,post=post))
 }
 
@@ -378,7 +381,7 @@
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @noRd
-.BVAR_linear_R <- function(Y_in,W_in,p_in,saves_in,burns_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in){
+.BVAR_linear_R <- function(Y_in,W_in,p_in,saves_in,burns_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
   #----------------------------------------INPUTS----------------------------------------------------#
   Yraw  <- Y_in
   p     <- p_in
@@ -400,7 +403,14 @@
     colnames(Wexlag) <- wexnameslags
   }
   
-  X <- cbind(Ylag,Wraw,Wexlag)
+  texo <- FALSE; Mex <- 0; Exraw <- NULL
+  if(!is.null(Ex_in)){
+    Exraw <- Ex_in; Mex <- ncol(Exraw)
+    texo <- TRUE
+    colnames(Exraw) <- rep("Tex",Mex)
+  }
+  
+  X <- cbind(Ylag,Wraw,Wexlag,Exraw)
   X <- X[(p+1):nrow(X),,drop=FALSE]
   Y <- Yraw[(p+1):Traw,,drop=FALSE]
   bigT  <- nrow(X)
@@ -983,7 +993,7 @@
 #' @name .gvar.stacking.wrapper
 #' @importFrom stats median
 #' @noRd
-.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,saves,thin,trend,eigen=FALSE,trim=NULL){
+.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,saves,thin,trend,eigen,trim,verbose){
   bigT      <- nrow(xglobal)
   bigK      <- ncol(xglobal)
   cN        <- names(globalpost)
@@ -993,7 +1003,7 @@
   
   ## call Rcpp
   out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, saves_in=saves,
-                       thin_in=thin, trend_in=trend, eigen_in=TRUE)
+                       thin_in=thin, trend_in=trend, eigen_in=TRUE, verbose_in=verbose)
   A_large    <- out$A_large
   for(pp in 1:plag){
     F_large[,,,pp] <- out$F_large[,,((bigK*(pp-1))+1):(bigK*pp),drop=FALSE]

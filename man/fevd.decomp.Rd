@@ -4,7 +4,7 @@
 \alias{fevd.decomp}
 \title{Forecast Error Variance Decomposition}
 \usage{
-fevd.decomp(obj, R=NULL, var.slct=NULL)
+fevd.decomp(obj, R=NULL, var.slct=NULL, verbose=TRUE)
 }
 \arguments{
 \item{obj}{an object of class \code{bgvar.irf}.}
@@ -12,6 +12,8 @@ fevd.decomp(obj, R=NULL, var.slct=NULL)
 \item{R}{If \code{NULL} and the \code{obj} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
 
 \item{var.slct}{character vector that contains the variables for which forecast error variance decomposition should be performed. If \code{NULL} the FEVD is computed for the whole system, which is very time consuming.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns a list with two elements \itemize{
@@ -26,8 +28,38 @@ This function calculates the forecast error variance decomposition (FEVDs) for C
 Since the calculations are very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC sweep). In case the underlying shock has been identified via sign restrictions, the rotation matrix corresponds to the one that fulfills the sign restrictions at the posterior median of the estimated coefficients. More precisely, the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+                      prior="SSVS",thin=1,eigen=TRUE)
+                      
+# US monetary policy shock
+shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+
+# calculates FEVD for variables US.Dp and EA.y
+fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
+
+# US monetary policy shock with sign restrictions
+sign.constr<-list()
+sign.constr$shock1$shock             <- c("US.stir")
+sign.constr$shock1$restrictions$res1 <- c("US.y")
+sign.constr$shock1$restrictions$res2 <- c("US.Dp")
+sign.constr$shock1$sign              <- c(">","<","<")
+sign.constr$shock1$rest.horz         <- c(1,1,1)
+sign.constr$shock1$constr            <- c(1,1,1)
+sign.constr$shock1$scal              <- +100 
+sign.constr$MaxTries<-200
+irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+
+# calculates FEVD for variables US.Dp and EA.y
+fevd.us.mp=fevd.decomp(obj=irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,

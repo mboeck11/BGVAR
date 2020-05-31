@@ -915,19 +915,19 @@ Main arguments and description of the function `bgvar`.
 
 * `W`: An $N \times N$ weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. See the help files for getweights for more details.
 
-* `plag`: Number of lags used (the same for domestic, exogenous and weakly exogenous variables).
+* `plag`: Number of lags used (the same for domestic, exogenous and weakly exogenous variables). Default set to `plag=1`.
 
-* `saves`: Number of draws saved.
+* `saves`: Number of draws saved. Default set to `saves=5000`.
 
-* `burns`: Number of burn-ins.
+* `burns`: Number of burn-ins. Default set to `burns=5000`.
 
-* `prior`: Either "SSVS", "MN" or "NG". See details below.
+* `prior`: Either "SSVS", "MN" or "NG". See details below. Default set to `prior=NG`.
 
 * `SV`: If set to `"TRUE"`, models are fitted with stochastic volatility using the `stochvol` and `GIGrvg` packages. Due to storage issues, not the whole history of the $T$ variance covariance matrices are kept. Consequently, the BGVAR package shows only one set of impulse responses (with variance covariance matrix based on the median volatilities over the sample period) instead of $T$ sets. Specify `SV=FALSE` to turn SV off.
 
 * `h`: Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 
-* `thin`: Is a thinning interval which grabs every 'thin'th draw from the posterior output. For example, `thin=10` saves every tenth draw from the posterior.  
+* `thin`: Is a thinning interval which grabs every 'thin'th draw from the posterior output. For example, `thin=10` saves every tenth draw from the posterior. Default set to `thin=1`.
 
 * `hyperpara`: Is a list object that defines the hyperparameters when the prior is set to either `"MN"`, `"SSVS"` or `"NG"`.
     + `"miscellaneous:"` 
@@ -954,7 +954,7 @@ Main arguments and description of the function `bgvar`.
     + `"NG"`
         + `e_lambda` Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is `e_lambda=1.5`.
         + `d_lambda` Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is `d_lambda=1`.
-        + `a_start` Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of `a_start=1` would lead to the Bayesian LASSO. standard value is `a_start=0.2`.
+        + `a_start` Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of `a_start=1` would lead to the Bayesian LASSO. Default value differs per entity and set to `a_start=1/log(M)`, where `M` is the number of endogenous variables per entity.
         + `sample_A` If set to `TRUE` `a_start` is sampled.
 
 * `eigen` Set to `TRUE` if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If `eigen` is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to $1.05$ (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than $1.05$ in modulus).

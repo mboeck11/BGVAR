@@ -4,7 +4,7 @@
 \alias{predict.bgvar}
 \title{Compute predictions}
 \usage{
-\method{predict}{bgvar}(object, ..., fhorz = 8, save.store = FALSE)
+\method{predict}{bgvar}(object, ..., fhorz = 8, save.store = FALSE, verbose = TRUE)
 }
 \arguments{
 \item{object}{an object of class \code{bgvar}.}
@@ -14,9 +14,11 @@
 \item{fhorz}{the forecast horizon.}
 
 \item{save.store}{If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns an object of class \code{bgvar.predict} with the following elements \itemize{
+Returns an object of class \code{bgvar.pred} with the following elements \itemize{
 \item{\code{fcast}}{ is a K times fhorz times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the posterior predictive distribution.}
 \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 \item{\code{fhorz}}{ specified forecast horizon.}
@@ -28,17 +30,24 @@ Returns an object of class \code{bgvar.predict} with the following elements \ite
 A function that computes predictions based on a object of class \code{bgvar}.
 }
 \examples{
-\donttest{
-set.seed(571)
+\dontshow{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC <- NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.mn <- bgvar(Data=monthlyData,W=W,plag=1,h=8,saves=100,burns=100,prior="MN",
-                  OE.weights=OE.weights)
-fcast <- predict(model.mn, fhorz=8)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+fcast <- predict(model.ssvs, fhorz=8)
+}
+\donttest{
+library(BGVAR)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+fcast <- predict(model.ssvs, fhorz=8)
 }
 }
 \author{
-Martin Feldkircher, Florian Huber
+Maximilian Boeck, Martin Feldkircher, Florian Huber
 }

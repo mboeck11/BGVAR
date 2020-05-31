@@ -7,22 +7,22 @@
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
 #' 
 #' @usage 
-#' bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
-#'       thin=1, hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, 
-#'       Wex.restr=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE)
+#' bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1, 
+#'       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
+#'       Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
 #' 
 #' @param Data Either a \itemize{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param W An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. 
-#' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.)
-#' @param saves Number of draws saved.
-#' @param burns Number of burn-ins.
-#' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500.
+#' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.
+#' @param saves Number of draws saved. Default set to \code{saves=5000}.
+#' @param burns Number of burn-ins. Default set to \code{burns=5000}.
 #' @param prior Either "SSVS", "MN" or "NG". See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
 #' @param h Defines the hold-out sample. Default without hold-out sample, thus set to zero.
+#' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500. Default set to \code{thin=1}.
 #' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS} or \code{NG}. \itemize{
 #' \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 #' \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
@@ -49,7 +49,7 @@
 #' \item{"NG":}{\itemize{
 #'       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
 #'       \item{\code{d_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{d_lambda=1}.}
-#'       \item{\code{a_start}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of a_start=1 would lead to the Bayesian LASSO. Default value is \code{a_start=0.2}. If set to \code{sample_A=TRUE}.}
+#'       \item{\code{a_start}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of a_start=1 would lead to the Bayesian LASSO. Default value differs per entity and set to \code{a_start=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
 #'       \item{\code{sample_A}}{ If set to \code{TRUE} \code{a_start} is sampled.}
 #'       }}
 #'  }
@@ -61,10 +61,14 @@
 #' \item{\code{exo}}{ a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
 #' }
 #' @param Wex.restr A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically. See function \code{getweights} for more details.
+#' @param Ex For including truly exogenous variables to the model. Either a \itemize{
+#' \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
+#' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
+#' }
 #' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
 #' @param save.country.store If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.
 #' @param multithread If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.
-#' 
+#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details We provide three priors, the Minnesota labeled \code{MN}, the SSVS and the Normal-Gamma prior. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
 #'  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
 #' 
@@ -95,8 +99,23 @@
 #'       \item{\code{tau}}{ in case \code{prior="NG"} each entry contains the estimated parameter that governs the heaviness of the tails of the marginal prior distribution of the coefficients associated to endogenous variables. Structure is the same as \code{lambda2}.}
 #' }}}
 #' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
+#' 
+#' W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
+#' variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
+#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=200, 
+#'                   burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+#' print(model.mn)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' # replicate Feldkircher and Huber (2016) using trade based weights
 #' data(eerData)
@@ -156,11 +175,11 @@
 #' @importFrom stats is.ts median time ts
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
-bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE){
+bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE,verbose=TRUE){
   start.bgvar <- Sys.time()
   #------------------------------ NA checks  ------------------------------------------------------#
   # check NAs
-  if(any(is.na(Data)) || any(is.na(W))){
+  if(any(is.na(Data)) || any(is.na(W)) || any(is.na(Ex))){
     stop("The data you have submitted contains NAs. Please check the data including the weight matrix.")
   }
   if(!is.numeric(plag)){
@@ -174,16 +193,15 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   }
   #-------------------------- construct arglist ----------------------------------------------------#
   args <- .construct.arglist(bgvar)
-  cat("\nStart estimation of Bayesian Global Vector Autoregression.\n\n")
-  cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
-  cat(paste("Lag order: ",plag,"\n",sep=""))
-  cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
+  if(verbose){
+    cat("\nStart estimation of Bayesian Global Vector Autoregression.\n\n")
+    cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
+    cat(paste("Lag order: ",plag,"\n",sep=""))
+    cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
+  }
   #------------------------------ user checks  ---------------------------------------------------#
   # check Data
   if(is.matrix(Data)){
-    if(any(is.na(Data))){
-      stop("The data you have submitted contains NAs. Please check the data.")
-    }
     if(!all(grepl("\\.",colnames(Data)))){
       stop("Please separate country- and variable names with a point.")
     }
@@ -244,6 +262,7 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
       }
     }
     args$time <- timeindex
+    args$Traw <- length(timeindex)
   }
   args$Data <- Data
   # check Weight matrix
@@ -270,46 +289,102 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
       W[[ww]] <- W[[ww]][cN[!cN%in%names(OE.weights)],cN[!cN%in%names(OE.weights)]]
     }
   }
+  # check truly exogenous variables
+  if(!is.null(Ex)){
+    if(is.matrix(Ex)){
+      if(nrow(Ex)!=args$Traw){
+        stop("Provided data and truly exogenous data not equally long. Please check.")
+      }
+      if(!all(grepl("\\.",colnames(Ex)))){
+        stop("Please separate country- and variable names with a point.")
+      }
+      ExcN <- unique(unlist(lapply(strsplit(colnames(Ex),".",fixed=TRUE),function(l) l[1])))
+      if(!all(ExcN%in%cN)){
+        stop("Provided country names in data and truly exogenous data not equal. Please check.")
+      }
+      ExN  <- length(ExcN)
+      if(!all(nchar(ExcN)>1)){
+        stop("Please provide entity names with minimal two characters.")
+      }
+      temp <- list()
+      for(cc in 1:ExN){
+        temp[[cN[cc]]] <- Ex[,grepl(ExcN[cc],colnames(Ex))]
+        colnames(temp[[ExcN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[ExcN[cc]]]),".",fixed=TRUE),function(l)l[2]))
+      }
+      Ex <- temp
+    }
+    if(is.list(Ex)){
+      ExN <- length(Ex)
+      # check names
+      if(is.null(names(Ex))){
+        names(Ex)<-paste(c,1:length(Ex),sep="")
+      }
+      ExcN <- names(Ex)
+      if(!all(nchar(ExcN)>1)){
+        stop("Please provide entity names with minimal two characters..")
+      }
+      if(!all(ExcN%in%cN)){
+        stop("Provided country names in data and truly exogenous data not equal. Please check.")
+      }
+      isTS  <- unlist(lapply(Ex,function(l)is.ts(l)))
+      isXTS <- unlist(lapply(Ex,function(l)is.xts(l)))
+      if(!all(isTS) & any(isTS)){
+        stop("Please provide all list elements as time-series objects.")
+      }
+      if(!all(isXTS) & any(isXTS)){
+        stop("Please provide all list elements as xts objects.")
+      }
+      isTS <- all(isTS); isXTS <- all(isXTS)
+      ExTraw <- unique(unlist(lapply(Ex,function(l)nrow(l))))
+      if(length(ExTraw)>1){
+        stop("Please provide same sample size for all countries.")
+      }
+      if(ExTraw!=args$Traw){
+        stop("Provided data and truly exogenous data not equally long. Please check.")
+      }
+    }
+  }
   # check prior
   if(!prior%in% c("MN","SSVS","NG")){
     stop("Please selecte one of the following prior options: MN, SSVS or NG")
   }
   # check thinning factor
   if(thin<1){
-    cat(paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
+    thin_mess <- paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep="")
     thin <- round(1/thin,2)
   }
   if(saves%%thin!=0){
-    cat(paste("Thinning factor of ",thin," no divisor of ",saves," (number of draws to save for posterior analysis).\n",sep=""))
+    thin_mess <- paste("Thinning factor of ",thin," no divisor of ",saves," (number of draws to save for posterior analysis).\n",sep="")
     div <- .divisors(saves,thin)
     thin <- min(div[which(abs(div-thin)==min(abs(div-thin)))])
-    cat(paste("New thinning factor: ", thin,". This means every", ifelse(thin==1,"",ifelse(thin==2,paste(" ",thin,"nd ",sep=""), ifelse(thin==3,paste(" ",thin,"rd ",sep=""),paste(" ",thin,"th ",sep="")))), "draw is saved.\n"),sep="")
+    thin_mess <- paste(thin_mess,"New thinning factor: ", thin,". This means every", ifelse(thin==1,"",ifelse(thin==2,paste(" ",thin,"nd ",sep=""), ifelse(thin==3,paste(" ",thin,"rd ",sep=""),paste(" ",thin,"th ",sep="")))), "draw is saved.\n",sep="")
   }else{
-    cat(paste("Thinning factor: ", thin,". This means every ",ifelse(thin==1,"",ifelse(thin==2,paste(thin,"nd ",sep=""),ifelse(thin==3,paste(thin,"rd ",sep=""),paste(thin,"th ",sep="")))),"draw is saved.\n",sep=""))
+    thin_mess <- paste("Thinning factor: ", thin,". This means every ",ifelse(thin==1,"",ifelse(thin==2,paste(thin,"nd ",sep=""),ifelse(thin==3,paste(thin,"rd ",sep=""),paste(thin,"th ",sep="")))),"draw is saved.\n",sep="")
   }
+  if(verbose) cat(thin_mess)
   args$thinsaves <- saves/thin
   # set default
-  cat("Hyperparameter setup: \n")
+  if(verbose) cat("Hyperparameter setup: \n")
   default_hyperpara <- list(a_1=0.01,b_1=0.01, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
                             e_lambda=0.01,d_lambda=0.01,a_start=0.7,sample_A=FALSE,a_log=TRUE) # NG
-  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0_sv","b0_sv","bmu","Bmu","shrink1","shrink2","shrink3",
+  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
                  "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","e_lambda","d_lambda","a_start","sample_A")
   if(is.null(hyperpara)){
-    cat("\t No hyperparameters are chosen, default setting applied.\n")
+    if(verbose) cat("\t No hyperparameters are chosen, default setting applied.\n")
   }
   if(!is.null(hyperpara)){
     for(para in names(hyperpara)){
       if(!para%in%paras){
-        cat(paste0("\t ",para," no valid hyperparameter. Please check.\n"))
+        warning(paste0(para," no valid hyperparameter. Please check.\n"))
         next
       }
       default_hyperpara[para] <- hyperpara[para]
       if(para=="a_start") a_log <- FALSE
     }
-    cat("\t Default values for chosen hyperparamters overwritten.\n")
+    if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }
   #------------------------------ get weights -----------------------------------------------------------------#
   xglobal <- .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)
@@ -324,33 +399,32 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   xglobal    <- xglobal[1:(nrow(xglobal)-h),,drop=FALSE]
   args$time  <- args$time[1:(length(args$time)-h)]
   #------------------------------ estimate BVAR ---------------------------------------------------------------#
-  cat("\nEstimation of country models starts... ")
+  if(verbose) cat("\nEstimation of country models starts... ")
   start.estim <- Sys.time()
   globalpost <- list()
   if(multithread){
     numCores <- detectCores()
     registerDoParallel(cores=numCores)
-    globalpost <- foreach(cc=1:N) %dopar% {.BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara)}
+    globalpost <- foreach(cc=1:N) %dopar% {.BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)}
   }else{
-    globalpost <- lapply(1:N, function(cc) .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara))
+    globalpost <- lapply(1:N, function(cc) .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex))
   }
   names(globalpost) <- cN
   end.estim <- Sys.time()
   diff.estim <- difftime(end.estim,start.estim,units="mins")
   mins <- round(diff.estim,0); secs <- round((diff.estim-floor(diff.estim))*60,0)
-  cat(paste(" took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste(" took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
   #--------------------------- stacking part for global model -----------------------------------------------------#
   if(is.logical(eigen)){
     if(eigen){trim<-1.05}else{trim<-NULL}
   }else{
     trim<-eigen;eigen<-TRUE
   }
-  cat("Start stacking: \n")
+  if(verbose) cat("Start stacking: \n")
   # insert stacking function here
-  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,saves=saves,thin=thin,trend=trend,eigen=eigen,trim=trim)
+  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,saves=saves,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
   if(!is.null(trim)) {args$thinsaves <- length(stacked.results$F.eigen)}
-  cat("\n")
-  cat("Stacking finished.\n")
+  if(verbose) cat("\nStacking finished.\n")
   #--------------------------- prepare country models -------------------------------------------------------------#
   # country model residuals
   country.coeffs <- lapply(globalpost,function(l) l$post$A_post)
@@ -377,7 +451,10 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
       }
       endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
     }
-    names <- c(endoL,wex0,wexL,"cons")
+    if(cN[cc]%in%names(Ex)){
+      tex <- colnames(Ex[[cN[cc]]])
+    }else{tex<-NULL}
+    names <- c(endoL,wex0,wexL,tex,"cons")
     if(trend) names <- c(names,"trend")
     
     rownames(country.coeffs[[cc]]) <- names
@@ -406,7 +483,7 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   end.bgvar <- Sys.time()
   diff.bgvar <- difftime(end.bgvar,start.bgvar,units="mins")
   mins.bgvar <- round(diff.bgvar,0); secs.bgvar <- round((diff.bgvar-floor(diff.bgvar))*60,0)
-  cat(paste("\n Needed time for estimation of bgvar: ",mins.bgvar," ",ifelse(mins.bgvar==1,"min","mins")," ",secs.bgvar, " ",ifelse(secs.bgvar==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\n Needed time for estimation of bgvar: ",mins.bgvar," ",ifelse(mins.bgvar==1,"min","mins")," ",secs.bgvar, " ",ifelse(secs.bgvar==1,"second.","seconds.\n"),sep=""))
   return(out)
 }
 
@@ -422,13 +499,22 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
 #' \code{\link{bgvar}} to estimate a \code{bgvar} object.
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples 
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
+#' print(model.ssvs)
+#' }
 #' \donttest{
 #' library(BGVAR)
-#' data(monthlyData)
-#' monthlyData$OC<-NULL
-#' OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-#' model.ssvs<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="SSVS",
-#'                   OE.weights=OE.weights)
+#' data(eerData)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 #' print(model.ssvs)
 #' }
 #' @importFrom utils object.size
@@ -482,14 +568,22 @@ print.bgvar<-function(x, ...){
 #' 
 #' \code{\link{resid.corr.test}} to compute F-test on first-order autocorrelation of cross-country residuals separately.
 #' @author Maximilian Boeck
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
+#'                     prior="SSVS")
+#' summary(model.ssvs)
+#' }
 #' \donttest{
 #' library(BGVAR)
-#' data(monthlyData)
-#' monthlyData$OC<-NULL
-#' OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-#' model.ssvs<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="SSVS",
-#'                 OE.weights=OE.weights,eigen=TRUE)
+#' data(eerData)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS",thin=1)
 #' summary(model.ssvs)
 #' }
 #' @export
@@ -552,19 +646,28 @@ summary.bgvar <- function(object, ...){
 #' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
 #' @export
 #' @examples 
-#' \donttest{
-#' set.seed(571)
+#' \dontshow{
 #' library(BGVAR)
-#' data(monthlyData)
-#' monthlyData$OC <- NULL
-#' OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-#' model.mn<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="MN",
-#'                   OE.weights=OE.weights)
-#' plot(model.mn, resp="AT")
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' plot(model.ssvs, resp="EA") 
+#' }
+#' \donttest{
+#' library(BGVAR)
+#' data(eerData)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' summary(model.ssvs)
+#' plot(model.ssvs, resp="EA")
 #' }
 #' @importFrom graphics axis lines par plot abline
 #' @importFrom stats median plot.ts
 plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
+  oldpar   <- par(no.readonly=TRUE)
   plag     <- x$args$plag
   xglobal  <- x$xglobal
   trend    <- x$args$trend
@@ -625,6 +728,7 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  on.exit(par(oldpar))
 }
 
 #' @name residuals.bgvar
@@ -644,16 +748,24 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats resid
-#' @examples 
-#' \donttest{
-#' set.seed(571)
+#' @examples
+#' \dontshow{
 #' library(BGVAR)
-#' data(monthlyData)
-#' monthlyData$OC <- NULL
-#' OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-#' model.mn <- bgvar(Data=monthlyData,W=W,plag=1,saves=100,burns=100,prior="MN",
-#'                     OE.weights=OE.weights)
-#' res <- residuals(model.mn)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' res <- residuals(model.ssvs)
+#' }
+#' \donttest{
+#' library(BGVAR)
+#' data(eerData)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' summary(model.ssvs)
+#' res <- residuals(model.ssvs)
 #' }
 residuals.bgvar <- function(object, ...){
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
@@ -696,21 +808,31 @@ resid.bgvar <- residuals.bgvar
 #' @param global if \code{TRUE} global residuals are plotted, otherwise country residuals.
 #' @param resp default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
 #' @export
-#' @examples 
-#' \donttest{
-#' set.seed(571)
+#' @examples
+#' \dontshow{
 #' library(BGVAR)
-#' data(monthlyData)
-#' monthlyData$OC <- NULL
-#' OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-#' model.mn <- bgvar(Data=monthlyData,W=W,plag=1,saves=100,burns=100,prior="MN",
-#'                   OE.weights=OE.weights)
-#' res <- residuals(model.mn)
-#' plot(res, resp="AT")
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' res <- residuals(model.ssvs)
+#' plot(res, resp="EA")
+#' }
+#' \donttest{
+#' library(BGVAR)
+#' data(eerData)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#'                     prior="SSVS")
+#' summary(model.ssvs)
+#' res <- residuals(model.ssvs)
+#' plot(res, resp="EA")
 #' }
 #' @importFrom graphics abline axis lines par plot
 #' @importFrom stats quantile plot.ts
 plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
+  oldpar   <- par(no.readonly=TRUE)
   bigT     <- nrow(x$Data)
   time     <- .timelabel(rownames(x$Data))
   varNames <- dimnames(x$Data)[[2]]
@@ -761,6 +883,7 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  on.exit(par(oldpar))
 }
 
 #' @name coef.bgvar
@@ -772,8 +895,15 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
 #' @export
 #' @importFrom stats quantile
 #' @examples
+#' \dontshow{
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' coef(model.ng)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
@@ -803,8 +933,15 @@ coefficients.bgvar <- coef.bgvar
 #' @param quantile reported quantiles. Default is set to median.
 #' @importFrom stats vcov
 #' @examples
+#' \dontshow{
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' vcov(model.ng)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
@@ -832,8 +969,15 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' @param global if \code{TRUE} global fitted values are returned otherwise country fitted values.
 #' @importFrom stats fitted
 #' @examples 
+#' \dontshow{
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' fitted(model.ng)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
@@ -867,8 +1011,15 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' @param quantile reported quantiles. Default is set to median.
 #' @importFrom stats logLik
 #' @examples 
+#' \dontshow{
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' logLik(model.ng)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)

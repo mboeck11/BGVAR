@@ -4,12 +4,14 @@
 \alias{hd.decomp}
 \title{Historical Decomposition}
 \usage{
-hd.decomp(obj, R=NULL)
+hd.decomp(obj, R=NULL, verbose=TRUE)
 }
 \arguments{
 \item{obj}{an item fitted by \code{IRF}.}
 
 \item{R}{If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns a list with the following objects \itemize{
@@ -25,6 +27,18 @@ A function that calculates historical decomposition (HD) of the time series and 
 To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix tha minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+                      prior="SSVS",thin=1,eigen=TRUE)
+shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+HD <- hd.decomp(irf.chol.us.mp)
+}
 \donttest{
 set.seed(571)
 library(BGVAR)

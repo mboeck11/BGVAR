@@ -1,2 +1,7 @@
 Changes in Version 2.0
+- added truly exogenous variables to the estimation function
+- verbosity option now available for all functions
+- user par settings are not affected by BGVAR any more
+
+Changes in Version 2.0
 - First CRAN release version.

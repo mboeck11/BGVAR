@@ -5,7 +5,7 @@
 \alias{cond.predict}
 \title{Conditional Forecasts}
 \usage{
-cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL)
+cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TRUE)
 }
 \arguments{
 \item{constr}{a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.}
@@ -15,6 +15,15 @@ cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL)
 \item{pred.obj}{an item fitted by \code{predict}. Note that \code{save.store=TRUE} is required as argument!}
 
 \item{constr_sd}{a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
+}
+\value{
+Returns an object of class \code{bgvar.pred} with the following elements \itemize{
+\item{\code{fcast}}{ is a K times fhorz times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the conditional posterior predictive distribution.}
+\item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
+\item{\code{fhorz}}{ specified forecast horizon.}
+}
 }
 \description{
 Function that computes conditional forecasts for Bayesian Vector Autoregressions.
@@ -23,8 +32,31 @@ Function that computes conditional forecasts for Bayesian Vector Autoregressions
 Conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE)
+
+# compute predictions
+fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+
+# set up constraints matrix of dimension fhorz times K
+constr <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+colnames(constr) <- colnames(model.ssvs.eer$xglobal)
+constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
+
+# add uncertainty to conditional forecasts
+constr_sd <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.eer$xglobal))
+colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
+constr_sd[1:5,"US.Dp"] <- 0.001
+
+cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",

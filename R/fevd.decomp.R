@@ -1,20 +1,51 @@
 #' @name fevd.decomp
 #' @title Forecast Error Variance Decomposition
 #' @description This function calculates the forecast error variance decomposition (FEVDs) for Cholesky and sign-identified shocks.
-#' @usage fevd.decomp(obj, R=NULL, var.slct=NULL)
+#' @usage fevd.decomp(obj, R=NULL, var.slct=NULL, verbose=TRUE)
 #' @details Since the calculations are very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC sweep). In case the underlying shock has been identified via sign restrictions, the rotation matrix corresponds to the one that fulfills the sign restrictions at the posterior median of the estimated coefficients. More precisely, the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 #' @param obj an object of class \code{bgvar.irf}.
 #' @param R If \code{NULL} and the \code{obj} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param var.slct character vector that contains the variables for which forecast error variance decomposition should be performed. If \code{NULL} the FEVD is computed for the whole system, which is very time consuming.
+#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns a list with two elements \itemize{
 #' \item{\code{FEVD}}{  an array of size (K times horizon times N), where K are all variables in the system, horizon is the specified impulse response horizon and N is the size of the decomposed structural variables (if \code{var.slct=NULL} then K=N).}
 #' \item{\code{xglobal}}{ used data of the model.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @seealso \code{\link{IRF}}
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#'                       prior="SSVS",thin=1,eigen=TRUE)
+#'                       
+#' # US monetary policy shock
+#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' 
+#' # calculates FEVD for variables US.Dp and EA.y
+#' fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
+#' 
+#' # US monetary policy shock with sign restrictions
+#' sign.constr<-list()
+#' sign.constr$shock1$shock             <- c("US.stir")
+#' sign.constr$shock1$restrictions$res1 <- c("US.y")
+#' sign.constr$shock1$restrictions$res2 <- c("US.Dp")
+#' sign.constr$shock1$sign              <- c(">","<","<")
+#' sign.constr$shock1$rest.horz         <- c(1,1,1)
+#' sign.constr$shock1$constr            <- c(1,1,1)
+#' sign.constr$shock1$scal              <- +100 
+#' sign.constr$MaxTries<-200
+#' irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+#' 
+#' # calculates FEVD for variables US.Dp and EA.y
+#' fevd.us.mp=fevd.decomp(obj=irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
@@ -47,10 +78,10 @@
 #  fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=NULL)
 #' }
 #' @export
-fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
+fevd.decomp <- function(obj,R=NULL,var.slct=NULL,verbose=TRUE){
   start.fevd <- Sys.time()
   if(!inherits(obj, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
-  cat("\nStart computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
+  if(verbose) cat("\nStart computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- obj$model.obj$xglobal
   plag    <- obj$model.obj$plag
@@ -71,10 +102,10 @@ fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
   cN <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
   N  <- length(cN)
   if(ident=="sign"){
-    cat("Identification scheme: Sign-restrictions provided.\n")
+    if(verbose) cat("Identification scheme: Sign-restrictions provided.\n")
     shock.cN <- sapply(strsplit(unlist(lapply(sign.constr,function(l)l$shock)),".",fixed=TRUE),function(x)x[1])
   }else if(ident=="chol"){
-    cat("Identification scheme: Short-run restrictions via Cholesky decomposition.\n")
+    if(verbose) cat("Identification scheme: Short-run restrictions via Cholesky decomposition.\n")
     shock.cN <- shock$cN
   }
   #-------------------- some checks ------------------------------------------------------------------#
@@ -87,12 +118,12 @@ fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
     }
   }
   if(is.null(var.slct)){
-    cat("FEVD computed for all variables.\n\n")
+    if(verbose) cat("FEVD computed for all variables.\n\n")
     var.slct<-varNames
   }else{
     var.print <- var.slct[1]
     if(length(var.slct)>1) for(kk in 2:length(var.slct)) var.print <- paste(var.print,", ",var.slct[kk],sep="")
-    cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
+    if(verbose) cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
   }
   if(ident=="sign" && is.null(R)){
     R <- obj$struc.obj$Rmed
@@ -122,7 +153,7 @@ fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
   }
   PHI  <-  PHIx[,,(plag+1):(plag+horizon+1)]
   #----------------------------------------------------------------------------------------------------#
-  cat("Start computing FEVDs...\n")
+  if(verbose) cat("Start computing FEVDs...\n")
   vslct      <- diag(bigK)
   invGSigmau <- Ginv%*%gcov # use gcov not SIGMA_u from irf.obj
   invGSinvG  <- invGSigmau%*%t(Ginv)
@@ -154,33 +185,45 @@ fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
   out <- structure(list(FEVD=FEVDres,
                         xglobal=xglobal),
                    class="bgvar.fevd")
-  cat(paste("\nSize of FEVD object: ", format(object.size(FEVDres),unit="MB")))
+  if(verbose) cat(paste("\nSize of FEVD object: ", format(object.size(FEVDres),unit="MB")))
   end.fevd <- Sys.time()
   diff.fevd <- difftime(end.fevd,start.fevd,units="mins")
   mins.fevd <- round(diff.fevd,0); secs.fevd <- round((diff.fevd-floor(diff.fevd))*60,0)
-  cat(paste("\nNeeded time for computation: ",mins.fevd," ",ifelse(mins.fevd==1,"min","mins")," ",secs.fevd, " ",ifelse(secs.fevd==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nNeeded time for computation: ",mins.fevd," ",ifelse(mins.fevd==1,"min","mins")," ",secs.fevd, " ",ifelse(secs.fevd==1,"second.","seconds.\n"),sep=""))
   return(out)
 }
 
 #' @name gfevd.decomp
 #' @title Generalized Forecast Error Variance Decomposition
 #' @description This function calculates a complete generalized forecast error variance decomposition (GFEVDs) based on generalized impulse response functions akin to Lanne-Nyberg (2016). The Lanne-Nyberg (2016) corrected GFEVD sum up to unity.
-#' @usage gfevd.decomp(obj, nhor=24, running=TRUE, multithread=FALSE)
+#' @usage gfevd.decomp(obj, nhor=24, running=TRUE, multithread=FALSE, verbose=TRUE)
 #' @param obj an object of class \code{bgvar}.
 #' @param nhor the forecast horizon.
 #' @param running Default is set to \code{TRUE} and implies that only a running mean over the posterior draws is calculated. A full analysis including posterior bounds is likely to cause memory issues.
 #' @param multithread If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.
-#' #' @return Returns a list with two elements \itemize{
+#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
+#' @return Returns a list with two elements \itemize{
 #' \item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{nhor} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
 #' \item{\code{xglobal}}{ used data of the model.}
 #' }
-#' @author Martin Feldkircher
+#' @author Maximilian Boeck, Martin Feldkircher
 #' @references 
 #' Lanne, M. and H. Nyberg (2016) \emph{Generalized Forecast Error Variance Decomposition for Linear and Nonlinear Multivariate Models.} Oxford Bulletin of Economics and Statistics, Vol. 78(4), pp. 595-603.
 #' @seealso \code{\link{bgvar}}.
 #' @examples 
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' 
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#'                       prior="SSVS",thin=1,eigen=TRUE)
+#'                       
+#' GFEVD<-gfevd.decomp(model.ssvs.eer,nhor=24,running=TRUE)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
@@ -194,10 +237,10 @@ fevd.decomp <- function(obj,R=NULL,var.slct=NULL){
 #' @importFrom doParallel registerDoParallel
 #' @importFrom foreach foreach %dopar%
 #' @importFrom parallel detectCores
-gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
+gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE,verbose=TRUE){
   start.gfevd <- Sys.time()
   if(!inherits(obj, "bgvar")) {stop("Please provide a `bgvar` object.")}
-  cat("\nStart computing generalized forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
+  if(verbose) cat("\nStart computing generalized forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   plag        <- obj$args$plag
   xglobal     <- obj$xglobal
@@ -219,7 +262,7 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
     if(multithread){
       numCores <- detectCores()
       registerDoParallel(cores=numCores)
-      cat(paste("Start computation on ", numCores, " cores", " (",thinsaves," stable draws in total).",sep=""),"\n")
+      if(verbose) cat(paste("Start computation on ", numCores, " cores", " (",thinsaves," stable draws in total).",sep=""),"\n")
       imp.obj <-foreach(irep=1:thinsaves) %dopar% {
         irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
                                x,horizon=nhor)$impl
@@ -231,7 +274,7 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
       }
       GFEVD_post<-GFEVD_post/thinsaves
     }else{
-      cat(paste("Start computation on single core", " (",thinsaves," stable draws in total).",sep=""),"\n")
+      if(verbose) cat(paste("Start computation on single core", " (",thinsaves," stable draws in total).",sep=""),"\n")
       for(irep in 1:thinsaves){
         irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
                                x,horizon=nhor)$impl
@@ -248,7 +291,7 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
     if(multithread){# use parallel computing for IRF analysis
       numCores <- detectCores()
       registerDoParallel(cores=numCores)
-      cat(paste("Start computation on ", numCores, " cores", " (",thinsaves," stable draws in total).",sep=""),"\n")
+      if(verbose) cat(paste("Start computation on ", numCores, " cores", " (",thinsaves," stable draws in total).",sep=""),"\n")
       imp.obj <-foreach(irep=1:thinsaves) %dopar%{
         irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
                                x,horizon=nhor)$impl
@@ -259,7 +302,7 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
         GFEVD_draws[irep,,,] <- imp.obj[[irep]]$GFEVD
       }
     }else{ #carry out impulse response function analysis in a loop
-      cat(paste("Start computation on single core", " (",thinsaves," stable draws in total).",sep=""),"\n")
+      if(verbose) cat(paste("Start computation on single core", " (",thinsaves," stable draws in total).",sep=""),"\n")
       for(irep in 1:thinsaves){
         irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
                                x,horizon=nhor)$impl
@@ -276,11 +319,11 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
                         xglobal=xglobal),
                    class="bgvar.fevd")
   if(!running) out$GFEVD_store <- GFEVD_draws
-  cat(paste("Size of IRF object:", format(object.size(out),unit="MB")))
+  if(verbose) cat(paste("Size of IRF object:", format(object.size(out),unit="MB")))
   end.gfevd <- Sys.time()
   diff.gfevd <- difftime(end.gfevd,start.gfevd,units="mins")
   mins.gfevd <- round(diff.gfevd,0); secs.gfevd <- round((diff.gfevd-floor(diff.gfevd))*60,0)
-  cat(paste("\nNeeded time for computation: ",mins.gfevd," ",ifelse(mins.gfevd==1,"min","mins")," ",secs.gfevd, " ",ifelse(secs.gfevd==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nNeeded time for computation: ",mins.gfevd," ",ifelse(mins.gfevd==1,"min","mins")," ",secs.gfevd, " ",ifelse(secs.gfevd==1,"second.","seconds.\n"),sep=""))
   return(out)
 }
 
@@ -293,8 +336,26 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE){
 #' @param k.max plots the k series with the highest for the decomposition of \code{ts}.
 #' @author Maximilian Boeck
 #' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' 
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+#'                       prior="SSVS",thin=1,eigen=TRUE)
+#'                       
+#' # US monetary policy shock
+#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
+#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' 
+#' # calculates FEVD for variables US.Dp and EA.y
+#' fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
+#' 
+#' plot(fevd.us.mp, ts="US.Dp", k.max=10)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,

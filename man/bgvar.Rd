@@ -4,9 +4,9 @@
 \alias{bgvar}
 \title{BGVAR}
 \usage{
-bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
-      thin=1, hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, 
-      Wex.restr=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE)
+bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1, 
+      hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
+      Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
 }
 \arguments{
 \item{Data}{Either a \itemize{
@@ -16,11 +16,11 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
 
 \item{W}{An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices.}
 
-\item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.)}
+\item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.}
 
-\item{saves}{Number of draws saved.}
+\item{saves}{Number of draws saved. Default set to \code{saves=5000}.}
 
-\item{burns}{Number of burn-ins.}
+\item{burns}{Number of burn-ins. Default set to \code{burns=5000}.}
 
 \item{prior}{Either "SSVS", "MN" or "NG". See Details below.}
 
@@ -28,7 +28,7 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
 
 \item{h}{Defines the hold-out sample. Default without hold-out sample, thus set to zero.}
 
-\item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500.}
+\item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500. Default set to \code{thin=1}.}
 
 \item{hyperpara}{Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS} or \code{NG}. \itemize{
 \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
@@ -56,7 +56,7 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
 \item{"NG":}{\itemize{
       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
       \item{\code{d_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{d_lambda=1}.}
-      \item{\code{a_start}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of a_start=1 would lead to the Bayesian LASSO. Default value is \code{a_start=0.2}. If set to \code{sample_A=TRUE}.}
+      \item{\code{a_start}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of a_start=1 would lead to the Bayesian LASSO. Default value differs per entity and set to \code{a_start=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
       \item{\code{sample_A}}{ If set to \code{TRUE} \code{a_start} is sampled.}
       }}
  }}
@@ -73,11 +73,18 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0,
 
 \item{Wex.restr}{A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically. See function \code{getweights} for more details.}
 
+\item{Ex}{For including truly exogenous variables to the model. Either a \itemize{
+\item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
+\item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
+}}
+
 \item{trend}{If set to \code{TRUE} a deterministic trend is added to the country models.}
 
 \item{save.country.store}{If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
 
 \item{multithread}{If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns a list of class \code{bgvar} with the following elements: \itemize{
@@ -113,8 +120,23 @@ We provide three priors, the Minnesota labeled \code{MN}, the SSVS and the Norma
  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
+
+W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
+variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
+model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=200, 
+                  burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+print(model.mn)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 # replicate Feldkircher and Huber (2016) using trade based weights
 data(eerData)

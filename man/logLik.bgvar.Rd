@@ -17,8 +17,15 @@
 Extract Log-Likelihood for \code{bgvar}.
 }
 \examples{
+\dontshow{
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+logLik(model.ng)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)

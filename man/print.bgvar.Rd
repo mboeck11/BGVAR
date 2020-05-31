@@ -16,13 +16,22 @@
 \code{print} prints the main arguments of an \code{bgvar} object.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
+print(model.ssvs)
+}
 \donttest{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC<-NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.ssvs<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="SSVS",
-                  OE.weights=OE.weights)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 print(model.ssvs)
 }
 }

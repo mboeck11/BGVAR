@@ -13,12 +13,23 @@
 
 \item{k}{the penalty per parameter to be used. Default is set to \code{k=2}.}
 }
+\value{
+Returns a numeric value with the corresponding AIC.
+}
 \description{
 Computes the Akaike information criterion for an object \code{bgvar}.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+AIC(model.mn)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")

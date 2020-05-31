@@ -16,13 +16,21 @@
 Output gives model information as well as some descriptive statistics on convergence properties, likelihood, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-country residuals.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
+                    prior="SSVS")
+summary(model.ssvs)
+}
 \donttest{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC<-NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.ssvs<-bgvar(Data=monthlyData,W=W,saves=100,burns=100,plag=1,prior="SSVS",
-                OE.weights=OE.weights,eigen=TRUE)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS",thin=1)
 summary(model.ssvs)
 }
 }

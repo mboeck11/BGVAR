@@ -13,21 +13,30 @@ lps(object, ...)
 \item{...}{additional arguments.}
 }
 \value{
-Returns a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
+Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 }
 \description{
 Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 }
 \examples{
-\donttest{
-set.seed(571)
+\dontshow{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC <- NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.mn <- bgvar(Data=monthlyData,W=W,plag=1,h=8,saves=100,burns=100,prior="MN",
-                  OE.weights=OE.weights)
-fcast <- predict(model.mn, fhorz=8)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE,h=8)
+fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+lps <- lps(fcast)
+}
+\donttest{
+library(BGVAR)
+data(eerData)
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+                      eigen=TRUE)
+fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
+plot(fcast, resp="US.p", Cut=20)
 lps   <- lps(fcast)
 }
 }

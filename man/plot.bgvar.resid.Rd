@@ -19,15 +19,24 @@
 Either plots country-residuals or the global-residuals.
 }
 \examples{
-\donttest{
-set.seed(571)
+\dontshow{
 library(BGVAR)
-data(monthlyData)
-monthlyData$OC <- NULL
-OE.weights <- list(EB=EA.weights) # weights have to have the same name as the country in the data
-model.mn <- bgvar(Data=monthlyData,W=W,plag=1,saves=100,burns=100,prior="MN",
-                  OE.weights=OE.weights)
-res <- residuals(model.mn)
-plot(res, resp="AT")
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+res <- residuals(model.ssvs)
+plot(res, resp="EA")
+}
+\donttest{
+library(BGVAR)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+                    prior="SSVS")
+summary(model.ssvs)
+res <- residuals(model.ssvs)
+plot(res, resp="EA")
 }
 }

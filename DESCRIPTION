@@ -3,12 +3,20 @@ Type: Package
 Title: Bayesian Global Vector Autoregressions
 Version: 2.0.0
 Author: Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
-    Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215),
-    Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921)
+    Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
+    Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
+    Christopher Sims [ctb]
+Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.boeck@wu.ac.at",
+                    comment = c(ORCID = "0000-0001-6024-8305")),
+             person("Martin","Feldkircher", role="aut",
+                    comment = c(ORCID = "0000-0002-5511-9215")),
+             person("Florian","Huber", role="aut",
+                    comment = c(ORCID = "0000-0002-2896-7921")),
+             person("Christopher","Sims", role="ctb"))
 Maintainer: Maximilian Boeck <maximilian.boeck@wu.ac.at>
-Description: Estimation of Bayesian Global Vector Autoregressions with different prior setups and the possibility to introduce stochastic volatility. Built-in priors include the SIMS, SSVS and NG prior. For a reference see also Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) Forecasting with Global Vector Autoregressive Models: a Bayesian Approach, Journal of Applied Econometrics, Vol. 31(7), pp. 1371-1391 <doi:10.1002/jae.2504>. Post-processing functions allow for doing predictions, structurally identify the model with short-run or sign-restrictions and compute impulse response function, historical decompositions and forecast error variance decompositions. Plotting functions are also available.
+Description: Estimation of Bayesian Global Vector Autoregressions (BGVAR) with different prior setups and the possibility to introduce stochastic volatility. Built-in priors include the Minnesota, the Stochastic Search Variable Selection and Normal-Gamma prior. For a reference see also Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) "Forecasting with Global Vector Autoregressive Models: a Bayesian Approach", Journal of Applied Econometrics, Vol. 31(7), pp. 1371-1391 <doi:10.1002/jae.2504>. Post-processing functions allow for doing predictions, structurally identify the model with short-run or sign-restrictions and compute impulse response functions, historical decompositions and forecast error variance decompositions. Plotting functions are also available.
 Encoding: UTF-8
-License: GPL-3 | file LICENSE
+License: GPL-3
 Language: en-US
 Depends: R (>= 2.10)
 Imports:

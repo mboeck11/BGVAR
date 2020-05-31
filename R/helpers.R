@@ -20,8 +20,19 @@
 #' \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' \code{\link{residuals}} for calculating the residuals from a \code{bgvar} object and creating a \code{bgvar.res} object.
 #' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
+#'                   saves=100,burns=100,prior="MN")
+#' avg.pair.cc(model.mn)
+#' res <- residuals(model.mn)
+#' avg.pair.cc(res)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
@@ -133,16 +144,24 @@ avg.pair.cc=function(obj, digits=3){
 #' @param object a fitted \code{bgvar} object.
 #' @param crit.val critical value used for test statistic.
 #' @details Geweke (1992) proposed a convergence diagnostic for Markov chains based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10\% and the last 50\%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation.
-#' @return Returns an object of class 'bgvar.CD'. This is a list with \itemize{
+#' @return Returns an object of class \code{bgvar.CD}. This is a list with \itemize{
 #' \item{\code{geweke.z}}{ Z-scores for a test of equality of means between the first and last parts of the chain. A separate statistic is calculated for each variable in each chain.}
 #' \item{\code{perc}}{ is the percentage of Z-scores exceeding \code{crit.val} (in absolute terms).}
 #' }
 #' @seealso 
 #' \code{\link[coda]{geweke.diag}} in the \code{coda} package.
 #' @author Martin Feldkircher
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="MN")
+#' geweke <- conv.diag(model.mn)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=200,burns=200,prior="MN")
@@ -192,11 +211,20 @@ print.bgvar.CD <- function(x, ...){
 #' @description Computes the Bayesian information criterion for an object \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
+#' @return Returns a numeric value with the corresponding BIC.
 #' @author Maximilian Boeck
 #' @export
 #' @examples 
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' BIC(model.mn)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
@@ -249,11 +277,20 @@ BIC.bgvar <- function(object, ...){
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param k the penalty per parameter to be used. Default is set to \code{k=2}.
+#' @return Returns a numeric value with the corresponding AIC.
 #' @author Maximilian Boeck
 #' @export
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' AIC(model.mn)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
@@ -307,11 +344,20 @@ AIC.bgvar <- function(object, ..., k = 2){
 #' @description Computes the Deviance information criterion for an object \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
+#' @return Returns a numeric value with the corresponding DIC.
 #' @author Maximilian Boeck
 #' @export
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' DIC(model.mn)
+#' }
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
@@ -376,9 +422,17 @@ DIC <- function(object, ...){
 #' Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
 #' 
 #' @seealso \code{\link{print.bgvar}}
-#' @examples 
+#' @examples
+#' \dontshow{
+#' library(BGVAR)
+#' data(eerData)
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' residual.corr.test(model.mn)
+#' } 
 #' \donttest{
-#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="MN")

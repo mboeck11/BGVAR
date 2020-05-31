@@ -12,7 +12,7 @@ using namespace arma;
 //' @noRd
 //[[Rcpp::export]]
 List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP saves_in, const SEXP thin_in,
-                   const SEXP trend_in, const SEXP eigen_in) {
+                   const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in) {
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
   //----------------------------------------------------------------------------------------------------------------------
@@ -27,6 +27,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   const int thin   = as<int>(thin_in);
   const bool trend = as<bool>(trend_in);
   const bool eigen = as<bool>(eigen_in);
+  const bool verbose = as<bool>(verbose_in);
   
   const int thinsaves = saves/thin;
   vec F_eigen(thinsaves, fill::zeros);
@@ -42,8 +43,8 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   vec a1; vec b1;
   //---------------------------------------------------------------------------------------------
   vec prog_rep_points = round(linspace(0, thinsaves, 50));
-  bool display_progress = true;
-  Progress prog(50, display_progress);
+  //bool display_progress = true;
+  Progress prog(50, verbose);
   for(int irep = 0; irep < thinsaves; irep++){
     // patient 0
     List VAR = globalpost[0];
@@ -155,9 +156,11 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       F_eigen(irep) = abs(real(eigval)).max();
     }
     
-    // Increment progress bar
-    if (any(prog_rep_points == irep)){
-      prog.increment();
+    if(verbose){
+      // Increment progress bar
+      if (any(prog_rep_points == irep)){
+        prog.increment();
+      }
     }
     // check user interruption
     if(irep % 200 == 0)

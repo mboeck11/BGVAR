@@ -33,8 +33,16 @@ An F-test for serial autocorrelation in the residuals.
 It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey 1978a, 1978b), also known as the 'modified LM' statistic. The null hypothesis is that \eqn{rho}, the autoregressive parameter on the residuals, equals 0 indicating absence of serial autocorrelation. For higher order serial correlation, the null is that all \eqn{rho}'s jointly are 0. The test is implemented as in Vanessa Smith's and Alessandra Galesi's ''GVAR toolbox 2.0 User Guide'', page 129.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+residual.corr.test(model.mn)
+} 
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="MN")

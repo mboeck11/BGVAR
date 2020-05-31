@@ -4,7 +4,7 @@
 \alias{IRF.cf}
 \title{Counterfactual Analysis}
 \usage{
-IRF.cf(obj,shockvar,resp,nhor=24,save.store=FALSE)
+IRF.cf(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE)
 }
 \arguments{
 \item{obj}{an object of class \code{bgvar}.}
@@ -16,6 +16,23 @@ IRF.cf(obj,shockvar,resp,nhor=24,save.store=FALSE)
 \item{nhor}{forecasting horizon.}
 
 \item{save.store}{If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.}
+
+\item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
+}
+\value{
+Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
+\item{\code{posterior}}{ is a four-dimensional array (K times K times nhor times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
+\item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
+\item{\code{A}}{ median posterior of global coefficient matrix.}
+\item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
+\item{\code{S}}{ posterior median of matrix with country variance-covariance matrices on the main diagonal.}
+}}
+\item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\itemize{
+\item{\code{xglobal}}{ used data of the model.}
+\item{\code{plag}}{ used lag specification of the model.}
+}}
+\item{\code{IRF_store}}{ is a four-dimensional array (K times nhor times nr. of shock times saves) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+}
 }
 \description{
 Function to perform counterfactual analysis. It enables to neutralize the response of a specific variable to a given shock.
@@ -29,7 +46,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prio
 }
 # very time-consuming
 \dontrun{
-IRF.cf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",nhor=24)
+irf.cf <- IRF.cf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",nhor=24)
 }
 }
 \author{

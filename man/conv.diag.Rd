@@ -12,7 +12,7 @@ conv.diag(object, crit.val=1.96)
 \item{crit.val}{critical value used for test statistic.}
 }
 \value{
-Returns an object of class 'bgvar.CD'. This is a list with \itemize{
+Returns an object of class \code{bgvar.CD}. This is a list with \itemize{
 \item{\code{geweke.z}}{ Z-scores for a test of equality of means between the first and last parts of the chain. A separate statistic is calculated for each variable in each chain.}
 \item{\code{perc}}{ is the percentage of Z-scores exceeding \code{crit.val} (in absolute terms).}
 }
@@ -24,8 +24,16 @@ This function computes Geweke's Convergence diagnostic making use of the \code{c
 Geweke (1992) proposed a convergence diagnostic for Markov chains based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10\% and the last 50\%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation.
 }
 \examples{
+\dontshow{
+library(BGVAR)
+data(eerData)
+cN<-c("EA","US","UK")
+eerData<-eerData[cN]
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="MN")
+geweke <- conv.diag(model.mn)
+}
 \donttest{
-set.seed(571)
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=200,burns=200,prior="MN")
