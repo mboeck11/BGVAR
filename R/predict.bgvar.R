@@ -336,6 +336,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' @param ... additional arguments.
 #' @param resp specify a variable to plot predictions.
 #' @param Cut length of series to be plotted before prediction begins.
+#' @return No return value.
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
 #' \dontshow{

@@ -111,7 +111,7 @@
 #' 
 #' W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 #' variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=200, 
+#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=100, 
 #'                   burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
 #' print(model.mn)
 #' }
@@ -575,7 +575,7 @@ print.bgvar<-function(x, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=40,burns=40,
 #'                     prior="SSVS")
 #' summary(model.ssvs)
 #' }
@@ -644,6 +644,7 @@ summary.bgvar <- function(object, ...){
 #' @param ... additional arguments.
 #' @param global if \code{TRUE} global fitted values are plotted, otherwise country fitted values.
 #' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
+#' @return No return value.
 #' @export
 #' @examples 
 #' \dontshow{
@@ -807,6 +808,7 @@ resid.bgvar <- residuals.bgvar
 #' @param ... additional arguments.
 #' @param global if \code{TRUE} global residuals are plotted, otherwise country residuals.
 #' @param resp default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
+#' @return No return value.
 #' @export
 #' @examples
 #' \dontshow{

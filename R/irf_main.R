@@ -824,6 +824,7 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
 #' @param resp specify a variable to plot predictions.
 #' @param shock.nr specify shock to be plotted.
 #' @param cumulative whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.
+#' @return No return value.
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
 #' \dontshow{
