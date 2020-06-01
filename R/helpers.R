@@ -221,8 +221,8 @@ print.bgvar.CD <- function(x, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
-#' BIC(model.mn)
+#' model.ssvs<-bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="SSVS")
+#' BIC(model.ssvs)
 #' }
 #' \donttest{
 #' library(BGVAR)
@@ -287,8 +287,8 @@ BIC.bgvar <- function(object, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
-#' AIC(model.mn)
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="SSVS")
+#' AIC(model.ssvs)
 #' }
 #' \donttest{
 #' library(BGVAR)

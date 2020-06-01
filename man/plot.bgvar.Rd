@@ -15,6 +15,9 @@
 
 \item{resp}{if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.}
 }
+\value{
+No return value.
+}
 \description{
 Plots the fitted values in red of either the country VARs or the GVAR (default) along with the original data.
 }

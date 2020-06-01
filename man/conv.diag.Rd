@@ -30,8 +30,8 @@ data(eerData)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="MN")
-geweke <- conv.diag(model.mn)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="SSVS")
+geweke <- conv.diag(model.ssvs)
 }
 \donttest{
 library(BGVAR)

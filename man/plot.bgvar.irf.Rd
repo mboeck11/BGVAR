@@ -17,6 +17,9 @@
 
 \item{cumulative}{whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.}
 }
+\value{
+No return value.
+}
 \description{
 Plots the predictions of an object of class \code{bgvar.predict}.
 }

@@ -34,7 +34,7 @@ data(eerData)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=50,burns=50,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
                       
 # US monetary policy shock

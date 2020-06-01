@@ -15,6 +15,9 @@
 
 \item{Cut}{length of series to be plotted before prediction begins.}
 }
+\value{
+No return value.
+}
 \description{
 Plots the predictions of an object of class \code{bgvar.predict}.
 }

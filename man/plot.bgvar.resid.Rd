@@ -15,6 +15,9 @@
 
 \item{resp}{default to \code{NULL}. Either specify a single country or a group of variables to be plotted.}
 }
+\value{
+No return value.
+}
 \description{
 Either plots country-residuals or the global-residuals.
 }
