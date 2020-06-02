@@ -27,7 +27,7 @@ Geweke (1992) proposed a convergence diagnostic for Markov chains based on a tes
 \dontshow{
 library(BGVAR)
 data(eerData)
-cN<-c("EA","US","UK")
+cN<-c("EA","US")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
 model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="SSVS")

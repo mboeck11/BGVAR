@@ -830,7 +830,7 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
 #' \dontshow{
 #' library(BGVAR)
 #' data(eerData)
-#' cN<-c("EA","US","UK")
+#' cN<-c("EA","US")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
