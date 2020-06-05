@@ -13,6 +13,8 @@ You can install the latest development version of BGVAR with:
 devtools::install_github("mboeck11/BGVAR")
 ```
 
+Note that Mac OS needs gfortran binary packages to be installed. See also: https://gcc.gnu.org/wiki/GFortranBinaries.
+
 ## Usage
 
 The core function of the package is `bgvar()` to estimate Bayesian Global Vector Autoregressions with different shrinkage prior setups. Calls can be heavily customized with respect to the specification details of the model, the MCMC chain, hyperparameter setup and various extra features. The output of the estimation can then be used for a variety of tools implemented for the **BGVAR** package.
