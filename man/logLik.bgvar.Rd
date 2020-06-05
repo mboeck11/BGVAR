@@ -13,18 +13,13 @@
 
 \item{quantile}{reported quantiles. Default is set to median.}
 }
+\value{
+Returns an vector of dimension \code{q} (number of specified quantiles) of global log-likelihoods.
+}
 \description{
 Extract Log-Likelihood for \code{bgvar}.
 }
 \examples{
-\dontshow{
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-logLik(model.ng)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

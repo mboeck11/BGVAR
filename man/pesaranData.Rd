@@ -6,7 +6,8 @@
 \alias{W.1316}
 \alias{tA}
 \title{pesaranData}
-\format{The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:
+\format{
+The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:
 \describe{
   \item{\code{W.1316}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
   \item{\code{tA}}{\code{N} times \code{N} times \code{T}  array that contains the yearly, bilateral trade flows, which were used to construct \code{W.1316}.}
@@ -20,7 +21,8 @@
   \item{\code{pmetal}}{ Price of metals.}
   \item{\code{pmat}}{ Price of agricultural products.}
   }}
-}}
+}
+}
 \usage{
 pesaranData
 }

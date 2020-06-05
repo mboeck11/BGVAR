@@ -15,29 +15,13 @@
 
 \item{k.max}{plots the k series with the highest for the decomposition of \code{ts}.}
 }
+\value{
+No return value.
+}
 \description{
 Plots the decomposition of a specific time series into selected structural shocks.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
-                      prior="SSVS",thin=1,eigen=TRUE)
-                      
-# US monetary policy shock
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
-
-# calculates FEVD for variables US.Dp and EA.y
-fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
-
-plot(fevd.us.mp, ts="US.Dp", k.max=10)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

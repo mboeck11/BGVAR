@@ -24,15 +24,6 @@ This function computes Geweke's Convergence diagnostic making use of the \code{c
 Geweke (1992) proposed a convergence diagnostic for Markov chains based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10\% and the last 50\%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="SSVS")
-geweke <- conv.diag(model.ssvs)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

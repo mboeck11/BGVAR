@@ -11,6 +11,9 @@
 
 \item{...}{other arguments.}
 }
+\value{
+No return value.
+}
 \description{
 \code{print} prints log-predictive scores (LPS) of out-of-sample predictions computed with \code{bgvar.predict}.
 }

@@ -27,18 +27,6 @@ Computes average pairwise cross-sectional correlations of the data and the count
 If used for analyzing the country models' residuals, \code{avg.pair.cc} computes for each country and a given variable, the average cross-sectional correlation (either for the data or for the residuals). In theory, including foreign variables should soak up cross-sectional residual dependence and  correlation of the residuals should be small. Otherwise dynamic analysis, especially using GIRFs, might lead to invalid results. See Dees et al. (2007) for more details.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
-                  saves=100,burns=100,prior="MN")
-avg.pair.cc(model.mn)
-res <- residuals(model.mn)
-avg.pair.cc(res)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

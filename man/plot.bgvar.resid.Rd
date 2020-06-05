@@ -22,17 +22,6 @@ No return value.
 Either plots country-residuals or the global-residuals.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-                    prior="SSVS")
-res <- residuals(model.ssvs)
-plot(res, resp="EA")
-}
 \donttest{
 library(BGVAR)
 data(eerData)

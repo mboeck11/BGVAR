@@ -13,18 +13,13 @@
 
 \item{quantile}{reported quantiles. Default is set to median.}
 }
+\value{
+Returns an \code{q} times \code{K} times \code{K} array of the global variance-covariance matrix, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}) and  \code{K} the number of endogenous variables.
+}
 \description{
 Extracts the global variance-covariance matrix for \code{bgvar} for certain quantiles of the posterior distribution.
 }
 \examples{
-\dontshow{
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-vcov(model.ng)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

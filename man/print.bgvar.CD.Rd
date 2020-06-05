@@ -11,6 +11,9 @@
 
 \item{...}{additional arguments.}
 }
+\value{
+No return value.
+}
 \description{
 Print convergence diagnostics
 }

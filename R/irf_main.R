@@ -827,17 +827,6 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
 #' @return No return value.
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -855,9 +844,11 @@ IRF.cf <- function(obj,shockvar,resp,nhor=24,save.store=FALSE,verbose=TRUE){
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
+  # restore user par settings on exit
+  oldpar <- par(no.readonly=TRUE)
+  on.exit(par(oldpar))
   if(!inherits(x, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
   if(length(shock.nr)!=1){stop("Please select only one shock.")}
-  oldpar    <- par(no.readonly=TRUE)
   posterior <- x$posterior
   varNames  <- dimnames(posterior)[[1]]
   varAll    <- varNames
@@ -888,7 +879,11 @@ plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
     if(rows<1) cols <- 1 else cols <- 2
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
-    par(mfrow=c(rows,cols),mar=bgvar.env$mar)
+    # update par settings
+    newpar <- oldpar
+    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
+    newpar$mar <- bgvar.env$mar
+    par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -911,7 +906,6 @@ plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
-  on.exit(par(oldpar))
 }
 
  

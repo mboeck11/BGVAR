@@ -24,17 +24,6 @@ No return value.
 Plots the predictions of an object of class \code{bgvar.predict}.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

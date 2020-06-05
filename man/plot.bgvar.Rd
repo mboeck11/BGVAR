@@ -22,16 +22,6 @@ No return value.
 Plots the fitted values in red of either the country VARs or the GVAR (default) along with the original data.
 }
 \examples{
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-                    prior="SSVS")
-plot(model.ssvs, resp="EA") 
-}
 \donttest{
 library(BGVAR)
 data(eerData)

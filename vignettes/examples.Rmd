@@ -49,6 +49,7 @@ This vignette consists of four blocks: getting started and data handling, estima
 We start by installing the package from CRAN and attaching it with 
 
 ```{r,hide=TRUE}
+oldpar <- par(no.readonly=TRUE)
 set.seed(1)
 library(BGVAR)
 ```
@@ -170,13 +171,13 @@ the adjusted `W.trade0012` weight matrix:
 ```{r "model.1",results="hide"}
  model.1<-bgvar(Data=eerData,
                     W=W.trade0012,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     plag=1,
                     prior="NG",
                     hyperpara=NULL, 
                     SV=TRUE,
-                    thin=2,
+                    thin=1,
                     trend=TRUE,
                     h=0,
                     save.country.store=FALSE,
@@ -282,8 +283,8 @@ We can estimate the model with two further priors on the unit models, the SSVS p
 ```{r "ssvs.1",echo=TRUE, results="hide"}
  model.ssvs.1<-bgvar(Data=eerData,
                     W=W.trade0012,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     plag=1,
                     prior="SSVS",
                     hyperpara=NULL, 
@@ -345,11 +346,11 @@ We can then re-estimate the model:
 model.ssvs.2<-bgvar(Data=eerData2,
                     W=W.list[c("tradeW.0012","finW0711")],
                     plag=1,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=2,
+                    thin=1,
                     hyperpara=NULL, 
                     eigen=TRUE,
                     variable.list=variable.list,
@@ -370,11 +371,11 @@ Another specification would be to include a foreign variable only when its domes
 model.ssvs.3<-bgvar(Data=eerData,
                     W=W.trade0012,
                     plag=1,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=2,
+                    thin=1,
                     hyperpara=NULL, 
                     eigen=TRUE,
                     variable.list=NULL,
@@ -440,11 +441,11 @@ Now we can re-estimate the model by specifying `OE.weights`, which is a list wit
 model.ssvs.4<-bgvar(Data=eerData2,
                     W=W.trade0012,
                     plag=1,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=2,
+                    thin=1,
                     hyperpara=NULL, 
                     variable.list=NULL,
                     OE.weights=OE.weights, 
@@ -562,11 +563,11 @@ W.trade0012.spf<-apply(W.trade0012.spf,2,function(x)x/rowSums(W.trade0012.spf))
 model.ssvs.eer<-bgvar(Data=eerDataspf,
                     W=W.trade0012.spf,
                     plag=1,
-                    saves=200,
-                    burns=200,
+                    saves=100,
+                    burns=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=2
+                    thin=1
                     )
 ```
 <p align="justify">
@@ -691,8 +692,8 @@ data(monthlyData);monthlyData$OC<-NULL
 names(monthlyData)
 # list of weights of other entities with same name as additional country model
 OE.weights = list(EB=EA.weights)
-EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", 
-                  "IE", "IT", "NL", "PT","GR","SK") #,"MT","CY","EE","LT","LV")
+EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
+                  # "IE", "IT", "NL", "PT","GR","SK","MT","CY","EE","LT","LV")
 ```
 <p align="justify">
 To estimate the GVAR with an 'EB' country model, we have to specify additional arguments similar to the example with the oil price model discussed above. The `monthlyData` set already comes along with a pre-specified list `EA.weights` with the mandatory slots `weights`, `variables` and `exo`. The specification implies that the euro area monetary policy model (`EB`) includes `EAstir`, `total.assets`, `M3`, `ciss`  as endogenous variables (these are contained in `monthlyData$EB`). We use PPP-weights contained in `weights` to aggregate output (`y`) and prices (`p`) from euro area countries and include them as weakly exogenous variables. Euro area short-term interest rates (`EAstir`) and the ciss indicator (`ciss`), specified in `exo`, are then passed on as exogenous variables to the remaining countries. Finally, we put `EA.weights` into the `OE.weights` list and label the slot `EB` (as the name of the additional country model, `names(monthlyData)`) and estimate the model:   
@@ -1255,6 +1256,8 @@ Below, find some further examples.
 
  par(mar=c(5.1, 4.1, 4.1, 2.1))
 ```
-
+```{r, hide=TRUE}
+par(oldpar)
+```
 # References
 

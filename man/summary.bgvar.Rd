@@ -12,6 +12,9 @@
 
 \item{...}{other arguments.}
 }
+\value{
+No return value.
+}
 \description{
 Output gives model information as well as some descriptive statistics on convergence properties, likelihood, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-country residuals.
 }

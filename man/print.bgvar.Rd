@@ -12,6 +12,9 @@
 
 \item{...}{other arguments.}
 }
+\value{
+No return value.
+}
 \description{
 \code{print} prints the main arguments of an \code{bgvar} object.
 }

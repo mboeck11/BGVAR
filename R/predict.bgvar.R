@@ -363,7 +363,9 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
+  # reset user par settings on exit
   oldpar<- par(no.readonly=TRUE)
+  on.exit(par(oldpar))
   fcast <- x$fcast
   Xdata <- x$xglobal
   hstep <- x$fhorz
@@ -399,7 +401,11 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
     if(rows<1) cols <- 1 else cols <- 2
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
-    par(mfrow=c(rows,cols),mar=bgvar.env$mar)
+    # update par settings
+    newpar <- oldpar
+    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
+    newpar$mar <- bgvar.env$mar
+    par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -422,7 +428,6 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
-  on.exit(par(oldpar))
 }
 
 #' @name lps.bgvar.pred
@@ -527,6 +532,7 @@ rmse <- function(object, ...){
 #' @method print bgvar.lps
 #' @param x an object of class \code{bgvar.lps}.
 #' @param ... other arguments.
+#' @return No return value.
 #' @seealso 
 #' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -623,6 +629,7 @@ print.bgvar.lps<-function(x, ...){
 #' @method print bgvar.rmse
 #' @param x an object of class \code{bgvar.predeval}.
 #' @param ... other arguments.
+#' @return No return value.
 #' @seealso 
 #' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
 #' @author Maximilian Boeck, Martin Feldkircher

@@ -495,6 +495,7 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
 #' @aliases print print.bgvar
 #' @param x an object of class \code{bgvar}.
 #' @param ... other arguments.
+#' @return No return value.
 #' @seealso 
 #' \code{\link{bgvar}} to estimate a \code{bgvar} object.
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -561,6 +562,7 @@ print.bgvar<-function(x, ...){
 #' @aliases summary summary.bgvar
 #' @param object an object of class \code{bgvar}.
 #' @param ... other arguments.
+#' @return No return value.
 #' @seealso
 #' \code{\link{bgvar}} to estimate a \code{bgvar} object.
 #' 
@@ -646,17 +648,7 @@ summary.bgvar <- function(object, ...){
 #' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
 #' @return No return value.
 #' @export
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-#'                     prior="SSVS")
-#' plot(model.ssvs, resp="EA") 
-#' }
+#' @examples
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -668,7 +660,9 @@ summary.bgvar <- function(object, ...){
 #' @importFrom graphics axis lines par plot abline
 #' @importFrom stats median plot.ts
 plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
+  # reset user par settings on exit
   oldpar   <- par(no.readonly=TRUE)
+  on.exit(par(oldpar))
   plag     <- x$args$plag
   xglobal  <- x$xglobal
   trend    <- x$args$trend
@@ -713,7 +707,11 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
     if(rows<1) cols <- 1 else cols <- 2
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
-    par(mfrow=c(rows,cols),mar=bgvar.env$mar)
+    # update par settings
+    newpar <- oldpar
+    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
+    newpar$mar <- bgvar.env$mar
+    par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -729,7 +727,6 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
-  on.exit(par(oldpar))
 }
 
 #' @name residuals.bgvar
@@ -750,16 +747,6 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats resid
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-#'                     prior="SSVS")
-#' res <- residuals(model.ssvs)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -811,17 +798,6 @@ resid.bgvar <- residuals.bgvar
 #' @return No return value.
 #' @export
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-#'                     prior="SSVS")
-#' res <- residuals(model.ssvs)
-#' plot(res, resp="EA")
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -834,7 +810,9 @@ resid.bgvar <- residuals.bgvar
 #' @importFrom graphics abline axis lines par plot
 #' @importFrom stats quantile plot.ts
 plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
+  # reset user par settings on exit
   oldpar   <- par(no.readonly=TRUE)
+  on.exit(par(oldpar))
   bigT     <- nrow(x$Data)
   time     <- .timelabel(rownames(x$Data))
   varNames <- dimnames(x$Data)[[2]]
@@ -871,7 +849,11 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
     if(rows<1) cols <- 1 else cols <- 2
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
-    par(mfrow=c(rows,cols),mar=c(4.3,3.3,2.3,2.3))
+    # update par settings
+    newpar <- oldpar
+    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
+    newpar$mar <- bgvar.env$mar
+    par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -885,7 +867,6 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
     }
     if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
-  on.exit(par(oldpar))
 }
 
 #' @name coef.bgvar
@@ -894,17 +875,10 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param quantile reported quantiles. Default is set to the median.
+#' @return Returns an \code{q} times \code{K} times \code{K} times \code{p} array of the global coefficients, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}), \code{K} the number of endogenous variables and \code{p} number of lags.
 #' @export
 #' @importFrom stats quantile
 #' @examples
-#' \dontshow{
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-#' coef(model.ng)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -933,16 +907,9 @@ coefficients.bgvar <- coef.bgvar
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param quantile reported quantiles. Default is set to median.
+#' @return Returns an \code{q} times \code{K} times \code{K} array of the global variance-covariance matrix, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}) and  \code{K} the number of endogenous variables.
 #' @importFrom stats vcov
 #' @examples
-#' \dontshow{
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-#' vcov(model.ng)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -969,16 +936,9 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param global if \code{TRUE} global fitted values are returned otherwise country fitted values.
+#' @return Returns an \code{T} times \code{K} matrix, where \code{T} is the number of observations and \code{K} number of endogenous variables.
 #' @importFrom stats fitted
 #' @examples 
-#' \dontshow{
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-#' fitted(model.ng)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -1011,16 +971,9 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param quantile reported quantiles. Default is set to median.
+#' @return Returns an vector of dimension \code{q} (number of specified quantiles) of global log-likelihoods.
 #' @importFrom stats logLik
 #' @examples 
-#' \dontshow{
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-#' logLik(model.ng)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)

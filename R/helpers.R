@@ -20,18 +20,6 @@
 #' \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' \code{\link{residuals}} for calculating the residuals from a \code{bgvar} object and creating a \code{bgvar.res} object.
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
-#'                   saves=100,burns=100,prior="MN")
-#' avg.pair.cc(model.mn)
-#' res <- residuals(model.mn)
-#' avg.pair.cc(res)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -152,15 +140,6 @@ avg.pair.cc=function(obj, digits=3){
 #' \code{\link[coda]{geweke.diag}} in the \code{coda} package.
 #' @author Martin Feldkircher
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,prior="SSVS")
-#' geweke <- conv.diag(model.ssvs)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -200,6 +179,7 @@ conv.diag<-function(object, crit.val=1.96){
 #' @title Print convergence diagnostics
 #' @param x object of class \code{bgvar.CD}.
 #' @param ... additional arguments.
+#' @return No return value.
 #' @export
 print.bgvar.CD <- function(x, ...){
   if(!inherits(x, "bgvar.CD")) {stop("Please provide a 'bgvar.CD' object.")}
@@ -423,15 +403,6 @@ DIC <- function(object, ...){
 #' 
 #' @seealso \code{\link{print.bgvar}}
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
-#' residual.corr.test(model.mn)
-#' } 
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)

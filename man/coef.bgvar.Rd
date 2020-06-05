@@ -16,18 +16,13 @@
 
 \item{quantile}{reported quantiles. Default is set to the median.}
 }
+\value{
+Returns an \code{q} times \code{K} times \code{K} times \code{p} array of the global coefficients, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}), \code{K} the number of endogenous variables and \code{p} number of lags.
+}
 \description{
 Extracts the global model coefficients for \code{bgvar} for certain quantiles of the posterior distribution. \code{coefficients} is an \emph{alias} for it.
 }
 \examples{
-\dontshow{
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-coef(model.ng)
-}
 \donttest{
 library(BGVAR)
 data(eerData)

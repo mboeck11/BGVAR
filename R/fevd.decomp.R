@@ -334,27 +334,9 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE,verbose=TRUE){
 #' @param ... additional arguments.
 #' @param ts specify the decomposed time series to be plotted.
 #' @param k.max plots the k series with the highest for the decomposition of \code{ts}.
+#' @return No return value.
 #' @author Maximilian Boeck
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' 
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
-#'                       
-#' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
-#' 
-#' # calculates FEVD for variables US.Dp and EA.y
-#' fevd.us.mp=fevd.decomp(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
-#' 
-#' plot(fevd.us.mp, ts="US.Dp", k.max=10)
-#' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
@@ -377,6 +359,9 @@ gfevd.decomp<-function(obj,nhor=24,running=TRUE,multithread=FALSE,verbose=TRUE){
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
 plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
+  # restore user par settings on exit
+  oldpar <- par(no.readonly=TRUE)
+  on.exit(par(oldpar))
   if(!inherits(x, "bgvar.fevd")) {stop("Please provide a `bgvar.fevd` object.")}
   fevd      <- x[[1]]
   xglobal   <- x$xglobal
@@ -407,7 +392,11 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
     if(rows<1) cols <- 1 else cols <- 2
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
-    par(mfrow=c(rows,cols),mar=bgvar.env$mar)
+    # update par settings
+    newpar <- oldpar
+    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
+    newpar$mar <- bgvar.env$mar
+    par(newpar)
     for(kkk in 1:length(varNames[[kk]])){
       idx <- grep(varNames[[kk]][kkk],varAll)
       x<-fevd[idx,ts,]

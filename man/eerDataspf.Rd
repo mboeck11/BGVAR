@@ -5,7 +5,8 @@
 \alias{eerDataspf}
 \alias{W.trade0012.spf}
 \title{eerData extended with expectations data}
-\format{The data loads two objects \code{eerData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerData} contains the country data, for more details, see below:
+\format{
+The data loads two objects \code{eerData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerData} contains the country data, for more details, see below:
 \describe{
   \item{\code{W.trade0012spf}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
   \item{\code{eerDataspf}}{ is a list object of length \code{N} containing \itemize{
@@ -20,7 +21,8 @@
   \item{\code{tb}}{ Trade balance (ratio of real exports to real imports).}
   \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
   }}
-}}
+}
+}
 \usage{
 eerDataspf
 }

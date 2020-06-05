@@ -13,18 +13,13 @@
 
 \item{global}{if \code{TRUE} global fitted values are returned otherwise country fitted values.}
 }
+\value{
+Returns an \code{T} times \code{K} matrix, where \code{T} is the number of observations and \code{K} number of endogenous variables.
+}
 \description{
 Extracts the fitted values for \code{bgvar}.
 }
 \examples{
-\dontshow{
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
-fitted(model.ng)
-}
 \donttest{
 library(BGVAR)
 data(eerData)
