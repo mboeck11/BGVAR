@@ -30,6 +30,7 @@ model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
 summary(model.ssvs)
 }
 \donttest{
+set.seed(571)
 library(BGVAR)
 data(eerData)
 model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,

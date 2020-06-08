@@ -582,6 +582,7 @@ print.bgvar<-function(x, ...){
 #' summary(model.ssvs)
 #' }
 #' \donttest{
+#' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
@@ -847,7 +848,6 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
     par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
