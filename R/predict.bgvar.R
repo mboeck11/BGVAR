@@ -402,10 +402,7 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
-    newpar <- oldpar
-    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
-    newpar$mar <- bgvar.env$mar
-    par(newpar)
+    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -452,9 +449,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
+#'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' plot(fcast, resp="US.p", Cut=20)
 #' lps   <- lps(fcast)
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -501,7 +497,6 @@ lps <- function(object, ...){
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
 #' rmse   <- rmse(fcast)
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -552,7 +547,7 @@ rmse <- function(object, ...){
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
+#'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
 #' lps(fcast)
 #' }
@@ -649,7 +644,7 @@ print.bgvar.lps<-function(x, ...){
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
+#'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
 #' rmse(fcast)
 #' }

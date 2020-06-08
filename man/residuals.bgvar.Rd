@@ -34,11 +34,10 @@ library(BGVAR)
 data(eerData)
 model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
                     prior="SSVS")
-summary(model.ssvs)
 res <- residuals(model.ssvs)
 }
 \donttest{
-resid(model.mn)
+resid(model.ssvs)
 }
 }
 \seealso{

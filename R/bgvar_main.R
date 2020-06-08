@@ -578,14 +578,14 @@ print.bgvar<-function(x, ...){
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
-#'                     prior="SSVS")
+#'                     prior="SSVS",SV=TRUE,trend=TRUE)
 #' summary(model.ssvs)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
-#'                     prior="SSVS",thin=1)
+#'                     prior="SSVS",thin=1,SV=TRUE,trend=TRUE)
 #' summary(model.ssvs)
 #' }
 #' @export
@@ -708,10 +708,7 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
-    newpar <- oldpar
-    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
-    newpar$mar <- bgvar.env$mar
-    par(newpar)
+    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
@@ -752,7 +749,6 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
 #'                     prior="SSVS")
-#' summary(model.ssvs)
 #' res <- residuals(model.ssvs)
 #' }
 residuals.bgvar <- function(object, ...){
@@ -783,7 +779,7 @@ residuals.bgvar <- function(object, ...){
 #' @rdname residuals.bgvar
 #' @examples 
 #' \donttest{
-#' resid(model.mn)
+#' resid(model.ssvs)
 #' }
 #' @export
 resid.bgvar <- residuals.bgvar
@@ -850,9 +846,7 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
-    newpar <- oldpar
-    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
-    newpar$mar <- bgvar.env$mar
+    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     par(newpar)
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)

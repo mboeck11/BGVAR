@@ -33,7 +33,7 @@ lps(fcast)
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
+                      eigen=TRUE,h=8)
 fcast <- predict(model.ssvs.eer,fhorz=8,save.store=TRUE)
 lps(fcast)
 }

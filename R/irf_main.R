@@ -880,10 +880,7 @@ plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
-    newpar <- oldpar
-    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
-    newpar$mar <- bgvar.env$mar
-    par(newpar)
+    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     for(kk in 1:max.vars[cc]){
       idx  <- grep(cN[cc],varAll)
       idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]

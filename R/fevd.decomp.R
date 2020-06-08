@@ -393,9 +393,7 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
     if(rows%%1!=0) rows <- ceiling(rows)
     if(rows%%1!=0) rows <- ceiling(rows)
     # update par settings
-    newpar <- oldpar
-    if(prod(oldpar$mfrow)<(rows*cols)) newpar$mfrow <- c(rows,cols)
-    newpar$mar <- bgvar.env$mar
+    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     par(newpar)
     for(kkk in 1:length(varNames[[kk]])){
       idx <- grep(varNames[[kk]][kkk],varAll)
