@@ -39,4 +39,4 @@ vignettes/*.pdf
 *.utf8.md
 *.knit.md
 
-^TODO
+TODO
