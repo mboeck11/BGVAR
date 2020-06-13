@@ -69,6 +69,7 @@
 #' irf.sign.us.mp<-IRF(obj=model.ssvs.eer,sign.constr=sign.constr,nhor=24)
 #' }
 #' \donttest{
+#' oldpar <- par(no.readonly =TRUE)
 #' # First example, a US monetary policy shock, quarterly data
 #' library(BGVAR)
 #' data(eerData)
@@ -235,6 +236,7 @@
 #' par(mar=rep(0,4))
 #' plot("1",type="n",axes=FALSE)
 #' legend("center",c("expectation","actual"),lty=1:2,col=c("black","red"),bty="n",ncol=2)
+#' par(oldpar)
 #' }
 #' @importFrom abind adrop
 #' @importFrom doParallel registerDoParallel
