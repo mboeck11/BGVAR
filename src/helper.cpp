@@ -45,7 +45,7 @@ double get_ar(mat& Yraw, int p){
   
   int T = Y.n_rows;
   
-  vec trendvec(T); for(int tt=0; tt<T; tt++) {trendvec(tt)=tt+1;}
+  vec trendvec(T); for(int tt=0; tt<T; tt++) {trendvec(tt)=tt+1;} 
   X = join_rows(X,trendvec);
   
   vec b_OLS = inv(X.t() * X) * X.t() * Y;
@@ -64,9 +64,9 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
     for(int pp=1; pp <= p; pp++){
       for(int j=0; j < M; j++){ // variable - row
         if(i==j){ // own lag
-          V(j+M*(pp-1),i) = shrink1/pow(pp,2);
+          V(j+M*(pp-1),i) = shrink1/pow(static_cast<double>(pp),2.0);
         }else{
-          V(j+M*(pp-1),i) = (shrink2 * sigmas(i))/(pow(pp,2)*sigmas(j));
+          V(j+M*(pp-1),i) = (shrink2 * sigmas(i))/(pow(static_cast<double>(pp),2.0)*sigmas(j));
         }
       }
     }

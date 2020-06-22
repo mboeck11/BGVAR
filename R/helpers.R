@@ -338,9 +338,10 @@ AIC.bgvar <- function(object, ..., k = 2){
 #' DIC(model.mn)
 #' }
 #' \donttest{
+#' set.seed(1)
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="MN")
 #' DIC(model.mn)
 #' }
 #' @references 

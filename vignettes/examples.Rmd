@@ -396,7 +396,7 @@ Last, we could also use a different specification of oil prices in the model. Cu
 </p>
 The model structure would then look something like in the Figure below:
 
-!["GVAR with oil prices modeled separately."](oil.png)
+!["GVAR with oil prices modeled separately."](oil.png){width=70%}
 
 
 
@@ -579,7 +579,7 @@ We specify the sign restrictions by setting up a list that has to contain the in
 ```{r, "us.spf.sign.spec"}
  sign.constr.eer<-list()
  sign.constr.eer$shock1$shock<-"US.y" # Positive AD Shock, gdp goes up,
- sign.constr.eer$shock1$restrictions$res1<-"US.Dp" #  inflation up and interest rates as well
+ sign.constr.eer$shock1$restrictions$res1<-"US.Dp" #inflation up and interest rates as well
  sign.constr.eer$shock1$sign<-c(">",">")
  sign.constr.eer$shock1$rest.horz<-c(1,1)
  sign.constr.eer$shock1$constr<-c(1,1)# no cross-country restrictions, set constr. to 1
@@ -684,7 +684,7 @@ The last example we look at is how to put restrictions on the cross-section. @Ch
 Here, we follow @Feldkircher2020 who use cross-sectional restrictions to identify a term spread shock in the euro area. Since they use separate country models for members of the euro area, the joint monetary policy has to be modeled. One idea that has been put forth in recent applications is to set up an additional country for the joint monetary policy in the euro area. In the next example, we follow @Georgiadis2015 and set up an ECB model that determines euro area interest rates according to a Taylor rule. This idea follows the set-up of the additional oil price model and can be summarized graphically in the picture below.
 </p>
 
-!["GVAR with euro area members modeled separately."](ecb.png)
+!["GVAR with euro area members modeled seperately."](ecb.png){width=70%}
 
 We can look at the data by typing:
 ```{r, "ea.data"}
@@ -703,6 +703,7 @@ To estimate the GVAR with an 'EB' country model, we have to specify additional a
 monthlyData <- monthlyData[c(EA_countries,"EB")]
 W<-W[EA_countries,EA_countries]
 W<-apply(W,2,function(x)x/rowSums(W))
+OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%EA_countries]
 ```
 
 ```{r,"ea.estimate"}
