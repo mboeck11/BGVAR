@@ -24,8 +24,7 @@ Imports:
    Matrix, methods, parallel, Rcpp (>= 1.0.3), stats, stochvol, utils, xts, zoo
 Suggests: 
     testthat (>= 2.1.0),
-    rmarkdown,
-    xfun
+    rmarkdown
 LazyData: true
 LinkingTo: Rcpp, RcppArmadillo, RcppProgress, stochvol, GIGrvg
 RoxygenNote: 7.1.0
