@@ -1,3 +1,6 @@
+Changes in Version 2.0.1
+- bug fixes in Rcpp code (wrong overloading of std::pow)
+
 Changes in Version 2.0
 - added truly exogenous variables to the estimation function
 - verbosity option now available for all functions
