@@ -10,9 +10,10 @@ Estimation of Bayesian Global Vector Autoregressions with different prior setups
 
 ## Installation
 
-You can install the latest development version of BGVAR with:
+BGVAR is available on [CRAN](https://cran.r-project.org/web/packages/BGVAR/index.html). The latest development version can be installed from GitHub.
 
 ``` r
+install.packages("BGVAR")
 devtools::install_github("mboeck11/BGVAR")
 ```
 
