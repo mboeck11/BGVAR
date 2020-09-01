@@ -31,17 +31,17 @@
 #' avg.pair.cc(res)
 #' }
 #' @importFrom stats cor
-avg.pair.cc=function(obj, digits=3){
-  if(class(obj)=="bgvar"){
-    plag <- obj$args$plag
-    dat  <- obj$xglobal[-c(1:plag),]
-    res  <- do.call("cbind",obj$cc.results$res)
+avg.pair.cc=function(object, digits=3){
+  if(class(object)=="bgvar"){
+    plag <- object$args$plag
+    dat  <- object$xglobal[-c(1:plag),]
+    res  <- do.call("cbind",object$cc.results$res)
     res  <- res[,colnames(dat)] 
   }
-  if(class(obj)=="bgvar.resid"){
-    dat    <- obj$Data
-    res    <- apply(obj$country,c(2,3),mean)  
-    res.g  <- apply(obj$global,c(2,3),mean) 
+  if(class(object)=="bgvar.resid"){
+    dat    <- object$Data
+    res    <- apply(object$country,c(2,3),mean)  
+    res.g  <- apply(object$global,c(2,3),mean) 
   }
   bigT     <- nrow(res)
   varNames <- colnames(dat)
@@ -60,7 +60,7 @@ avg.pair.cc=function(obj, digits=3){
   rownames(datL)<-rownames(resL)<-rownames(resL.g)<-cN
   colnames(datL)<-colnames(resL)<-colnames(resL.g)<-names(idx)
   
-  if(class(obj)=="bgvar"){
+  if(class(object)=="bgvar"){
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
@@ -72,7 +72,7 @@ avg.pair.cc=function(obj, digits=3){
       resL[ii,i]<-aux.res
     }
   }
-  if(class(obj)=="bgvar.resid"){  # include analysis based on residuals of the global model as well
+  if(class(object)=="bgvar.resid"){  # include analysis based on residuals of the global model as well
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
@@ -117,8 +117,9 @@ avg.pair.cc=function(obj, digits=3){
     res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",round((length(which(aux3>0.5&aux3<=1))/K3)*100,2),"%)",sep="")
     
   }
-  rownames(dat.res)<-rownames(res.res)<-rownames(res.resG)<-c("<0.1","0.1-0.2","0.2-0.5",">0.5")
-  colnames(dat.res)<-colnames(res.res)<-colnames(res.resG)<-colnames(datL)
+  dat.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),dat.res))
+  res.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.res))
+  res.resG <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.resG))
   
   avg.cc<-list(data.cor=datL,resid.cor=resL,resid.corG=resL.g,dat.res=dat.res,res.res=res.res,res.resG=res.resG)
   return(avg.cc)
@@ -175,14 +176,9 @@ conv.diag<-function(object, crit.val=1.96){
   return(return)
 }
 
-#' @name print.bgvar.CD
-#' @title Print convergence diagnostics
-#' @param x object of class \code{bgvar.CD}.
-#' @param ... additional arguments.
-#' @return No return value.
+#' @method print bgvar.CD
 #' @export
 print.bgvar.CD <- function(x, ...){
-  if(!inherits(x, "bgvar.CD")) {stop("Please provide a 'bgvar.CD' object.")}
   cat(x$perc)
 }
 

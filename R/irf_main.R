@@ -613,7 +613,7 @@ IRF <- function(obj,nhor=24,shock=NULL,sign.constr=NULL,save.store=FALSE,multith
     if(length(idx)==0){
       stop("No rotation matrix found with imposed sign restrictions. Please respecify.")
     }
-    print(rot.nr)
+    if(verbosse) cat(rot.nr)
     # subset posterior draws
     IRF_store <- IRF_store[idx,,,,drop=FALSE]
     Ginv_large<-Ginv_large[idx,,,drop=FALSE]
@@ -849,7 +849,6 @@ plot.bgvar.irf<-function(x, ...,resp,shock.nr=1,cumulative=FALSE){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  if(!inherits(x, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
   if(length(shock.nr)!=1){stop("Please select only one shock.")}
   posterior <- x$posterior
   varNames  <- dimnames(posterior)[[1]]

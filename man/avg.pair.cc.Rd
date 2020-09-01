@@ -7,9 +7,9 @@
 avg.pair.cc(obj, digits=3)
 }
 \arguments{
-\item{obj}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
-
 \item{digits}{Number of digits that should be used to print output to the console.}
+
+\item{obj}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
 }
 \value{
 Returns a list with the following elements

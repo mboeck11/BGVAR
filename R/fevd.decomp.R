@@ -362,7 +362,6 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  if(!inherits(x, "bgvar.fevd")) {stop("Please provide a `bgvar.fevd` object.")}
   fevd      <- x[[1]]
   xglobal   <- x$xglobal
   varNames  <- colnames(xglobal)
