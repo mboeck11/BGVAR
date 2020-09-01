@@ -17,8 +17,8 @@
 }
 \value{
 returns a list with the following arguments \itemize{
-\item{\code{global}}{ is a (T-p) times K times saves/thin array containing the residuals of the global model.}
-\item{\code{country}}{ is a (T-p) times K times saves/thin array containing the residuals of the country models.}
+\item{\code{global}}{ is a (T-p) times K times draws/thin array containing the residuals of the global model.}
+\item{\code{country}}{ is a (T-p) times K times draws/thin array containing the residuals of the country models.}
 \item{\code{Data}}{ is a (T-p) times K matrix containing the data of the model.}
 }
 }
@@ -32,7 +32,7 @@ This function calculates residuals of the global and the country models based on
 \donttest{
 library(BGVAR)
 data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 res <- residuals(model.ssvs)
 }

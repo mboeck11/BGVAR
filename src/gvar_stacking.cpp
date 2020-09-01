@@ -11,7 +11,7 @@ using namespace arma;
 //' @name gvar_stacking
 //' @noRd
 //[[Rcpp::export]]
-List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP saves_in, const SEXP thin_in,
+List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP draws_in, const SEXP thin_in,
                    const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in) {
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
@@ -23,29 +23,29 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   const int N = globalpost.size();
   
   const int p      = as<int>(plag_in);
-  const int saves  = as<int>(saves_in);
+  const int draws  = as<int>(draws_in);
   const int thin   = as<int>(thin_in);
   const bool trend = as<bool>(trend_in);
   const bool eigen = as<bool>(eigen_in);
   const bool verbose = as<bool>(verbose_in);
   
-  const int thinsaves = saves/thin;
-  vec F_eigen(thinsaves, fill::zeros);
+  const int thindraws = draws/thin;
+  vec F_eigen(thindraws, fill::zeros);
   
   int number_determinants = 1; // cons
   if(trend){number_determinants += 1;}
   
-  cube A_large(thinsaves,bigK,bigK*p+number_determinants);
-  cube S_large(thinsaves,bigK,bigK);
-  cube Ginv_large(thinsaves,bigK,bigK);
-  cube F_large(thinsaves,bigK,bigK*p);
+  cube A_large(thindraws,bigK,bigK*p+number_determinants);
+  cube S_large(thindraws,bigK,bigK);
+  cube Ginv_large(thindraws,bigK,bigK);
+  cube F_large(thindraws,bigK,bigK*p);
   
   vec a1; vec b1;
   //---------------------------------------------------------------------------------------------
-  vec prog_rep_points = round(linspace(0, thinsaves, 50));
+  vec prog_rep_points = round(linspace(0, thindraws, 50));
   //bool display_progress = true;
   Progress prog(50, verbose);
-  for(int irep = 0; irep < thinsaves; irep++){
+  for(int irep = 0; irep < thindraws; irep++){
     // patient 0
     List VAR = globalpost[0];
     mat Y = VAR["Y"];
@@ -177,7 +177,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
 //' @name globalLik
 //' @noRd
 //[[Rcpp::export]]
-List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const arma::cube S_in, const arma::cube Ginv_in, const SEXP thinsaves_in) {
+List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const arma::cube S_in, const arma::cube Ginv_in, const SEXP thindraws_in) {
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
   //----------------------------------------------------------------------------------------------------------------------
@@ -187,12 +187,12 @@ List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const ar
   mat Y(Yr.begin(), bigT, bigK, false);
   mat X(Xr.begin(), bigT, bigKK, false);
   
-  const int thinsaves  = as<int>(thinsaves_in);
-  vec globalLik(thinsaves, fill::zeros);
+  const int thindraws  = as<int>(thindraws_in);
+  vec globalLik(thindraws, fill::zeros);
   //----------------------------------------------------------------------------------------------------------------------
   // Evaluate density
   //----------------------------------------------------------------------------------------------------------------------
-  for(int irep = 0; irep < thinsaves; irep++){
+  for(int irep = 0; irep < thindraws; irep++){
     mat A       = A_in.row(irep);
     mat S       = S_in.row(irep);
     mat Ginv    = Ginv_in.row(irep);

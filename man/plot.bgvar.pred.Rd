@@ -28,7 +28,7 @@ data(eerData)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
                       eigen=TRUE)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 plot(fcast, resp="US.Dp", Cut=20)
@@ -36,7 +36,7 @@ plot(fcast, resp="US.Dp", Cut=20)
 \donttest{
 library(BGVAR)
 data(eerData)
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
                       eigen=TRUE)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 plot(fcast, resp="US.Dp", Cut=20)

@@ -25,7 +25,7 @@ Either plots country-residuals or the global-residuals.
 \donttest{
 library(BGVAR)
 data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 summary(model.ssvs)
 res <- residuals(model.ssvs)

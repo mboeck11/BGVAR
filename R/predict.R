@@ -20,14 +20,14 @@
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' fcast <- predict(model.ssvs, n.ahead=8)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' fcast <- predict(model.ssvs, n.ahead=8)
 #' }
@@ -38,7 +38,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   start.pred <- Sys.time()
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   if(verbose) cat("\nStart computing predictions of Bayesian Global Vector Autoregression.\n\n")
-  saves      <- object$args$thinsaves
+  draws      <- object$args$thindraws
   plag       <- object$args$plag
   xglobal    <- object$xglobal
   x          <- xglobal[(plag+1):nrow(xglobal),]
@@ -65,12 +65,12 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   Yn <- Yn[(plag+1):Traw,,drop=FALSE]
   if(trend) Xn <- cbind(Xn,seq(1,bigT))
   
-  fcst_t <- array(NA,dim=c(saves,M,n.ahead))
+  fcst_t <- array(NA,dim=c(draws,M,n.ahead))
   
   # start loop here
   if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = saves, style = 3)
-  for(irep in 1:saves){
+  if(verbose) pb <- txtProgressBar(min = 0, max = draws, style = 3)
+  for(irep in 1:draws){
     #Step I: Construct a global VC matrix Omega_t
     Ginv    <- Ginv_large[irep,,]
     Sig_t   <- Ginv%*%(S_large[irep,,])%*%t(Ginv)
@@ -171,7 +171,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' 
 #' # compute predictions
@@ -192,7 +192,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' 
 #' # compute predictions
@@ -234,7 +234,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   S_large     <- bgvar.obj$stacked.results$S_large
   Ginv_large  <- bgvar.obj$stacked.results$Ginv_large
   F.eigen     <- bgvar.obj$stacked.results$F.eigen
-  thinsaves   <- length(F.eigen)
+  thindraws   <- length(F.eigen)
   x           <- xglobal[(plag+1):Traw,,drop=FALSE]
   horizon     <- pred.obj$n.ahead
   varNames    <- colnames(xglobal)
@@ -257,12 +257,12 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   }
   pred_array <- pred.obj$pred_store
   #---------------container---------------------------------------------------------#
-  cond_pred <- array(NA, c(thinsaves, bigK, horizon))
+  cond_pred <- array(NA, c(thindraws, bigK, horizon))
   dimnames(cond_pred)[[2]] <- varNames
   #----------do conditional forecasting -------------------------------------------#
   if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = thinsaves, style = 3)
-  for(irep in 1:thinsaves){
+  if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  for(irep in 1:thindraws){
     pred    <- pred_array[irep,,]
     Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
     irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
@@ -345,7 +345,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' plot(fcast, resp="US.Dp", Cut=20)
@@ -353,7 +353,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' plot(fcast, resp="US.Dp", Cut=20)
@@ -440,7 +440,7 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
@@ -448,7 +448,7 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps   <- lps(fcast)
@@ -486,7 +486,7 @@ lps <- function(object, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
@@ -494,7 +494,7 @@ lps <- function(object, ...){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
+#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse   <- rmse(fcast)
@@ -520,37 +520,8 @@ rmse <- function(object, ...){
   return(out)
 }
 
-#' @name print.bgvar.lps
-#' @export
-#' @title Print prediction evaulation
-#' @description \code{print} prints log-predictive scores (LPS) of out-of-sample predictions computed with \code{bgvar.predict}.
 #' @method print bgvar.lps
-#' @param x an object of class \code{bgvar.lps}.
-#' @param ... other arguments.
-#' @return No return value.
-#' @seealso 
-#' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' lps(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' lps(fcast)
-#' }
+#' @export
 #' @importFrom knitr kable
 print.bgvar.lps<-function(x, ...){
   h    <- dim(x)[1]
@@ -601,52 +572,23 @@ print.bgvar.lps<-function(x, ...){
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per country")
-  cat(kable(mat.c))
+  cat(kable(mat.c), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per variable")
-  cat(kable(mat.v))
+  cat(kable(mat.v), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Log-predictive scores per horizon")
-  cat(kable(mat.h))
+  cat(kable(mat.h), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
 }
 
-#' @name print.bgvar.rmse
-#' @export
-#' @title Print prediction evaulation
-#' @description \code{print} prints root mean squared errors (RMSE) of out-of-sample predictions computed with \code{bgvar.predict}.
 #' @method print bgvar.rmse
-#' @param x an object of class \code{bgvar.predeval}.
-#' @param ... other arguments.
-#' @return No return value.
-#' @seealso 
-#' \code{\link{bgvar}} to estimate a \code{bgvar} object and \code{\link{predict.bgvar}} to compute predictions.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' rmse(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' rmse(fcast)
-#' }
+#' @export
 #' @importFrom knitr kable
 print.bgvar.rmse<-function(x, ...){
   h    <- dim(x)[1]
@@ -697,17 +639,17 @@ print.bgvar.rmse<-function(x, ...){
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per country")
-  cat(kable(mat.c))
+  cat(kable(mat.c), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per variable")
-  cat(kable(mat.v))
+  cat(kable(mat.v), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Root-mean squared error per horizon")
-  cat(kable(mat.h))
+  cat(kable(mat.h), "rst")
   cat("\n")
   cat("---------------------------------------------------------------------------")
 }

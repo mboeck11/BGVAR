@@ -4,7 +4,7 @@
 \alias{bgvar}
 \title{BGVAR}
 \usage{
-bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1, 
+bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
       Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
 }
@@ -18,9 +18,9 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1,
 
 \item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.}
 
-\item{saves}{Number of draws saved. Default set to \code{saves=5000}.}
+\item{draws}{Number of draws saved. Default set to \code{draws=5000}.}
 
-\item{burns}{Number of burn-ins. Default set to \code{burns=5000}.}
+\item{burnin}{Number of burn-ins. Default set to \code{burnin=5000}.}
 
 \item{prior}{Either "SSVS", "MN" or "NG". See Details below.}
 
@@ -28,7 +28,7 @@ bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1,
 
 \item{h}{Defines the hold-out sample. Default without hold-out sample, thus set to zero.}
 
-\item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500. Default set to \code{thin=1}.}
+\item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.}
 
 \item{hyperpara}{Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS} or \code{NG}. \itemize{
 \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
@@ -93,10 +93,10 @@ Returns a list of class \code{bgvar} with the following elements: \itemize{
 \item{\code{gW}}{ is the global weight matrix. It is a list, with \code{N} entries, each of which contains the weight matrix of each country.}
 \item{\code{country.res}}{ is a matrix that contains the posterior mean of the  country models' residuals. The residuals have been obtained as a running mean and thus always relate to the full set of posterior draws. This implies that in case you have opted for trimming the draws the residuals do not correspond to the posterior draws of the "trimmed" coefficients. This is a storage problem, rather than a statistical problem. Experiments, however, show that residual properties (autocorrelation, cross-sectional correlation) of trimmed and reported residuals are close.}
 \item{\code{stacked results}}{\itemize{
-      \item{\code{S_large}}{ is a three-dimensional array (K times K times saves) of the (block-diagonal) posterior variance covariance matrix.}
-      \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times saves) of the coefficients.}
-      \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times saves) of the inverse of the G matrix.}
-      \item{\code{A_large}}{ is a three-dimensional array (K times K+1 times saves) of the posterior estimates for the K coefficients plus a global constant.}
+      \item{\code{S_large}}{ is a three-dimensional array (K times K times draws) of the (block-diagonal) posterior variance covariance matrix.}
+      \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times draws) of the coefficients.}
+      \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times draws) of the inverse of the G matrix.}
+      \item{\code{A_large}}{ is a three-dimensional array (K times K+1 times draws) of the posterior estimates for the K coefficients plus a global constant.}
       \item{\code{F.eigen}}{ in case \code{eigen="TRUE"}, returns a vector that contains for each posterior draw the modulus of the largest eigenvalue of the companion matrix.}
       \item{\code{trim.info}}{ is a character vector. Contains information regarding the nr. of stable draws out of total (thinned) draws. Experience shows that a maximum eigenvalue of \code{1.05} seems a reasonable choice when working with data in levels to generate stable impulse responses.}
 }}
@@ -127,13 +127,13 @@ cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
 hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=100, 
-                  burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")],plag=1,draws=100, 
+                  burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
 print(model.mn)
 }
 \donttest{
@@ -141,14 +141,14 @@ library(BGVAR)
 # replicate Feldkircher and Huber (2016) using trade based weights
 data(eerData)
 hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 print(model.ssvs)
 
 data("eerData")
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=200, 
-                  burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, draws=200, 
+                  burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
 print(model.mn)
 
 data(monthlyData)
@@ -157,14 +157,13 @@ OC.weights$variables <- c("poil","qoil","y")
 OE.weights <- list(EB=EA.weights,OC=OC.weights)
 hyperpara<-list(c_tau = 0.01, d_tau = 0.01,e_lambda=1.5,d_lambda=1, 
                 prmean=0,a_i=0.01,b_i=0.01,a_start=.6,sample_A=FALSE)
-model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,saves=100,burns=100,prior="SSVS",
+model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,OE.weights=OE.weights)
 print(model.ssvs)
 }
 }
 \references{
 Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) Forecasting with Global Vector Autoregressive Models: A Bayesian Approach. \emph{Journal of Applied Econometrics}, Vol. 31(7), pp. 1371-1391.
-
 Doan, T. R., Litterman, B. R. and C. A. Sims (1984) Forecasting and Conditional Projection Using Realistic Prior Distributions. \emph{Econometric Reviews}, Vol. 3, pp. 1-100.
 
 Dovern, J., Feldkircher, M. and F. Huber (2016) Does joint modelling of the world economy pay off? Evaluating multivariate forecasts from a Bayesian GVAR. \emph{Journal of Economic Dynamics and Control}, Vol. 70, pp. 86-100.

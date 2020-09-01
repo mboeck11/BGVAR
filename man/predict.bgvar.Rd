@@ -36,14 +36,14 @@ data(eerData)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 fcast <- predict(model.ssvs, n.ahead=8)
 }
 \donttest{
 library(BGVAR)
 data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 fcast <- predict(model.ssvs, n.ahead=8)
 }

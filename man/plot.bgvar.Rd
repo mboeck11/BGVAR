@@ -25,7 +25,7 @@ Plots the fitted values in red of either the country VARs or the GVAR (default) 
 \donttest{
 library(BGVAR)
 data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 summary(model.ssvs)
 plot(model.ssvs, resp="EA")

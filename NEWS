@@ -1,3 +1,15 @@
+Changes in Version 2.1
+- changed argument names of 'bgvar' to be more similar to existing Bayesian packages
+  - 'saves' is now 'draws'
+  - 'burns' is now 'burnin'
+- changed argument name of 'predict' to be more similar to existing Bayesian packages
+  - 'fhorz' is now 'n.ahead'
+- added new class 'bgvar.summary' with print method
+- added new class 'bgvar.logLik' with print method
+- print methods have now no own helpfile (not necessary)
+- deleted some printing to the console and use now consistently cat()
+
+
 Changes in Version 2.0.1
 - bug fixes in Rcpp code (wrong overloading of std::pow)
 

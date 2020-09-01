@@ -24,14 +24,14 @@ data(eerData)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
 DIC(model.mn)
 }
 \donttest{
 set.seed(1)
 library(BGVAR)
 data(eerData)
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="MN")
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="MN")
 DIC(model.mn)
 }
 }

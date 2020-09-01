@@ -31,7 +31,7 @@ If used for analyzing the country models' residuals, \code{avg.pair.cc} computes
 library(BGVAR)
 data(eerData)
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
-                  saves=100,burns=100,prior="MN")
+                  draws=100,burnin=100,prior="MN")
 avg.pair.cc(model.mn)
 
 res <- residuals(model.mn)

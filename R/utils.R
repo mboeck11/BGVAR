@@ -252,7 +252,7 @@
 #' @name .BVAR_linear_wrapper
 #' @noRd
 #' @importFrom utils capture.output
-.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, saves, burns, trend, SV, thin, default_hyperpara, Ex){
+.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
   Exraw <- NULL
@@ -264,9 +264,9 @@
   if(default_hyperpara[["a_log"]]){
     default_hyperpara["a_start"] <- 1/log(ncol(Yraw))
   }
-  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)),type="message"))
+  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)),type="message"))
   if(is(bvar,"try-error")){
-    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,saves_in=saves,burns_in=burns,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)
+    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)
   }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
@@ -297,9 +297,9 @@
     Lambdastore[[jj]] <- A_store[,which(dims==paste("Wexlag",jj,sep="")),,drop=FALSE]
     Phistore[[jj]]  <- A_store[,which(dims==paste("Ylag",jj,sep="")),,drop=FALSE]
   }
-  SIGMA_store <- array(NA, c(saves/thin,bigT,M,M)); dimnames(SIGMA_store) <- list(NULL,NULL,colnames(Y),colnames(Y))
+  SIGMA_store <- array(NA, c(draws/thin,bigT,M,M)); dimnames(SIGMA_store) <- list(NULL,NULL,colnames(Y),colnames(Y))
   L_store <- bvar$L_store
-  for(irep in 1:(saves/thin)){
+  for(irep in 1:(draws/thin)){
     for(tt in 1:bigT){
       if(M>1){
         SIGMA_store[irep,tt,,] <- L_store[irep,,]%*%diag(exp(bvar$Sv_store[irep,tt,]))%*%t(L_store[irep,,])
@@ -381,7 +381,7 @@
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @noRd
-.BVAR_linear_R <- function(Y_in,W_in,p_in,saves_in,burns_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
+.BVAR_linear_R <- function(Y_in,W_in,p_in,draws_in,burnin_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
   #----------------------------------------INPUTS----------------------------------------------------#
   Yraw  <- Y_in
   p     <- p_in
@@ -576,33 +576,33 @@
   #---------------------------------------------------------------------------------------------------------
   # SAMPLER MISCELLANEOUS
   #---------------------------------------------------------------------------------------------------------
-  nsave <- saves_in
-  nburn <- burns_in
+  nsave <- draws_in
+  nburn <- burnin_in
   ntot  <- nsave+nburn
   
   # thinning
   thin         <- thin_in
   count <- 0
-  thinsaves    <- nsave/thin
+  thindraws    <- nsave/thin
   thin.draws   <- seq(nburn+1,ntot,by=thin)
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
-  A_store      <- array(NA,c(thinsaves,k,M))
-  L_store      <- array(NA,c(thinsaves,M,M))
-  res_store    <- array(NA,c(thinsaves,bigT,M))
+  A_store      <- array(NA,c(thindraws,k,M))
+  L_store      <- array(NA,c(thindraws,M,M))
+  res_store    <- array(NA,c(thindraws,bigT,M))
   # SV
-  Sv_store     <- array(NA,c(thinsaves,bigT,M))
-  pars_store   <- array(NA,c(thinsaves,3,M))
+  Sv_store     <- array(NA,c(thindraws,bigT,M))
+  pars_store   <- array(NA,c(thindraws,3,M))
   # MN
-  shrink_store <- array(NA,c(thinsaves,3))
+  shrink_store <- array(NA,c(thindraws,3))
   # SSVS
-  gamma_store  <- array(NA,c(thinsaves,k,M))
-  omega_store  <- array(NA,c(thinsaves,M,M))
+  gamma_store  <- array(NA,c(thindraws,k,M))
+  omega_store  <- array(NA,c(thindraws,M,M))
   # NG
-  theta_store  <- array(NA,c(thinsaves,k,M))
-  lambda2_store<- array(NA,c(thinsaves,p+1,3))
-  tau_store    <- array(NA,c(thinsaves,p+1,3))
+  theta_store  <- array(NA,c(thindraws,k,M))
+  lambda2_store<- array(NA,c(thindraws,p+1,3))
+  tau_store    <- array(NA,c(thindraws,p+1,3))
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
   #---------------------------------------------------------------------------------------------------------
@@ -896,24 +896,24 @@
 #' @importFrom stats median
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @noRd
-.gvar.stacking<-function(xglobal,plag,globalpost,saves,thin,trend,eigen=FALSE,trim=NULL){
+.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL){
   # initialize objects here
   bigT <- nrow(xglobal) 
   bigK <- ncol(xglobal)
   cN   <- names(globalpost)
   
-  thinsaves <- saves/thin
-  F.eigen   <- numeric(thinsaves)
+  thindraws <- draws/thin
+  F.eigen   <- numeric(thindraws)
   trim.info <- "No trimming"
   
-  A_large     <- array(NA, dim=c(thinsaves,bigK,(bigK*plag+1+ifelse(trend,1,0))))
-  S_large     <- array(NA, dim=c(thinsaves,bigK,bigK))
-  Ginv_large  <- array(NA, dim=c(thinsaves,bigK,bigK))
-  F_large     <- array(NA, dim=c(thinsaves,bigK,bigK,plag))
+  A_large     <- array(NA, dim=c(thindraws,bigK,(bigK*plag+1+ifelse(trend,1,0))))
+  S_large     <- array(NA, dim=c(thindraws,bigK,bigK))
+  Ginv_large  <- array(NA, dim=c(thindraws,bigK,bigK))
+  F_large     <- array(NA, dim=c(thindraws,bigK,bigK,plag))
   dimnames(S_large)[[2]]<-dimnames(S_large)[[3]]<-dimnames(Ginv_large)[[2]]<-dimnames(Ginv_large)[[3]]<-dimnames(A_large)[[2]]<-colnames(xglobal)
   
-  pb <- txtProgressBar(min = 0, max = thinsaves, style = 3)
-  for (irep in 1:thinsaves){
+  pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  for (irep in 1:thindraws){
     a0     <- NULL
     a1     <- NULL
     G      <- NULL
@@ -982,8 +982,8 @@
       stop("Less than 10 stable draws have been found. Please re-estimate the model.")
     }
     
-    trim.info <- round((length(idx)/thinsaves)*100,2)
-    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thinsaves," total draws.",sep="")
+    trim.info <- round((length(idx)/thindraws)*100,2)
+    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
   }
   
   results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
@@ -993,16 +993,16 @@
 #' @name .gvar.stacking.wrapper
 #' @importFrom stats median
 #' @noRd
-.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,saves,thin,trend,eigen,trim,verbose){
+.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,eigen,trim,verbose){
   bigT      <- nrow(xglobal)
   bigK      <- ncol(xglobal)
   cN        <- names(globalpost)
-  thinsaves <- saves/thin
-  F_large   <- array(NA, dim=c(thinsaves,bigK,bigK,plag))
+  thindraws <- draws/thin
+  F_large   <- array(NA, dim=c(thindraws,bigK,bigK,plag))
   trim.info <- "No trimming"
   
   ## call Rcpp
-  out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, saves_in=saves,
+  out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, draws_in=draws,
                        thin_in=thin, trend_in=trend, eigen_in=TRUE, verbose_in=verbose)
   A_large    <- out$A_large
   for(pp in 1:plag){
@@ -1030,8 +1030,8 @@
       stop("Less than 10 stable draws have been found. Please re-estimate the model.")
     }
     
-    trim.info <- round((length(idx)/thinsaves)*100,2)
-    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thinsaves," total draws",sep="")
+    trim.info <- round((length(idx)/thindraws)*100,2)
+    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws",sep="")
   }
   
   results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)

@@ -1,28 +1,23 @@
 #' @name bgvar
-#' 
 #' @export
-#' 
 #' @title BGVAR
-#' 
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
-#' 
 #' @usage 
-#' bgvar(Data, W, plag=1, saves=5000, burns=5000, prior="NG", SV=TRUE, h=0, thin=1, 
+#' bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
 #'       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
 #'       Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
-#' 
 #' @param Data Either a \itemize{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param W An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. 
 #' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.
-#' @param saves Number of draws saved. Default set to \code{saves=5000}.
-#' @param burns Number of burn-ins. Default set to \code{burns=5000}.
+#' @param draws Number of draws saved. Default set to \code{draws=5000}.
+#' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
 #' @param prior Either "SSVS", "MN" or "NG". See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
 #' @param h Defines the hold-out sample. Default without hold-out sample, thus set to zero.
-#' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if saves/thin>500. Default set to \code{thin=1}.
+#' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
 #' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS} or \code{NG}. \itemize{
 #' \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 #' \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
@@ -71,19 +66,17 @@
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details We provide three priors, the Minnesota labeled \code{MN}, the SSVS and the Normal-Gamma prior. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
 #'  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
-#' 
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#'
 #' @return Returns a list of class \code{bgvar} with the following elements: \itemize{
 #' \item{\code{args}}{ is a list object that contains the arguments submitted to function \code{bgvar}.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 #' \item{\code{gW}}{ is the global weight matrix. It is a list, with \code{N} entries, each of which contains the weight matrix of each country.}
 #' \item{\code{country.res}}{ is a matrix that contains the posterior mean of the  country models' residuals. The residuals have been obtained as a running mean and thus always relate to the full set of posterior draws. This implies that in case you have opted for trimming the draws the residuals do not correspond to the posterior draws of the "trimmed" coefficients. This is a storage problem, rather than a statistical problem. Experiments, however, show that residual properties (autocorrelation, cross-sectional correlation) of trimmed and reported residuals are close.}
 #' \item{\code{stacked results}}{\itemize{
-#'       \item{\code{S_large}}{ is a three-dimensional array (K times K times saves) of the (block-diagonal) posterior variance covariance matrix.}
-#'       \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times saves) of the coefficients.}
-#'       \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times saves) of the inverse of the G matrix.}
-#'       \item{\code{A_large}}{ is a three-dimensional array (K times K+1 times saves) of the posterior estimates for the K coefficients plus a global constant.}
+#'       \item{\code{S_large}}{ is a three-dimensional array (K times K times draws) of the (block-diagonal) posterior variance covariance matrix.}
+#'       \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times draws) of the coefficients.}
+#'       \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times draws) of the inverse of the G matrix.}
+#'       \item{\code{A_large}}{ is a three-dimensional array (K times K+1 times draws) of the posterior estimates for the K coefficients plus a global constant.}
 #'       \item{\code{F.eigen}}{ in case \code{eigen="TRUE"}, returns a vector that contains for each posterior draw the modulus of the largest eigenvalue of the companion matrix.}
 #'       \item{\code{trim.info}}{ is a character vector. Contains information regarding the nr. of stable draws out of total (thinned) draws. Experience shows that a maximum eigenvalue of \code{1.05} seems a reasonable choice when working with data in levels to generate stable impulse responses.}
 #' }}
@@ -106,13 +99,13 @@
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
 #' hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 #' 
 #' W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 #' variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=100, 
-#'                   burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")],plag=1,draws=100, 
+#'                   burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
 #' print(model.mn)
 #' }
 #' \donttest{
@@ -120,14 +113,14 @@
 #' # replicate Feldkircher and Huber (2016) using trade based weights
 #' data(eerData)
 #' hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 #' print(model.ssvs)
 #' 
 #' data("eerData")
 #' variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, saves=200, 
-#'                   burns=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+#' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, draws=200, 
+#'                   burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
 #' print(model.mn)
 #' 
 #' data(monthlyData)
@@ -136,13 +129,13 @@
 #' OE.weights <- list(EB=EA.weights,OC=OC.weights)
 #' hyperpara<-list(c_tau = 0.01, d_tau = 0.01,e_lambda=1.5,d_lambda=1, 
 #'                 prmean=0,a_i=0.01,b_i=0.01,a_start=.6,sample_A=FALSE)
-#' model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,saves=100,burns=100,prior="SSVS",
+#' model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
 #'                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,OE.weights=OE.weights)
 #' print(model.ssvs)
 #' }
 #' @references 
 #' Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) Forecasting with Global Vector Autoregressive Models: A Bayesian Approach. \emph{Journal of Applied Econometrics}, Vol. 31(7), pp. 1371-1391.
-#' 
+
 #' Doan, T. R., Litterman, B. R. and C. A. Sims (1984) Forecasting and Conditional Projection Using Realistic Prior Distributions. \emph{Econometric Reviews}, Vol. 3, pp. 1-100.
 #' 
 #' Dovern, J., Feldkircher, M. and F. Huber (2016) Does joint modelling of the world economy pay off? Evaluating multivariate forecasts from a Bayesian GVAR. \emph{Journal of Economic Dynamics and Control}, Vol. 70, pp. 86-100.
@@ -175,7 +168,7 @@
 #' @importFrom stats is.ts median time ts
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
-bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE,verbose=TRUE){
+bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE,verbose=TRUE){
   start.bgvar <- Sys.time()
   #------------------------------ NA checks  ------------------------------------------------------#
   # check NAs
@@ -353,16 +346,16 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
     thin_mess <- paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep="")
     thin <- round(1/thin,2)
   }
-  if(saves%%thin!=0){
-    thin_mess <- paste("Thinning factor of ",thin," no divisor of ",saves," (number of draws to save for posterior analysis).\n",sep="")
-    div <- .divisors(saves,thin)
+  if(draws%%thin!=0){
+    thin_mess <- paste("Thinning factor of ",thin," no divisor of ",draws," (number of draws to save for posterior analysis).\n",sep="")
+    div <- .divisors(draws,thin)
     thin <- min(div[which(abs(div-thin)==min(abs(div-thin)))])
     thin_mess <- paste(thin_mess,"New thinning factor: ", thin,". This means every", ifelse(thin==1,"",ifelse(thin==2,paste(" ",thin,"nd ",sep=""), ifelse(thin==3,paste(" ",thin,"rd ",sep=""),paste(" ",thin,"th ",sep="")))), "draw is saved.\n",sep="")
   }else{
     thin_mess <- paste("Thinning factor: ", thin,". This means every ",ifelse(thin==1,"",ifelse(thin==2,paste(thin,"nd ",sep=""),ifelse(thin==3,paste(thin,"rd ",sep=""),paste(thin,"th ",sep="")))),"draw is saved.\n",sep="")
   }
   if(verbose) cat(thin_mess)
-  args$thinsaves <- saves/thin
+  args$thindraws <- draws/thin
   # set default
   if(verbose) cat("Hyperparameter setup: \n")
   default_hyperpara <- list(a_1=0.01,b_1=0.01, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
@@ -405,9 +398,9 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   if(multithread){
     numCores <- detectCores()
     registerDoParallel(cores=numCores)
-    globalpost <- foreach(cc=1:N) %dopar% {.BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)}
+    globalpost <- foreach(cc=1:N) %dopar% {.BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)}
   }else{
-    globalpost <- lapply(1:N, function(cc) .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,saves=saves,burns=burns,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex))
+    globalpost <- lapply(1:N, function(cc) .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex))
   }
   names(globalpost) <- cN
   end.estim <- Sys.time()
@@ -422,8 +415,8 @@ bgvar<-function(Data,W,plag=1,saves=5000,burns=5000,prior="NG",SV=TRUE,h=0,thin=
   }
   if(verbose) cat("Start stacking: \n")
   # insert stacking function here
-  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,saves=saves,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
-  if(!is.null(trim)) {args$thinsaves <- length(stacked.results$F.eigen)}
+  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
+  if(!is.null(trim)) {args$thindraws <- length(stacked.results$F.eigen)}
   if(verbose) cat("\nStacking finished.\n")
   #--------------------------- prepare country models -------------------------------------------------------------#
   # country model residuals
@@ -499,7 +492,7 @@ print.bgvar<-function(x, ...){
   cat("\n")
   cat(paste("Nr. of lags: ",x$args$plag,sep=""))
   cat("\n")
-  cat(paste("Nr. of posterior draws: ",x$args$saves,"/",x$args$thin,"=",floor(x$args$saves/x$args$thin),sep=""))
+  cat(paste("Nr. of posterior draws: ",x$args$draws,"/",x$args$thin,"=",floor(x$args$draws/x$args$thin),sep=""))
   cat("\n")
   cat(paste("Size of GVAR object: ",format(object.size(x),units="MB"),sep=""))
   cat("\n")
@@ -549,7 +542,7 @@ print.bgvar<-function(x, ...){
 #' cN<-c("EA","US")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=50,burnin=50,
 #'                     prior="SSVS",SV=TRUE,trend=TRUE)
 #' summary(model.ssvs)
 #' }
@@ -557,7 +550,7 @@ print.bgvar<-function(x, ...){
 #' set.seed(571)
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",thin=1,SV=TRUE,trend=TRUE)
 #' summary(model.ssvs)
 #' }
@@ -586,7 +579,7 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat(paste("Nr. of lags: ",x$object$args$plag,sep=""))
   cat("\n")
-  cat(paste("Nr. of posterior draws: ",x$object$args$saves,"/",x$object$args$thin,"=",x$object$args$saves/x$object$args$thin,sep=""))
+  cat(paste("Nr. of posterior draws: ",x$object$args$draws,"/",x$object$args$thin,"=",x$object$args$draws/x$object$args$thin,sep=""))
   cat("\n")
   if(x$object$args$eigen){
     cat("Number of stable posterior draws: ",length(x$object$stacked.results$F.eigen))
@@ -615,11 +608,11 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat("Summary statistics:")
   cat("\n")
-  for(rr in 1:nrow(x$cross.corr$res.res)){
-    cat(x$cross.corr$res.res[rr,])
+  temp <- kable(x$cross.corr$res.res, row.names=TRUE, "rst")
+  for(ii in 1:length(temp)){
+    cat(temp[ii])
     cat("\n")
   }
-  cat(x$cross.corr$res.res)
   cat("--------------------------------------------------------------------------------------")
   cat("\n")
   
@@ -639,7 +632,7 @@ print.bgvar.summary <- function(x, ...){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' summary(model.ssvs)
 #' plot(model.ssvs, resp="EA")
@@ -723,8 +716,8 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' @details This function calculates residuals of the global and the country models based on a \code{bgvar} object. Country models' residuals are equivalent to output generated by the \code{print.bgvar} function in case no trimming has been used. If trimming was invoked to discard unstable draws output of both functions might differ since \code{print.bgvar} calculates residuals as a running mean to save storage which is based on the \emph{whole} set of posterior draws (including discarded draws). In this case it is recommended to recalculate the residuals with \code{residuals.bgvar} and re-do the serial autocorrelation or average pairwise cross-correlation analysis using functions \code{resid.corr.test} and \code{avg.pair.cc}.
 #' 
 #' @return returns a list with the following arguments \itemize{
-#' \item{\code{global}}{ is a (T-p) times K times saves/thin array containing the residuals of the global model.}
-#' \item{\code{country}}{ is a (T-p) times K times saves/thin array containing the residuals of the country models.}
+#' \item{\code{global}}{ is a (T-p) times K times draws/thin array containing the residuals of the global model.}
+#' \item{\code{country}}{ is a (T-p) times K times draws/thin array containing the residuals of the country models.}
 #' \item{\code{Data}}{ is a (T-p) times K matrix containing the data of the model.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -734,7 +727,7 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' res <- residuals(model.ssvs)
 #' }
@@ -743,7 +736,7 @@ residuals.bgvar <- function(object, ...){
   G.mat   <- object$stacked.results$Ginv_large
   A.mat   <- object$stacked.results$A_large
   plag    <- object$args$plag
-  saves   <- object$args$thinsaves
+  draws   <- object$args$thindraws
   time    <- object$args$time
   trend   <- object$args$trend
   xglobal <- object$xglobal
@@ -753,8 +746,8 @@ residuals.bgvar <- function(object, ...){
   if(trend) XX <- cbind(XX,seq(1,nrow(XX)))
   
   rownames(YY) <- as.character(time[-c(1:plag)])
-  res.array.country<-res.array.global<-array(0,dim=c(saves,dim(YY)))
-  for(irep in 1:saves){
+  res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
+  for(irep in 1:draws){
     res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[irep,,]))
     res.array.country[irep,,] <- (res.array.global[irep,,]%*%t(solve(G.mat[irep,,])))
   }
@@ -784,7 +777,7 @@ resid.bgvar <- residuals.bgvar
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' summary(model.ssvs)
 #' res <- residuals(model.ssvs)
@@ -862,7 +855,7 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100)
 #' coef(model.ng)
 #' }
 coef.bgvar<-function(object, ..., quantile=.50){
@@ -892,7 +885,7 @@ coefficients.bgvar <- coef.bgvar
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100)
 #' vcov(model.ng)
 #' }
 #' @export
@@ -920,7 +913,7 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100)
 #' fitted(model.ng)
 #' }
 #' @export
@@ -954,7 +947,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100)
+#' model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100)
 #' logLik(model.ng)
 #' }
 #' @export
@@ -977,7 +970,7 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
-    thinsaves <- object$args$thinsaves
+    thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,plag),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
     Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
@@ -985,11 +978,18 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thinsaves=thinsaves)$globalLik)
+    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
     
     out <- quantile(globalLik,quantile,na.rm=TRUE)
     eval.parent(substitute(object$args$logLik<-out))
   }
   out <- structure(out, class="bgvar.logLik")
   return(out)
+}
+
+#' @method print bgvar.logLik
+#' @export
+print.bgvar.logLik <- function(x, ...){
+  cat(paste0("Log-Likelihood: ",round(x,2)))
+  invisible(x)
 }

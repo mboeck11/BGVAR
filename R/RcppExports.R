@@ -3,8 +3,8 @@
 
 #' @name BVAR_linear
 #' @noRd
-BVAR_linear <- function(Y_in, W_in, p_in, saves_in, burns_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in) {
-    .Call(`_BGVAR_BVAR_linear`, Y_in, W_in, p_in, saves_in, burns_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in)
+BVAR_linear <- function(Y_in, W_in, p_in, draws_in, burnin_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in) {
+    .Call(`_BGVAR_BVAR_linear`, Y_in, W_in, p_in, draws_in, burnin_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in)
 }
 
 do_rgig1 <- function(lambda, chi, psi) {
@@ -13,14 +13,14 @@ do_rgig1 <- function(lambda, chi, psi) {
 
 #' @name gvar_stacking
 #' @noRd
-gvar_stacking <- function(xglobal_in, plag_in, globalpost_in, saves_in, thin_in, trend_in, eigen_in, verbose_in) {
-    .Call(`_BGVAR_gvar_stacking`, xglobal_in, plag_in, globalpost_in, saves_in, thin_in, trend_in, eigen_in, verbose_in)
+gvar_stacking <- function(xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in) {
+    .Call(`_BGVAR_gvar_stacking`, xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in)
 }
 
 #' @name globalLik
 #' @noRd
-globalLik <- function(Y_in, X_in, A_in, S_in, Ginv_in, thinsaves_in) {
-    .Call(`_BGVAR_globalLik`, Y_in, X_in, A_in, S_in, Ginv_in, thinsaves_in)
+globalLik <- function(Y_in, X_in, A_in, S_in, Ginv_in, thindraws_in) {
+    .Call(`_BGVAR_globalLik`, Y_in, X_in, A_in, S_in, Ginv_in, thindraws_in)
 }
 
 #' @name dmvnrm_arma_fast

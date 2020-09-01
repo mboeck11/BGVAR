@@ -27,7 +27,7 @@ Geweke (1992) proposed a convergence diagnostic for Markov chains based on a tes
 \donttest{
 library(BGVAR)
 data(eerData)
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=200,burns=200,prior="MN")
+model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=200,burnin=200,prior="MN")
 geweke <- conv.diag(model.mn)
 }
 }

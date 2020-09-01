@@ -24,7 +24,7 @@
 #' library(BGVAR)
 #' data(eerData)
 #' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
-#'                   saves=100,burns=100,prior="MN")
+#'                   draws=100,burnin=100,prior="MN")
 #' avg.pair.cc(model.mn)
 #' 
 #' res <- residuals(model.mn)
@@ -117,9 +117,11 @@ avg.pair.cc=function(object, digits=3){
     res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",round((length(which(aux3>0.5&aux3<=1))/K3)*100,2),"%)",sep="")
     
   }
-  dat.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),dat.res))
-  res.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.res))
-  res.resG <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.resG))
+  colnames(dat.res) <- colnames(res.res) <- colnames(res.resG) <- colnames(datL)
+  rownames(dat.res) <- rownames(res.res) <- rownames(res.resG) <- c("<0.1","0.1-0.2","0.2-0.5",">0.5")
+  #dat.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),dat.res))
+  #res.res  <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.res))
+  #res.resG <- rbind(c("",colnames(datL)),cbind(c("<0.1","0.1-0.2","0.2-0.5",">0.5"),res.resG))
   
   avg.cc<-list(data.cor=datL,resid.cor=resL,resid.corG=resL.g,dat.res=dat.res,res.res=res.res,res.resG=res.resG)
   return(avg.cc)
@@ -144,7 +146,7 @@ avg.pair.cc=function(object, digits=3){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=200,burns=200,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=200,burnin=200,prior="MN")
 #' geweke <- conv.diag(model.mn)
 #' }
 #' @references 
@@ -197,13 +199,13 @@ print.bgvar.CD <- function(x, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs<-bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="SSVS")
+#' model.ssvs<-bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS")
 #' BIC(model.ssvs)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
 #' BIC(model.mn)
 #' }
 #' @references 
@@ -219,7 +221,7 @@ BIC.bgvar <- function(object, ...){
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
-    thinsaves <- object$args$thinsaves
+    thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,plag),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
     Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
@@ -227,7 +229,7 @@ BIC.bgvar <- function(object, ...){
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thinsaves=thinsaves)$globalLik)
+    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
     globalLik <- median(globalLik)
   }
   if(!is.null(object$args$BIC)){
@@ -263,13 +265,13 @@ BIC.bgvar <- function(object, ...){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="SSVS")
+#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS")
 #' AIC(model.ssvs)
 #' }
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
 #' AIC(model.mn)
 #' }
 #' @references 
@@ -287,7 +289,7 @@ AIC.bgvar <- function(object, ..., k = 2){
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
-    thinsaves <- object$args$thinsaves
+    thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,plag),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
     Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
@@ -295,7 +297,7 @@ AIC.bgvar <- function(object, ..., k = 2){
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thinsaves=thinsaves)$globalLik)
+    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
     globalLik <- median(globalLik)
   }
   if(!is.null(object$args$AIC)){
@@ -330,14 +332,14 @@ AIC.bgvar <- function(object, ..., k = 2){
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
 #' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,saves=100,burns=100,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
 #' DIC(model.mn)
 #' }
 #' \donttest{
 #' set.seed(1)
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="MN")
 #' DIC(model.mn)
 #' }
 #' @references 
@@ -352,7 +354,7 @@ DIC <- function(object, ...){
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
-    thinsaves <- object$args$thinsaves
+    thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,plag),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
     Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
@@ -360,7 +362,7 @@ DIC <- function(object, ...){
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thinsaves=thinsaves)$globalLik)
+    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
     A_mean     <- apply(A_large,c(2,3),mean)
     S_mean     <- apply(S_large,c(2,3),mean)
     Ginv_mean  <- apply(Ginv_large,c(2,3),mean)
@@ -403,7 +405,7 @@ DIC <- function(object, ...){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,saves=100,burns=100,plag=1,prior="MN")
+#' model.mn <- bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="MN")
 #' residual.corr.test(model.mn)
 #' }
 #' @importFrom stats pf qf

@@ -25,7 +25,7 @@ data(eerData)
 cN<-c("EA","US")
 eerData<-eerData[cN]
 W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=50,burns=50,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=50,burnin=50,
                     prior="SSVS",SV=TRUE,trend=TRUE)
 summary(model.ssvs)
 }
@@ -33,7 +33,7 @@ summary(model.ssvs)
 set.seed(571)
 library(BGVAR)
 data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS",thin=1,SV=TRUE,trend=TRUE)
 summary(model.ssvs)
 }

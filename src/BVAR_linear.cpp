@@ -13,7 +13,7 @@ using namespace arma;
 //' @noRd
 //[[Rcpp::export]]
 List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
-                 const SEXP saves_in, const SEXP burns_in,
+                 const SEXP draws_in, const SEXP burnin_in,
                  const SEXP cons_in, const SEXP trend_in, const SEXP sv_in, const SEXP thin_in,
                  const SEXP prior_in, const SEXP hyperparam_in, const SEXP Ex_in) {
   //----------------------------------------------------------------------------------------------------------------------
@@ -213,33 +213,33 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   //---------------------------------------------------------------------------------------------------------------
   // SAMPLER MISCELLANEOUS
   //---------------------------------------------------------------------------------------------------------------
-  const int burnin = as<int>(burns_in);
-  const int saves  = as<int>(saves_in);
-  const int ntot   = burnin + saves;
+  const int burnin = as<int>(burnin_in);
+  const int draws  = as<int>(draws_in);
+  const int ntot   = burnin + draws;
 
   // thinning parameters
   const int thin = as<int>(thin_in);
-  const int thinsaves = saves/thin;
+  const int thindraws = draws/thin;
   //---------------------------------------------------------------------------------------------
   // STORAGES
   //---------------------------------------------------------------------------------------------
-  cube A_store(thinsaves,k,M);
-  cube L_store(thinsaves,M,M);
-  cube res_store(thinsaves,T,M);
+  cube A_store(thindraws,k,M);
+  cube L_store(thindraws,M,M);
+  cube res_store(thindraws,T,M);
   // SV
-  cube Sv_store(thinsaves,T,M);
-  cube pars_store(thinsaves,M,3);
+  cube Sv_store(thindraws,T,M);
+  cube pars_store(thindraws,M,3);
   // SIMS
-  mat shrink_store(thinsaves,3, fill::zeros);
+  mat shrink_store(thindraws,3, fill::zeros);
   // SSVS
-  cube gamma_store(thinsaves,k,M, fill::zeros);
-  cube omega_store(thinsaves,M,M, fill::zeros);
+  cube gamma_store(thindraws,k,M, fill::zeros);
+  cube omega_store(thindraws,M,M, fill::zeros);
   // NG
-  cube theta_store(thinsaves,k,M, fill::zeros);
-  cube lambda2_store(thinsaves,p+1,3, fill::zeros);
-  cube tau_store(thinsaves,p+1,3, fill::zeros);
-  //cube accept_store(thinsaves,p+1,3, fill::zeros);
-  //cube tuning_store(thinsaves,p+1,3, fill::zeros);
+  cube theta_store(thindraws,k,M, fill::zeros);
+  cube lambda2_store(thindraws,p+1,3, fill::zeros);
+  cube tau_store(thindraws,p+1,3, fill::zeros);
+  //cube accept_store(thindraws,p+1,3, fill::zeros);
+  //cube tuning_store(thindraws,p+1,3, fill::zeros);
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
