@@ -1,4 +1,4 @@
-#' @name predict.bgvar
+#' @name predict
 #' @title Compute predictions
 #' @description A function that computes predictions based on a object of class \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
@@ -148,7 +148,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   return(out)
 }
 
-#' @name cond.pred
+#' @name cond.predict
 #' @title Conditional Forecasts
 #' @description Function that computes conditional forecasts for Bayesian Vector Autoregressions.
 #' @usage cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TRUE)
@@ -327,104 +327,6 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   mins.cond <- round(diff.cond,0); secs.cond <- round((diff.cond-floor(diff.cond))*60,0)
   if(verbose) cat(paste("\nNeeded time for computation: ",mins.cond," ",ifelse(mins.cond==1,"min","mins")," ",secs.cond, " ",ifelse(secs.cond==1,"second.","seconds.\n"),sep=""))
   return(out)
-}
-
-#' @name plot.bgvar.pred
-#' @title Plot predictions of bgvar
-#' @description  Plots the predictions of an object of class \code{bgvar.predict}.
-#' @param x an object of class \code{bgvar.predict}.
-#' @param ... additional arguments.
-#' @param resp specify a variable to plot predictions.
-#' @param Cut length of series to be plotted before prediction begins.
-#' @return No return value.
-#' @author Maximilian Boeck, Martin Feldkircher
-#' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
-#' }
-#' @importFrom graphics abline matplot polygon
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
-#' @export
-plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
-  # reset user par settings on exit
-  oldpar<- par(no.readonly=TRUE)
-  on.exit(par(oldpar))
-  fcast <- x$fcast
-  Xdata <- x$xglobal
-  hstep <- x$n.ahead
-  thin<-nrow(Xdata)-hstep
-  if(thin>Cut){
-    Xdata<-Xdata[(nrow(Xdata)-Cut+1):nrow(Xdata),]
-  }
-  varNames  <- colnames(Xdata)
-  varAll    <- varNames
-  cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar.predict' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar.predict' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc) varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      x <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low25","median","high75")])
-      y <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low16","median","high84")])
-      b <- range(x,y, na.rm=TRUE)
-      b1<-b[1];b2<-rev(b)[1]
-      matplot(x,type="l",col=c("black","black","black"),xaxt="n",lwd=4,ylab="",main=varAll[idx],yaxt="n",
-              cex.main=bgvar.env$plot$cex.main,cex.axis=bgvar.env$plot$cex.axis,
-              cex.lab=bgvar.env$plot$cex.lab,lty=c(0,1,0),ylim=c(b1,b2))
-      polygon(c(1:nrow(y),rev(1:nrow(y))),c(y[,1],rev(y[,3])),col=bgvar.env$plot$col.75,border=NA)
-      polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,1],rev(x[,3])),col=bgvar.env$plot$col.68,border=NA)
-      lines(c(rep(NA,Cut),x[seq(Cut+1,Cut+hstep),2]),col=bgvar.env$plot$col.50,lwd=4)
-      
-      axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
-      axisindex <- c(round(seq(1,Cut,length.out=8)),seq(Cut+1,Cut+hstep))
-      axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-      axis(side=2, cex.axis=0.6)
-      abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
-    }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
-  }
 }
 
 #' @name lps.bgvar.pred

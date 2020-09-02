@@ -171,8 +171,8 @@ the adjusted `W.trade0012` weight matrix:
 ```{r "model.1",results="hide"}
  model.1<-bgvar(Data=eerData,
                     W=W.trade0012,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     plag=1,
                     prior="NG",
                     hyperpara=NULL, 
@@ -181,7 +181,6 @@ the adjusted `W.trade0012` weight matrix:
                     trend=TRUE,
                     h=0,
                     save.country.store=FALSE,
-                    multithread=FALSE,
                     eigen=1.05
                     )
 
@@ -191,7 +190,7 @@ The default prior specification in `bgvar` is to use the NG prior with stochasti
 </p>
 
 <p align=justify>
-The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `saves` and `burns` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `saves=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term. To speed up computation, it is possible to set `multithread=TRUE`, which invokes parallel computing using the `doParallel` package. The package then attempts to detect the number of available CPU cores which it can use for parallel computing; ideally this number would be equal to the number of entities $N$. In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE` allows to save the whole posterior distribution of the single country models, in the case we would like to inspect them. Due to storage reasons, the default is set to `FALSE` and only the posterior medians of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the \textit{global model} is reported.
+The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `draws` and `burnin` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `draws=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term.  To speed up computation, it is possible to set `cores` to the number of CPU cores to use.. The package then detects the used platform and either invokes `parLapply` (Windows platform) or `mclapply` (non-Windows platform). If `cores=NULL` then `lapply` is used. In case the user wants to specify its own apply function, this is also possible by passing it to the argument `applyfun`. Ideally the number of cores is equal to the number of units $N$. In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE` allows to save the whole posterior distribution of the single country models, in the case we would like to inspect them. Due to storage reasons, the default is set to `FALSE` and only the posterior medians of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the \textit{global model} is reported.
 </p>
 
 <p align=justify>
@@ -283,8 +282,8 @@ We can estimate the model with two further priors on the unit models, the SSVS p
 ```{r "ssvs.1",echo=TRUE, results="hide"}
  model.ssvs.1<-bgvar(Data=eerData,
                     W=W.trade0012,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     plag=1,
                     prior="SSVS",
                     hyperpara=NULL, 
@@ -293,7 +292,6 @@ We can estimate the model with two further priors on the unit models, the SSVS p
                     trend=TRUE,
                     h=0,
                     save.country.store=FALSE,
-                    multithread=FALSE,
                     eigen=1.05
                     )
 
@@ -346,8 +344,8 @@ We can then re-estimate the model:
 model.ssvs.2<-bgvar(Data=eerData2,
                     W=W.list[c("tradeW.0012","finW0711")],
                     plag=1,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     prior="SSVS",
                     SV=TRUE,
                     thin=1,
@@ -371,8 +369,8 @@ Another specification would be to include a foreign variable only when its domes
 model.ssvs.3<-bgvar(Data=eerData,
                     W=W.trade0012,
                     plag=1,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     prior="SSVS",
                     SV=TRUE,
                     thin=1,
@@ -441,8 +439,8 @@ Now we can re-estimate the model by specifying `OE.weights`, which is a list wit
 model.ssvs.4<-bgvar(Data=eerData2,
                     W=W.trade0012,
                     plag=1,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     prior="SSVS",
                     SV=TRUE,
                     thin=1,
@@ -485,7 +483,7 @@ Structural analysis can be performed by invoking the `IRF` function. This functi
 <p align="justify">
 Let us start by looking at a monetary policy shock in the US country model. 
 We have to set up a list `shock` that contains information about which variable we want to shock `shocks$var`, in which country `shocks$cN` and whether we want a recursive identification or GIRFs `shocks$ident`. We can also scale the shock using `shocks$scal`.
- If the argument `multithread=TRUE` is set to TRUE, computation is sped up by using multiple CPU cores. The package attempts to detect the number of cores on the computer, which it uses then for parallel computing. Default is set to `FALSE` to not slow down the computer.
+ If the argument `cores` is set to to a number, computation is sped up by using multiple CPU cores. The package attempts to detect the number of cores on the computer, which it uses then for parallel computing. Default is set to `FALSE` to not slow down the computer.
 </p>
 ```{r "us.mp", results="hide"}
   # US monetary policy shock
@@ -563,8 +561,8 @@ W.trade0012.spf<-apply(W.trade0012.spf,2,function(x)x/rowSums(W.trade0012.spf))
 model.ssvs.eer<-bgvar(Data=eerDataspf,
                     W=W.trade0012.spf,
                     plag=1,
-                    saves=100,
-                    burns=100,
+                    draws=100,
+                    burnin=100,
                     prior="SSVS",
                     SV=TRUE,
                     thin=1
@@ -596,7 +594,7 @@ We specify the sign restrictions by setting up a list that has to contain the in
 
 
 <p align="justify">
-We then invoke the `IRF` command to compute the impulse responses. The function draws rotation matrices using the algorithm of @Ramirez2010. In case we specify additional zero restrictions (see the next example below), we use the algorithm of @Arias2018. By default, we use one CPU core (`multithread=FALSE`) and do not store the full set of responses (`save.store=FALSE`). The maximum number of rotation matrices sampled per MCMC draw before we jump to the next draw can be specified by `MaxTries`. 
+We then invoke the `IRF` command to compute the impulse responses. The function draws rotation matrices using the algorithm of @Ramirez2010. In case we specify additional zero restrictions (see the next example below), we use the algorithm of @Arias2018. By default, we use one CPU core (`cores=NULL`) and do not store the full set of responses (`save.store=FALSE`). The maximum number of rotation matrices sampled per MCMC draw before we jump to the next draw can be specified by `MaxTries`. 
 </p>
 
 ```{r, "us.spf.sign",message=FALSE, results="hide"}
@@ -710,8 +708,8 @@ OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%E
 # estimates the model
 model.ssvs<-bgvar(Data=monthlyData,
                   W=W,
-                  saves=100,
-                  burns=100,
+                  draws=100,
+                  burnin=100,
                   plag=1,
                   prior="SSVS",
                   thin=1,
@@ -798,7 +796,7 @@ One way of fixing this is to use generalized forecast error variance decompositi
 
 ```{r, "fevd"}
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,nhor=24,running=TRUE,multithread=TRUE)$GFEVD
+gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,nhor=24,running=TRUE,cires=4)$GFEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
@@ -866,7 +864,7 @@ Since the GVAR framework was developed to capture cross-country dependencies, it
 To compute forecasts with the `BGVAR` package, we use the command `predict`. To be able to evaluate the forecast, we have to specify the size of the hold-out sample when estimating the model. Here, we choose a hold-out-sample of 8 observations by setting `h=8` (the default values is `h=0`):   
 </p>
 ```{r,"fcast.est", results="hide"}
-model.ssvs.h8<-bgvar(Data=eerData,W=W.trade0012,plag=1,saves=100,burns=100,prior="SSVS",
+model.ssvs.h8<-bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS",
                     SV=TRUE,thin=1,eigen=1.05,trend=TRUE,h=8)
 ```
 <p align="justify">
@@ -949,9 +947,9 @@ Main arguments and description of the function `bgvar`.
 
 * `plag`: Number of lags used (the same for domestic, exogenous and weakly exogenous variables). Default set to `plag=1`.
 
-* `saves`: Number of draws saved. Default set to `saves=5000`.
+* `draws`: Number of draws saved. Default set to `draws=5000`.
 
-* `burns`: Number of burn-ins. Default set to `burns=5000`.
+* `burnin`: Number of burn-ins. Default set to `burnin=5000`.
 
 * `prior`: Either "SSVS", "MN" or "NG". See details below. Default set to `prior=NG`.
 
@@ -1008,7 +1006,9 @@ Main arguments and description of the function `bgvar`.
 
 * `save.country.store` If set to `TRUE` then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to `FALSE`.
 
-* `multithread` If set to `TRUE` parallel computing using the packages `foreach` and `doParallel`. The number of cores is set automatically to the maximum number of cores in the computer. Default is set to `FALSE` and thus no parallelization.
+* `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
+
+* `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 
 * `verbose` If set to `FALSE` it suppresses printing messages to the console.
 
@@ -1030,8 +1030,8 @@ Hyperparm.MN <- list(a_i = 0.01, # prior for the shape parameter of the IG
                        )
 model.MN<-bgvar(Data=eerData,
                   W=W.list[c("tradeW.0012","finW0711")],
-                  saves=200,
-                  burns=200,
+                  draws=200,
+                  burnin=200,
                   plag=1,
                   hyperpara=Hyperparm.MN,
                   prior="MN",
@@ -1056,8 +1056,8 @@ Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spi
                        )
 model.ssvs<-bgvar(Data=eerData,
                   W=W.trade0012,
-                  saves=100,
-                  burns=100,
+                  draws=100,
+                  burnin=100,
                   plag=1,
                   hyperpara=Hyperparm.ssvs,
                   prior="SSVS",
@@ -1079,8 +1079,8 @@ Hyperparm.ng<-list(c_tau    = 0.01, # covariances: prior hyperparameter for the 
                    ) 
 model.ng<-bgvar(Data=monthlyData,
                 W=W,
-                saves=200,
-                burns=100,
+                draws=200,
+                burnin=100,
                 plag=1,
                 hyperpara=Hyperparm.ng,
                 prior="NG",
@@ -1118,7 +1118,9 @@ model.ng<-bgvar(Data=monthlyData,
 
 * `save.store`: If `TRUE` the full posterior is returned. Default is `FALSE` in order to save storage.
 
-* `multithread`: If set to `TRUE` parallel computing using the packages `foreach` and `doParallel`. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to `FALSE` and thus no parallelization.
+* `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
+
+* `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 
 * `verbose` If set to `FALSE` it suppresses printing messages to the console.
 
@@ -1131,7 +1133,7 @@ Below, find some further examples.
   # First example, a US monetary policy shock, quarterly data
   library(BGVAR)
   data(eerData)
-  model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,saves=500,burns=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
+  model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
   # US monetary policy shock
   shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
   irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
@@ -1160,7 +1162,7 @@ Below, find some further examples.
   data(monthlyData);monthlyData$OC<-NULL
   OE.weights = list(EB=EA.weights)
   # estimates the model
-  model.ssvs<-bgvar(Data=monthlyData,W=W,saves=500,burns=500,plag=1,prior="SSVS",thin=10 ,eigen=TRUE,OE.weights=OE.weights)
+  model.ssvs<-bgvar(Data=monthlyData,W=W,draws=500,burnin=500,plag=1,prior="SSVS",thin=10 ,eigen=TRUE,OE.weights=OE.weights)
 
   EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", "IE", "IT", "NL", "PT","GR","SK") #,"MT","CY","EE","LT","LV")
 
@@ -1208,8 +1210,8 @@ Below, find some further examples.
   model.ssvs.eer<-bgvar(Data=eerDataspf,
                     W=W.trade0012.spf,
                     plag=1,
-                    saves=500,
-                    burns=500,
+                    draws=500,
+                    burnin=500,
                     prior="SSVS",
                     SV=TRUE,
                     thin=10)

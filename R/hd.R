@@ -1,7 +1,14 @@
-#' @name hd.decomp
+#' @export
+"hd" <- function(x, ...){
+  UseMethod("hd", x)
+}
+
+#' @name hd
 #' @title Historical Decomposition
 #' @description A function that calculates historical decomposition (HD) of the time series and the structural error.
-#' @usage hd.decomp(obj, R=NULL, verbose=TRUE)
+#' @method hd bgvar.irf
+#' @export
+#' @usage hd(obj, R=NULL, verbose=TRUE)
 #' @param obj an item fitted by \code{IRF}.
 #' @param R If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
@@ -23,8 +30,8 @@
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
-#' HD <- hd.decomp(irf.chol.us.mp)
+#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' HD <- hd(irf.chol.us.mp)
 #' }
 #' \donttest{
 #' set.seed(571)
@@ -34,9 +41,9 @@
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- IRF(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
 #' 
-#' HD <- hd.decomp(irf.chol.us.mp)
+#' HD <- hd(irf.chol.us.mp)
 #' # summing them up should get you back the original time series
 #' org.ts<-apply(HD$hd_array,c(1,2),sum)
 #' matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="")
@@ -44,10 +51,8 @@
 #' }
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
-#' @export
-hd.decomp<-function(obj, R=NULL, verbose=TRUE){
+hd.bgvar.irf<-function(obj, R=NULL, verbose=TRUE){
   start.hd <- Sys.time()
-  if(!inherits(obj, "bgvar.irf")) {stop("Please provide a `bgvar.irf` object.")}
   if(verbose) cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- obj$model.obj$xglobal
@@ -158,11 +163,36 @@ hd.decomp<-function(obj, R=NULL, verbose=TRUE){
   hd_array[,,(bigK+3+trend)] <- (t(x)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
-  out      <- structure(list(hd_array=hd_array,struc.shock=vv,x=x), class="bgvar.hd")
+  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=x, R=NULL), class="bgvar.hd")
   if(verbose) cat(paste("Size of object:", format(object.size(out),unit="MB")))
   end.hd <- Sys.time()
   diff.hd <- difftime(end.hd,start.hd,units="mins")
   mins.hd <- round(diff.hd,0); secs.hd <- round((diff.hd-floor(diff.hd))*60,0)
   if(verbose) cat(paste("\nNeeded time for computation: ",mins.hd," ",ifelse(mins.hd==1,"min","mins")," ",secs.hd, " ",ifelse(secs.hd==1,"second.","seconds.\n"),sep=""))
   return(out)
+}
+
+#' @method print bgvar.hd
+#' @export
+print.bgvar.hd <- function(x, ...){
+  cat("---------------------------------------------------------------------------------------")
+  cat("\n")
+  cat("Object contains historical decomposition of object estimated with 'bgvar':")
+  cat("\n")
+  cat(paste0("Size of hd_array containing historical decompositions: ",dim(x$hd_array)[[1]]," x ",dim(x$hd_array)[[2]]," x ",dim(x$hd_array)[[3]],"."))
+  cat("\n")
+  cat(paste0("Size of struc_shock containing structural errors: ",dim(x$struc_shock)[[1]]," x ",dim(x$struc_shock)[[2]],"."))
+  cat("\n")
+  cat("Identification scheme: ")
+  if(is.null(x$R)){
+    cat("Short-run restrictions via Cholesky decomposition.")
+  }else{
+    cat("Sign-restrictions.")
+  }
+  cat("\n")
+  cat(paste0("Size ob object: ",format(object.size(x),unit="MB")))
+  cat("\n")
+  cat("---------------------------------------------------------------------------------------")
+  
+  return(invisible(x))
 }

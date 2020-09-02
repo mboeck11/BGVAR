@@ -8,7 +8,14 @@ Changes in Version 2.1
 - added new class 'bgvar.logLik' with print method
 - print methods have now no own helpfile (not necessary)
 - deleted some printing to the console and use now consistently cat()
-
+- rename of some functions
+- changes related to multithreading
+  - not dependent on foreach and doparallal any more
+  - parLapply for Windows platforms
+  - mclapply for non-Windows platforms
+  - user can also specify own apply function
+- adapted class 'logLik.bgvar' to class 'logLik'
+- added 'print' method for classes 'bgvar.hd', 'bgvar.irf', 'bgvar.fevd'
 
 Changes in Version 2.0.1
 - bug fixes in Rcpp code (wrong overloading of std::pow)

@@ -23,7 +23,7 @@ Note that Mac OS needs gfortran binary packages to be installed. See also: https
 
 The core function of the package is `bgvar()` to estimate Bayesian Global Vector Autoregressions with different shrinkage prior setups. Calls can be heavily customized with respect to the specification details of the model, the MCMC chain, hyperparameter setup and various extra features. The output of the estimation can then be used for a variety of tools implemented for the **BGVAR** package.
 
-Predictions are invoked with `predict()`, impulse responses are computed with `IRF()`, forecast error variance decompositions can be called with `fevd.decomp` and historical decompositions with `hd.decomp()`. Furthermore, counterfactual impulse responses are computed with `IRF.cf()` and conditional forecasts with `cond.pred()`. 
+Predictions are invoked with `predict()`, impulse responses are computed with `IRF()`, forecast error variance decompositions can be called with `fevd()` and historical decompositions with `hd()`. Furthermore, counterfactual impulse responses are computed with `IRF.cf()` and conditional forecasts with `cond.pred()`. 
 
 The package comes with standard methods to ease the analysis. The estimation output can be inspected with `print()`, `summary()`, `fitted()`, `coef()`, `vcov()` and `residuals()`. Default `plot()` is available for most outputs. Various other helper functions to ease analysis are also available.
 

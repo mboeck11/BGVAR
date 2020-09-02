@@ -82,7 +82,9 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1
 
 \item{save.country.store}{If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
 
-\item{multithread}{If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.}
+\item{applyfun}{Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
+
+\item{cores}{Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }

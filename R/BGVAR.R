@@ -62,7 +62,8 @@
 #' }
 #' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
 #' @param save.country.store If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.
-#' @param multithread If set to \code{TRUE} parallel computing using the packages \code{\link{foreach}} and \code{\link{doParallel}}. Number of cores is set to maximum number of cores in the computer. This option is recommended when working with sign restrictions to speed up computations. Default is set to \code{FALSE} and thus no parallelization.
+#' @param applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.
+#' @param cores Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details We provide three priors, the Minnesota labeled \code{MN}, the SSVS and the Normal-Gamma prior. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
 #'  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
@@ -160,20 +161,25 @@
 #' 
 #' Sims, C.A. and T. Zha (1998) Bayesian Methods for Dynamic Multivariate Models. \emph{International Economic Review}, Vol. 39, pp. 949-968.
 #' @importFrom abind adrop
-#' @importFrom doParallel registerDoParallel
 #' @importFrom GIGrvg rgig
-#' @importFrom foreach foreach %dopar%
-#' @importFrom parallel detectCores
+#' @importFrom parallel parLapply mclapply
 #' @importFrom Rcpp evalCpp
 #' @importFrom stats is.ts median time ts
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
-bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,multithread=FALSE,verbose=TRUE){
+bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,applyfun=NULL,cores=NULL,verbose=TRUE){
   start.bgvar <- Sys.time()
-  #------------------------------ NA checks  ------------------------------------------------------#
-  # check NAs
-  if(any(is.na(Data)) || any(is.na(W)) || any(is.na(Ex))){
-    stop("The data you have submitted contains NAs. Please check the data including the weight matrix.")
+  #--------------------------------- checks  ------------------------------------------------------#
+  if(!is.list(Data) & !is.matrix(Data)){
+    stop("Please provide the argument 'Data' either as 'list' or as 'matrix' object.")
+  }
+  if(!is.list(W) & !is.matrix(W)){
+    stop("Please provide the argument 'W' either as 'list' or as 'matrix' object.")
+  }
+  if(!is.null(Ex)){
+    if(!is.list(Ex) & !is.matrix(Ex)){
+      stop("Please provide the argument 'Ex' either as 'list' or as 'matrix' object.")
+    }
   }
   if(!is.numeric(plag)){
     stop("Please specify number of lags as numeric.")
@@ -183,6 +189,12 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
   }
   if(length(plag)>1 || plag<1){
     stop("Please specify number of lags accordingly. One lag length parameter for the whole model.")
+  }
+  if(!is.numeric(draws) | !is.numeric(burnin)){
+    stop("Please specify number of draws and burnin as numeric.")
+  }
+  if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
+    stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
   }
   #-------------------------- construct arglist ----------------------------------------------------#
   args <- .construct.arglist(bgvar)
@@ -195,6 +207,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
   #------------------------------ user checks  ---------------------------------------------------#
   # check Data
   if(is.matrix(Data)){
+    if(any(is.na(Data))){
+      stop("The data you have submitted contains NAs. Please check the data.")
+    }
     if(!all(grepl("\\.",colnames(Data)))){
       stop("Please separate country- and variable names with a point.")
     }
@@ -209,8 +224,10 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
       colnames(temp[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
     }
     Data <- temp
-  }
-  if(is.list(Data)){
+  }else if(is.list(Data)){
+    if(any(unlist(lapply(Data,is.na)))){
+      stop("The data you have submitted contains NAs. Please check the data.")
+    }
     N <- length(Data)
     # check names
     if(is.null(names(Data))){
@@ -258,9 +275,12 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
     args$Traw <- length(timeindex)
   }
   args$Data <- Data
-  # check Weight matrix
+  # check Weight matrix if matrix
   if(is.matrix(W)){
     W.aux<-list();W.aux$W<-W;W<-W.aux;rm(W.aux) # convert W into a list
+  }
+  if(any(unlist(lapply(W,is.na)))){
+    stop("The weight matrix you have provided contains NAs. Please check the weight matrix.")
   }
   for(ww in 1:length(W)){
     if(is.null(OE.weights)){
@@ -282,9 +302,13 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
       W[[ww]] <- W[[ww]][cN[!cN%in%names(OE.weights)],cN[!cN%in%names(OE.weights)]]
     }
   }
+  args$W <- W
   # check truly exogenous variables
   if(!is.null(Ex)){
     if(is.matrix(Ex)){
+      if(any(is.na(Ex))){
+        stop("The data for exogenous variables you have submitted contains NAs. Please check the data.")
+      }
       if(nrow(Ex)!=args$Traw){
         stop("Provided data and truly exogenous data not equally long. Please check.")
       }
@@ -305,8 +329,11 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
         colnames(temp[[ExcN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[ExcN[cc]]]),".",fixed=TRUE),function(l)l[2]))
       }
       Ex <- temp
-    }
-    if(is.list(Ex)){
+    }else if(is.list(Ex)){
+      # check for NAs
+      if(any(unlist(lapply(Ex,is.na)))){
+        stop("The data for exogenous variables you have submitted contains NAs. Please check the data.")
+      }
       ExN <- length(Ex)
       # check names
       if(is.null(names(Ex))){
@@ -337,6 +364,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
       }
     }
   }
+  args$Ex <- Ex
   # check prior
   if(!prior%in% c("MN","SSVS","NG")){
     stop("Please selecte one of the following prior options: MN, SSVS or NG")
@@ -391,17 +419,28 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
   args$yfull <- xglobal
   xglobal    <- xglobal[1:(nrow(xglobal)-h),,drop=FALSE]
   args$time  <- args$time[1:(length(args$time)-h)]
+  #------------------------------ prepare applyfun --------------------------------------------------------#
+  if(is.null(applyfun)) {
+    applyfun <- if(is.null(cores)) {
+      lapply
+    } else {
+      if(.Platform$OS.type == "windows") {
+        cl_cores <- parallel::makeCluster(cores)
+        on.exit(parallel::stopCluster(cl_cores))
+        function(X, FUN, ...) parallel::parLapply(cl = cl_cores, X, FUN, ...)
+      } else {
+        function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores = 
+                                                   cores)
+      }
+    }
+  }
+  if(is.null(cores)) {cores <- 1}
   #------------------------------ estimate BVAR ---------------------------------------------------------------#
   if(verbose) cat("\nEstimation of country models starts... ")
   start.estim <- Sys.time()
-  globalpost <- list()
-  if(multithread){
-    numCores <- detectCores()
-    registerDoParallel(cores=numCores)
-    globalpost <- foreach(cc=1:N) %dopar% {.BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)}
-  }else{
-    globalpost <- lapply(1:N, function(cc) .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex))
-  }
+  globalpost <- applyfun(1:N, function(cc){
+    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)
+  })
   names(globalpost) <- cN
   end.estim <- Sys.time()
   diff.estim <- difftime(end.estim,start.estim,units="mins")
@@ -601,7 +640,10 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat("Summary statistics:")
   cat("\n")
-  cat(x$res$p.res)
+  temp <- kable(x$res$p.res, row.names=TRUE, "rst")
+  for(ii in 1:length(temp)){
+    cat(paste0(temp[ii],"\n"))
+  }
   cat("--------------------------------------------------------------------------------------")
   cat("\n")
   cat("Average pairwise cross-country correlation of country model residuals")
@@ -610,100 +652,12 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   temp <- kable(x$cross.corr$res.res, row.names=TRUE, "rst")
   for(ii in 1:length(temp)){
-    cat(temp[ii])
-    cat("\n")
+    cat(paste0(temp[ii],"\n"))
   }
   cat("--------------------------------------------------------------------------------------")
   cat("\n")
   
   invisible(x)
-}
-
-#' @name plot.bgvar
-#' @title Plotting function for fitted values
-#' @description Plots the fitted values in red of either the country VARs or the GVAR (default) along with the original data.
-#' @param x an object of class \code{bgvar}.
-#' @param ... additional arguments.
-#' @param global if \code{TRUE} global fitted values are plotted, otherwise country fitted values.
-#' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
-#' @return No return value.
-#' @export
-#' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS")
-#' summary(model.ssvs)
-#' plot(model.ssvs, resp="EA")
-#' }
-#' @importFrom graphics axis lines par plot abline
-#' @importFrom stats median plot.ts
-plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
-  # reset user par settings on exit
-  oldpar   <- par(no.readonly=TRUE)
-  on.exit(par(oldpar))
-  plag     <- x$args$plag
-  xglobal  <- x$xglobal
-  trend    <- x$args$trend
-  XX       <- .mlag(xglobal,plag)
-  YY       <- xglobal[-c(1:plag),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:plag),,drop=FALSE],1)
-  bigT     <- nrow(YY)
-  if(trend) XX <- cbind(XX,seq(1,bigT))
-  time     <- .timelabel(x$args$time)
-  varNames <- dimnames(xglobal)[[2]]
-  varAll   <- varNames
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  max.vars <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
-  if(global){
-    A_post <- apply(x$stacked.results$A_large,c(2,3),median)
-    fit    <- XX%*%t(A_post)
-  }else{
-    fit <- YY-do.call("cbind",x$cc.results$res)
-  }
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc)varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
-      plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varAll[idx], ylim=lims,
-              xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
-              lwd=3)
-      lines(YY[,idx],col="grey40", lwd=3, lty=2)
-      axisindex <- round(seq(1,bigT,length.out=8))
-      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-      axis(2, cex.axis=0.6, cex.lab=2.5)
-      abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
-    }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
-  }
 }
 
 #' @name residuals.bgvar
@@ -763,84 +717,6 @@ residuals.bgvar <- function(object, ...){
 #' }
 #' @export
 resid.bgvar <- residuals.bgvar
-
-#' @name plot.bgvar.resid
-#' @title Plotting function for residuals
-#' @description Either plots country-residuals or the global-residuals. 
-#' @param x an object of class \code{bgvar.res}.
-#' @param ... additional arguments.
-#' @param global if \code{TRUE} global residuals are plotted, otherwise country residuals.
-#' @param resp default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
-#' @return No return value.
-#' @export
-#' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS")
-#' summary(model.ssvs)
-#' res <- residuals(model.ssvs)
-#' plot(res, resp="EA")
-#' }
-#' @importFrom graphics abline axis lines par plot
-#' @importFrom stats quantile plot.ts
-plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
-  # reset user par settings on exit
-  oldpar   <- par(no.readonly=TRUE)
-  on.exit(par(oldpar))
-  bigT     <- nrow(x$Data)
-  time     <- .timelabel(rownames(x$Data))
-  varNames <- dimnames(x$Data)[[2]]
-  varAll   <- varNames
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  max.vars <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
-  if(global){
-    res <- apply(x$global,c(2,3),median)
-  }else{
-    res <- apply(x$country,c(2,3),median)
-  }
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc)varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      lims <- c(min(res[,idx]),max(res[,idx]))
-      plot.ts(res[,idx], type="l", xlab="", ylab="",main = varAll[idx], ylim=lims,
-              cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, lwd=3, xaxt="n", yaxt="n")
-      axisindex <- seq(1,bigT,length.out=8)
-      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-      axis(2, cex.axis=0.6, cex.lab=2.5)
-      abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
-    }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
-  }
-}
 
 #' @name coef.bgvar
 #' @title Extract model coefficients
@@ -952,19 +828,11 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' }
 #' @export
 logLik.bgvar<-function(object, ..., quantile=.50){
-  temp <- object$args$logLik
-  compute <- FALSE
-  if(!is.null(temp)){
-    temp.q <- as.numeric(gsub("%","",names(temp)))/100
-    if(all(quantile%in%temp.q)){
-      out <- temp[quantile==temp.q]
-    }else{
-      compute<-TRUE
-    }
-  }else{
-    compute <- TRUE
+  if(length(quantile)!=1){
+    stop("Please provide only one quantile.")
   }
-  if(compute){
+  temp <- object$args$logLik
+  if(is.null(temp)){
     xglobal   <- object$xglobal
     plag      <- object$args$plag
     trend     <- object$args$trend
@@ -983,7 +851,8 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     out <- quantile(globalLik,quantile,na.rm=TRUE)
     eval.parent(substitute(object$args$logLik<-out))
   }
-  out <- structure(out, class="bgvar.logLik")
+  attributes(out) <- list(nall=bigT, nobs=bigT, df=bigK)
+  class(out) <- "logLik"
   return(out)
 }
 
