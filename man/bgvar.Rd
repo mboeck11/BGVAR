@@ -6,7 +6,8 @@
 \usage{
 bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
-      Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
+      Ex=NULL, trend=FALSE, save.country.store=FALSE, applyfun=NULL, cores=NULL, 
+      verbose=TRUE)
 }
 \arguments{
 \item{Data}{Either a \itemize{

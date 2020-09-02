@@ -5,7 +5,8 @@
 #' @usage 
 #' bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
 #'       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
-#'       Ex=NULL, trend=FALSE, save.country.store=FALSE, multithread=FALSE, verbose=TRUE)
+#'       Ex=NULL, trend=FALSE, save.country.store=FALSE, applyfun=NULL, cores=NULL, 
+#'       verbose=TRUE)
 #' @param Data Either a \itemize{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
@@ -854,11 +855,4 @@ logLik.bgvar<-function(object, ..., quantile=.50){
   attributes(out) <- list(nall=bigT, nobs=bigT, df=bigK)
   class(out) <- "logLik"
   return(out)
-}
-
-#' @method print bgvar.logLik
-#' @export
-print.bgvar.logLik <- function(x, ...){
-  cat(paste0("Log-Likelihood: ",round(x,2)))
-  invisible(x)
 }

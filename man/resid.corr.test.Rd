@@ -45,9 +45,6 @@ Godfrey, L.G. (1978a) \emph{Testing Against General Autoregressive and Moving Av
 Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
 Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
 }
-\seealso{
-\code{\link{print.bgvar}}
-}
 \author{
 Martin Feldkircher
 }

@@ -1,5 +1,5 @@
 #' @export
-"hd" <- function(x, ...){
+"hd" <- function(x, R=NULL, verbose=TRUE){
   UseMethod("hd", x)
 }
 
@@ -8,8 +8,8 @@
 #' @description A function that calculates historical decomposition (HD) of the time series and the structural error.
 #' @method hd bgvar.irf
 #' @export
-#' @usage hd(obj, R=NULL, verbose=TRUE)
-#' @param obj an item fitted by \code{IRF}.
+#' @usage hd(x, R=NULL, verbose=TRUE)
+#' @param x an item fitted by \code{IRF}.
 #' @param R If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix tha minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
@@ -19,7 +19,7 @@
 #' \item{\code{x}}{ is a matrix object that contains the original time series, which is of dimension K times (T-plag).}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @seealso \code{\link{bgvar}} and \code{\link{IRF}}.
+#' @seealso \code{\link{bgvar}} and \code{\link{irf}}.
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
@@ -30,7 +30,7 @@
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' HD <- hd(irf.chol.us.mp)
 #' }
 #' \donttest{
@@ -41,7 +41,7 @@
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
 #' HD <- hd(irf.chol.us.mp)
 #' # summing them up should get you back the original time series
@@ -51,25 +51,25 @@
 #' }
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
-hd.bgvar.irf<-function(obj, R=NULL, verbose=TRUE){
+hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
   start.hd <- Sys.time()
   if(verbose) cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  xglobal <- obj$model.obj$xglobal
-  plag    <- obj$model.obj$plag
-  ident   <- obj$ident
+  xglobal <- x$model.obj$xglobal
+  plag    <- x$model.obj$plag
+  ident   <- x$ident
   Traw    <- nrow(xglobal)
   bigK    <- ncol(xglobal)
-  x       <- xglobal[(plag+1):Traw,,drop=FALSE]
-  bigT    <- nrow(x)
-  ALPHA   <- obj$struc.obj$A
-  Ginv    <- obj$struc.obj$Ginv
-  Smat    <- obj$struc.obj$Smat
+  xdat    <- xglobal[(plag+1):Traw,,drop=FALSE]
+  bigT    <- nrow(xdat)
+  ALPHA   <- x$struc.obj$A
+  Ginv    <- x$struc.obj$Ginv
+  Smat    <- x$struc.obj$Smat
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   varNames<- colnames(xglobal)
   trend   <- FALSE
   if(!is.null(R)){
-    R<-obj$struc.obj$Rmed
+    R<-x$struc.obj$Rmed
   }else{
     R<-diag(bigK)
   }
@@ -160,7 +160,7 @@ hd.bgvar.irf<-function(obj, R=NULL, verbose=TRUE){
   hd_array[,,(bigK+1)] <- HDconst_big
   if(trend) hd_array[,,(bigK+1+trend)] <- HDtrend_big
   hd_array[,,(bigK+2+trend)] <- HDinit_big
-  hd_array[,,(bigK+3+trend)] <- (t(x)-apply(hd_array,c(1,2),sum)) # residual part
+  hd_array[,,(bigK+3+trend)] <- (t(xdat)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
   out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=x, R=NULL), class="bgvar.hd")

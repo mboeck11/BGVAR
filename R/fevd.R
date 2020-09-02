@@ -1,5 +1,5 @@
 #' @export
-"fevd" <- function(x, ...){
+"fevd" <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
   UseMethod("fevd", x)
 }
 
@@ -17,7 +17,7 @@
 #' \item{\code{xglobal}}{ used data of the model.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @seealso \code{\link{IRF}}
+#' @seealso \code{\link{irf}}
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
@@ -30,7 +30,7 @@
 #'                       
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -45,7 +45,7 @@
 #' sign.constr$shock1$constr            <- c(1,1,1)
 #' sign.constr$shock1$scal              <- +100 
 #' sign.constr$MaxTries<-200
-#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -58,7 +58,7 @@
 #'                       
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -73,7 +73,7 @@
 #' sign.constr$shock1$constr            <- c(1,1,1)
 #' sign.constr$shock1$scal              <- +100 
 #' sign.constr$MaxTries<-200
-#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -83,8 +83,7 @@
 #  fevd.us.mp=fevd(irf.chol.us.mp,var.slct=NULL)
 #' }
 #' @export
-#' @rdname fevd
-fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
+fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
   start.fevd <- Sys.time()
   if(verbose) cat("\nStart computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
@@ -188,7 +187,8 @@ fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
   }
   #------------------------------------------------------------------------------------------------------
   out <- structure(list(FEVD=FEVDres,
-                        xglobal=xglobal),
+                        xglobal=xglobal,
+                        R=R),
                    class="bgvar.fevd", type="fevd")
   if(verbose) cat(paste("\nSize of FEVD object: ", format(object.size(FEVDres),unit="MB")))
   end.fevd <- Sys.time()
@@ -199,7 +199,7 @@ fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
 }
 
 #' @export
-"gfevd" <- function(x, ...){
+"gfevd" <- function(x, n.ahead=24, running=TRUE, applyfun=NULL, cores=NULL, verbose=TRUE){
   UseMethod("gfevd", x)
 }
 
@@ -208,15 +208,15 @@ fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
 #' @description This function calculates a complete generalized forecast error variance decomposition (GFEVDs) based on generalized impulse response functions akin to Lanne-Nyberg (2016). The Lanne-Nyberg (2016) corrected GFEVD sum up to unity.
 #' @method gfevd bgvar
 #' @export
-#' @usage gfevd(x, nhor=24, running=TRUE, multithread=FALSE, verbose=TRUE)
+#' @usage gfevd(x, n.ahead=24, running=TRUE, applyfun=NULL, cores=NULL, verbose=TRUE)
 #' @param x an object of class \code{bgvar}.
-#' @param nhor the forecast horizon.
+#' @param n.ahead the forecast horizon.
 #' @param running Default is set to \code{TRUE} and implies that only a running mean over the posterior draws is calculated. A full analysis including posterior bounds is likely to cause memory issues.
 #' @param applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.
 #' @param cores Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns a list with two elements \itemize{
-#' \item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{nhor} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
+#' \item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{n.ahead} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
 #' \item{\code{xglobal}}{ used data of the model.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -234,7 +234,7 @@ fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #'                       
-#' GFEVD<-gfevd(model.ssvs.eer,nhor=24,running=TRUE)
+#' GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
 #' }
 #' \donttest{
 #' library(BGVAR)
@@ -243,11 +243,11 @@ fevd.bgvar.irf <- function(x,R=NULL,var.slct=NULL,verbose=TRUE){
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #'                       
 #' # Calculates running mean GFEVDs for all variables in the system 
-#' GFEVD<-gfevd(model.ssvs.eer,nhor=24,running=TRUE)
+#' GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
 #' }
 #' @importFrom abind adrop
 #' @importFrom parallel parLapply mclapply
-gfevd.bgvar<-function(x,nhor=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TRUE){
+gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TRUE){
   start.gfevd <- Sys.time()
   if(verbose) cat("\nStart computing generalized forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
@@ -283,12 +283,12 @@ gfevd.bgvar<-function(x,nhor=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TR
   if(is.null(cores)) {cores <- 1}
   #-----------------------------------------------------------------------------------------------------#
   if(running){
-    GFEVD_post <- array(0,dim=c(bigK,bigK,nhor)); dimnames(GFEVD_post)<-list(varNames, paste("Decomp. of",varNames),0:(nhor-1))
+    GFEVD_post <- array(0,dim=c(bigK,bigK,n.ahead)); dimnames(GFEVD_post)<-list(varNames, paste("Decomp. of",varNames),0:(n.ahead-1))
     if(verbose) cat(paste("Start computation on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
     
     imp.obj <- applyfun(1:thindraws,function(irep){
       irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
-                             x,horizon=nhor)$impl
+                             x,horizon=n.ahead)$impl
       GFEVD <- .mk_fevd.sims(irfa)
       return(list(GFEVD=GFEVD))
     })
@@ -297,15 +297,15 @@ gfevd.bgvar<-function(x,nhor=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TR
     }
     GFEVD_post<-GFEVD_post/thindraws
   }else{ #-------------------------HERE DO FULL CALCULATION INCLUDING BOUNDS- VERY MEMORY INTENSIVE!!!-----
-    GFEVD_draws<-array(NA,dim=c(thindraws,bigK,bigK,nhor))
-    GFEVD_post <-array(NA,dim=c(bigK,bigK,nhor,3))
+    GFEVD_draws<-array(NA,dim=c(thindraws,bigK,bigK,n.ahead))
+    GFEVD_post <-array(NA,dim=c(bigK,bigK,n.ahead,3))
     dimnames(GFEVD_post)[[1]]<-dimnames(GFEVD_post)[[2]]<-varNames
-    dimnames(GFEVD_post)[[3]]<-0:(nhor-1)
+    dimnames(GFEVD_post)[[3]]<-0:(n.ahead-1)
     dimnames(GFEVD_post)[[4]]<-c("low16","median","high84")
     if(verbose) cat(paste("Start computation on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
     imp.obj <- applyfun(1:thindraws,function(irep){
       irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
-                             x,horizon=nhor)$impl
+                             x,horizon=n.ahead)$impl
       GFEVD <- .mk_fevd.sims(irfa)
       return(list(GFEVD=GFEVD))
     })
@@ -318,7 +318,8 @@ gfevd.bgvar<-function(x,nhor=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TR
   }
   #----------------------------------------------------------------------------------------------------------------
   out <- structure(list(FEVD=GFEVD_post,
-                        xglobal=xglobal),
+                        xglobal=xglobal,
+                        R=NULL),
                    class="bgvar.fevd", type="gfevd")
   if(!running) out$GFEVD_store <- GFEVD_draws
   if(verbose) cat(paste("Size of IRF object:", format(object.size(out),unit="MB")))
@@ -332,5 +333,26 @@ gfevd.bgvar<-function(x,nhor=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TR
 #' @method print bgvar.fevd
 #' @export
 print.bgvar.fevd <- function(x, ...){
+  cat("---------------------------------------------------------------------------------------")
+  cat("\n")
+  cat("Object contains forecast error variance decomposition of object estimated with 'bgvar':")
+  cat("\n")
+  cat(paste0("Size of FEVD containing forecast error variance decompositions: ",dim(x$FEVD)[[1]]," x ",dim(x$FEVD)[[2]]," x ",dim(x$FEVD)[[3]],"."))
+  cat("\n")
+  if(attributes(x)$type=="fevd"){
+    cat("Identification scheme: ")
+    if(is.null(x$R)){
+      cat("Short-run restrictions via Cholesky decomposition.")
+    }else{
+      cat("Sign-restrictions.")
+    }
+  }else if(attributes(x)$type=="gfevd"){
+    cat("Identification scheme: Generalized - no identification scheme employed.")
+  }
+  cat("\n")
+  cat(paste0("Size ob object: ",format(object.size(x),unit="MB")))
+  cat("\n")
+  cat("---------------------------------------------------------------------------------------")
   
+  return(invisible(x))
 }

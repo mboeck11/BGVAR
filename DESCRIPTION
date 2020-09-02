@@ -20,8 +20,8 @@ License: GPL-3
 Language: en-US
 Depends: R (>= 2.10)
 Imports:
-   abind, bayesm, coda, doParallel, foreach, GIGrvg, graphics, knitr, MASS,
-   Matrix, methods, parallel, Rcpp (>= 1.0.3), stats, stochvol, utils, xts, zoo
+   abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 
+   Rcpp (>= 1.0.3), stats, stochvol, utils, xts, zoo
 Suggests: 
     testthat (>= 2.1.0),
     rmarkdown

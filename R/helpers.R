@@ -3,8 +3,8 @@
 #' @title Average pairwise cross-sectional correlations
 #' @description Computes average pairwise cross-sectional correlations of the data and the country models' residuals.
 #' @details If used for analyzing the country models' residuals, \code{avg.pair.cc} computes for each country and a given variable, the average cross-sectional correlation (either for the data or for the residuals). In theory, including foreign variables should soak up cross-sectional residual dependence and  correlation of the residuals should be small. Otherwise dynamic analysis, especially using GIRFs, might lead to invalid results. See Dees et al. (2007) for more details.
-#' @usage avg.pair.cc(obj, digits=3)
-#' @param obj Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.
+#' @usage avg.pair.cc(object, digits=3)
+#' @param object Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.
 #' @param digits Number of digits that should be used to print output to the console.
 #' @return Returns a list with the following elements
 #' \item{\code{data.cor}}{ is a matrix containing in the rows the cross-sections and in the columns the cross-sectional pairwise correlations of the data per variable.}
@@ -184,139 +184,6 @@ print.bgvar.CD <- function(x, ...){
   cat(x$perc)
 }
 
-#' @name BIC.bgvar
-#' @title Bayesian Information Criterion
-#' @description Computes the Bayesian information criterion for an object \code{bgvar}.
-#' @param object an object of class \code{bgvar}.
-#' @param ... additional arguments.
-#' @return Returns a numeric value with the corresponding BIC.
-#' @author Maximilian Boeck
-#' @export
-#' @examples 
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs<-bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS")
-#' BIC(model.ssvs)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
-#' BIC(model.mn)
-#' }
-#' @references 
-#' Schwartz, G. E. (1978) \emph{Estimating the dimension of a model.} Annals of Statistics, Vol. 6(2), pp. 461-464.
-#' @importFrom stats quantile BIC
-BIC.bgvar <- function(object, ...){
-  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
-  if(!is.null(object$args$logLik)){
-    globalLik <- object$args$logLik
-  }else{
-    xglobal   <- object$xglobal
-    plag      <- object$args$plag
-    trend     <- object$args$trend
-    bigT      <- nrow(xglobal)
-    bigK      <- ncol(xglobal)
-    thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
-    A_large   <- object$stacked.results$A_large
-    S_large   <- object$stacked.results$S_large
-    Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
-    globalLik <- median(globalLik)
-  }
-  if(!is.null(object$args$BIC)){
-    out <- object$args$BIC
-  }else{
-    M <- sum(sapply(object$cc.results$coeffs,length))
-    S <- sum(sapply(object$args$Data,function(x) ncol(x)^2))
-    
-    out <- (M+S)*log(bigT) - 2*globalLik
-  }
-  if(is.null(object$args$logLik)){
-    eval.parent(substitute(object$args$logLik<-globalLik))
-  }
-  if(is.null(object$args$BIC)){
-    eval.parent(substitute(object$args$BIC<-out))
-  }
-  return(out)
-}
-
-#' @name AIC.bgvar
-#' @title Akaike Information Criterion
-#' @description Computes the Akaike information criterion for an object \code{bgvar}.
-#' @param object an object of class \code{bgvar}.
-#' @param ... additional arguments.
-#' @param k the penalty per parameter to be used. Default is set to \code{k=2}.
-#' @return Returns a numeric value with the corresponding AIC.
-#' @author Maximilian Boeck
-#' @export
-#' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS")
-#' AIC(model.ssvs)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
-#' AIC(model.mn)
-#' }
-#' @references 
-#' Akaike, H. (1973) Information theory and an extension of the maximum likelihood principle. In: B. N. Petro and F. Csaki (eds.), 2nd International Symposium on Information Theory, pp. 267-281.
-#' 
-#' Akaike, H. (1974) A new look at the statistical model identification. \emph{IEEE Transactions on Automatic Control AC-19}, pp. 716-723.
-#' @importFrom stats quantile AIC
-AIC.bgvar <- function(object, ..., k = 2){
-  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
-  if(!is.null(object$args$logLik)){
-    globalLik <- object$args$logLik
-  }else{
-    xglobal   <- object$xglobal
-    plag      <- object$args$plag
-    trend     <- object$args$trend
-    bigT      <- nrow(xglobal)
-    bigK      <- ncol(xglobal)
-    thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
-    A_large   <- object$stacked.results$A_large
-    S_large   <- object$stacked.results$S_large
-    Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
-    globalLik <- median(globalLik)
-  }
-  if(!is.null(object$args$AIC)){
-    out <- object$args$AIC
-  }else{
-    M <- sum(sapply(object$cc.results$coeffs,length))
-    S <- sum(sapply(object$args$Data,function(x) ncol(x)^2))
-    
-    out <- 2*(M+S) - 2*globalLik
-  }
-  if(is.null(object$args$logLik)){
-    eval.parent(substitute(object$args$logLik<-globalLik))
-  }
-  if(is.null(object$args$AIC)){
-    eval.parent(substitute(object$args$AIC<-out))
-  }
-  return(out)
-}
-
 #' @name DIC
 #' @title Deviance Information Criterion
 #' @description Computes the Deviance information criterion for an object \code{bgvar}.
@@ -400,7 +267,6 @@ DIC <- function(object, ...){
 #' Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
 #' Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
 #' 
-#' @seealso \code{\link{print.bgvar}}
 #' @examples
 #' \donttest{
 #' library(BGVAR)

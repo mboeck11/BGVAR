@@ -1,14 +1,16 @@
-#' @name plot.bgvar
-#' @title Plotting function for fitted values
-#' @description Plots the fitted values in red of either the country VARs or the GVAR (default) along with the original data.
-#' @param x an object of class \code{bgvar}.
+#' @name plot
+#' @title Graphical summary of output created with \code{bgvar}
+#' @description Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
+#' @param x either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.
 #' @param ... additional arguments.
-#' @param global if \code{TRUE} global fitted values are plotted, otherwise country fitted values.
 #' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
+#' @param global if \code{TRUE} global fitted values are plotted, otherwise country fitted values.
 #' @return No return value.
+#' @author Maximilian Boeck, Martin Feldkircher
 #' @export
 #' @examples
 #' \donttest{
+#' # example for class 'bgvar'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
@@ -16,9 +18,9 @@
 #' summary(model.ssvs)
 #' plot(model.ssvs, resp="EA")
 #' }
-#' @importFrom graphics axis lines par plot abline
-#' @importFrom stats median plot.ts
-plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
+#' @importFrom graphics axis lines par plot abline matplot polygon segments
+#' @importFrom stats median quantile plot.ts
+plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   # reset user par settings on exit
   oldpar   <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
@@ -81,21 +83,17 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
       axis(2, cex.axis=0.6, cex.lab=2.5)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  return(invisible(x))
 }
 
 #' @name plot
-#' @title Plotting function for residuals
-#' @description Either plots country-residuals or the global-residuals. 
-#' @param x an object of class \code{bgvar.res}.
-#' @param ... additional arguments.
 #' @param global if \code{TRUE} global residuals are plotted, otherwise country residuals.
 #' @param resp default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
-#' @return No return value.
 #' @export
 #' @examples
 #' \donttest{
+#' # example for class 'bgvar.resid'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
@@ -104,9 +102,7 @@ plot.bgvar <- function(x, ..., global=TRUE, resp=NULL){
 #' res <- residuals(model.ssvs)
 #' plot(res, resp="EA")
 #' }
-#' @importFrom graphics abline axis lines par plot
-#' @importFrom stats quantile plot.ts
-plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
+plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
   # reset user par settings on exit
   oldpar   <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
@@ -159,32 +155,16 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
       axis(2, cex.axis=0.6, cex.lab=2.5)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  return(invisible(x))
 }
 
 #' @name plot
-#' @title Plot predictions of \code{bgvar}
-#' @description  Plots the predictions of an object of class \code{bgvar.predict}.
-#' @param x an object of class \code{bgvar.predict}.
-#' @param ... additional arguments.
 #' @param resp specify a variable to plot predictions.
 #' @param Cut length of series to be plotted before prediction begins.
-#' @return No return value.
-#' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
-#' \dontshow{
-#' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
-#' }
 #' \donttest{
+#' # example for class 'bgvar.pred'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
@@ -192,11 +172,8 @@ plot.bgvar.resid <- function(x, ..., global=TRUE, resp=NULL){
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' plot(fcast, resp="US.Dp", Cut=20)
 #' }
-#' @importFrom graphics abline matplot polygon
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
-plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
+plot.bgvar.pred<-function(x, ..., resp=NULL, Cut=40){
   # reset user par settings on exit
   oldpar<- par(no.readonly=TRUE)
   on.exit(par(oldpar))
@@ -257,38 +234,29 @@ plot.bgvar.pred<-function(x, ..., resp=NULL,Cut=40){
       axis(side=2, cex.axis=0.6)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  return(invisible(x))
 }
 
 #' @name plot
-#' @title Plot predictions of bgvar
-#' @description  Plots the predictions of an object of class \code{bgvar.predict}.
-#' @param x an object of class \code{bgvar.irf}.
-#' @param ... additional arguments.
 #' @param resp specify a variable to plot predictions.
 #' @param shock.nr specify shock to be plotted.
 #' @param cumulative whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.
-#' @return No return value.
-#' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
 #' \donttest{
+#' # example for class 'bgvar.irf'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
 #'                       eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 #' # plots an impulse response function
 #' plot(irf.chol.us.mp,resp="US.y")
 #' }
-#' @seealso \code{\link{irf}}
-#' @importFrom graphics abline matplot polygon segments
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
-plot.bgvar.irf<-function(x, ...,resp=NULL,shock.nr=1,cumulative=FALSE){
+plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, cumulative=FALSE){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
@@ -345,21 +313,15 @@ plot.bgvar.irf<-function(x, ...,resp=NULL,shock.nr=1,cumulative=FALSE){
       axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
-    if(cc<length(cN)) readline(prompt="Press enter for next country...")
   }
+  return(invisible(x))
 }
 
 #' @name plot
-#' @title Plotting Function for Forecast Error Variance Decomposition
-#' @description  Plots the decomposition of a specific time series into selected structural shocks.
-#' @param x an object of class \code{bgvar.fevd}.
-#' @param ... additional arguments.
-#' @param ts specify the decomposed time series to be plotted.
-#' @param k.max plots the k series with the highest for the decomposition of \code{ts}.
-#' @return No return value.
-#' @author Maximilian Boeck
+#' @param k.max plots the k series with the highest for the decomposition of \code{resp}.
 #' @examples
 #' \donttest{
+#' # example for class 'bgvar.fevd'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
@@ -367,20 +329,15 @@ plot.bgvar.irf<-function(x, ...,resp=NULL,shock.nr=1,cumulative=FALSE){
 #'                       
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+#' irf.chol.us.mp<-irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
 #' 
 #' plot(fevd.us.mp, ts="US.Dp", k.max=10)
 #' }
-#' @seealso \code{\link{fevd}} \code{\link{gfevd}}
-#' @importFrom graphics abline matplot polygon
-#' @importFrom MASS Null
-#' @importFrom stats rnorm
-#' @importFrom utils txtProgressBar setTxtProgressBar
 #' @export
-plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
+plot.bgvar.fevd<-function(x, ..., resp, k.max=10){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
@@ -390,18 +347,17 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
   varAll    <- varNames
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  nhor      <- dim(fevd)[[3]]
   
-  ts        <- paste("Decomp. of ", ts,sep="")
-  if(length(ts)>1){
-    stop("Please provide just one time series in 'ts'.")
+  resp0     <- paste("Decomp. of ",resp,sep="")
+  if(length(resp0)>1){
+    stop("Please provide just one time series in 'resp'.")
   }
-  if(!(ts%in%dimnames(fevd)[[2]])){
+  if(!(resp0%in%dimnames(fevd)[[2]])){
     stop("Please provide time series present in dataset.")
   }
   if(is.numeric(k.max)){
     mean <- apply(fevd,c(1,2),mean)
-    resp <- names(sort(mean[,ts], decreasing=TRUE))[1:k.max]
+    resp <- names(sort(mean[,resp0], decreasing=TRUE))[1:k.max]
   }
   varNames <- list()
   for(kk in 1:ceiling(k.max/10)){
@@ -417,7 +373,7 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
     par(mar=bgvar.env$mar,mfrow=c(rows,cols))
     for(kkk in 1:length(varNames[[kk]])){
       idx <- grep(varNames[[kk]][kkk],varAll)
-      x<-fevd[idx,ts,]
+      x<-fevd[idx,resp0,]
       b<-range(x); b1<-b[1]; b2<-b[2]
       plot.ts(x,col=bgvar.env$plot$col.50,xaxt="n",yaxt="n",lwd=bgvar.env$plot.lwd.line,ylab="",
               main=varAll[idx],cex.main=bgvar.env$plot.cex.main,cex.axis=bgvar.env$plot$cex.axis,
@@ -428,6 +384,6 @@ plot.bgvar.fevd<-function(x, ..., ts, k.max=10){
       axis(side=1, las=1,at=axisindex, labels=c(0:length(x))[axisindex], cex.axis=1.6,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
-    if(kk<length(varNames)) readline(prompt="Press enter for next group...")
   }
+  return(invisible(x))
 }

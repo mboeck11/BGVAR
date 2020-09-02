@@ -2,28 +2,31 @@
 % Please edit documentation in R/plot.R
 \name{plot}
 \alias{plot}
+\alias{plot.bgvar}
 \alias{plot.bgvar.resid}
 \alias{plot.bgvar.pred}
 \alias{plot.bgvar.irf}
 \alias{plot.bgvar.fevd}
-\title{Plotting function for residuals}
+\title{Graphical summary of output created with \code{bgvar}}
 \usage{
-\method{plot}{bgvar.resid}(x, ..., global = TRUE, resp = NULL)
+\method{plot}{bgvar}(x, ..., resp = NULL, global = TRUE)
+
+\method{plot}{bgvar.resid}(x, ..., resp = NULL, global = TRUE)
 
 \method{plot}{bgvar.pred}(x, ..., resp = NULL, Cut = 40)
 
 \method{plot}{bgvar.irf}(x, ..., resp = NULL, shock.nr = 1, cumulative = FALSE)
 
-\method{plot}{bgvar.fevd}(x, ..., ts, k.max = 10)
+\method{plot}{bgvar.fevd}(x, ..., resp, k.max = 10)
 }
 \arguments{
-\item{x}{an object of class \code{bgvar.fevd}.}
+\item{x}{either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.}
 
 \item{...}{additional arguments.}
 
-\item{global}{if \code{TRUE} global residuals are plotted, otherwise country residuals.}
-
 \item{resp}{specify a variable to plot predictions.}
+
+\item{global}{if \code{TRUE} global residuals are plotted, otherwise country residuals.}
 
 \item{Cut}{length of series to be plotted before prediction begins.}
 
@@ -31,30 +34,26 @@
 
 \item{cumulative}{whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.}
 
-\item{ts}{specify the decomposed time series to be plotted.}
-
-\item{k.max}{plots the k series with the highest for the decomposition of \code{ts}.}
+\item{k.max}{plots the k series with the highest for the decomposition of \code{resp}.}
 }
 \value{
 No return value.
-
-No return value.
-
-No return value.
-
-No return value.
 }
 \description{
-Either plots country-residuals or the global-residuals.
-
-Plots the predictions of an object of class \code{bgvar.predict}.
-
-Plots the predictions of an object of class \code{bgvar.predict}.
-
-Plots the decomposition of a specific time series into selected structural shocks.
+Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
 }
 \examples{
 \donttest{
+# example for class 'bgvar'
+library(BGVAR)
+data(eerData)
+model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
+                    prior="SSVS")
+summary(model.ssvs)
+plot(model.ssvs, resp="EA")
+}
+\donttest{
+# example for class 'bgvar.resid'
 library(BGVAR)
 data(eerData)
 model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
@@ -63,18 +62,8 @@ summary(model.ssvs)
 res <- residuals(model.ssvs)
 plot(res, resp="EA")
 }
-\dontshow{
-library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
-fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-plot(fcast, resp="US.Dp", Cut=20)
-}
 \donttest{
+# example for class 'bgvar.pred'
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
@@ -83,17 +72,19 @@ fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 plot(fcast, resp="US.Dp", Cut=20)
 }
 \donttest{
+# example for class 'bgvar.irf'
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
                       eigen=TRUE)
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 # plots an impulse response function
 plot(irf.chol.us.mp,resp="US.y")
 }
 \donttest{
+# example for class 'bgvar.fevd'
 library(BGVAR)
 data(eerData)
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
@@ -101,7 +92,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+irf.chol.us.mp<-irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -109,15 +100,6 @@ fevd.us.mp=fevd(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
 plot(fevd.us.mp, ts="US.Dp", k.max=10)
 }
 }
-\seealso{
-\code{\link{irf}}
-
-\code{\link{fevd}} \code{\link{gfevd}}
-}
 \author{
 Maximilian Boeck, Martin Feldkircher
-
-Maximilian Boeck, Martin Feldkircher
-
-Maximilian Boeck
 }

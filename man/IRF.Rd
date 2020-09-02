@@ -5,13 +5,13 @@
 \alias{irf.bgvar}
 \title{Impulse Response Functions}
 \usage{
-irf(x, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FALSE, 
-           verbose=TRUE)
+irf(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, 
+           applyfun=NULL, cores=NULL, verbose=TRUE)
 }
 \arguments{
 \item{x}{an object of class \code{bgvar}.}
 
-\item{nhor}{forecasting horizon.}
+\item{n.ahead}{forecasting horizon.}
 
 \item{shock}{This is a list object. It should contain an entry labeled \code{var} that contains the name of the variable to be shocked. Also it should contain a list entry labeled \code{cN} that contains a character (or character vector) of the country (countries) in which the variable should be shocked. Finally it has to contain an entry labeled \code{ident} that is either \code{chol} if the shock is based on a short-run identification scheme done with the Cholesky decomposition or \code{girf} if generalized impulse responses should be calculated. In case impulses should be normalized (e.g., a +100bp increase in the interest rate), add another entry \code{scal} that contains a numeric value of the desired impact normalization.}
 
@@ -36,7 +36,7 @@ irf(x, nhor=24, shock=NULL, sign.constr=NULL, save.store=FALSE, multithread=FALS
 }
 \value{
 Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
-\item{\code{posterior}}{ is a four-dimensional array (K times nhor times nr. of shocks times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
+\item{\code{posterior}}{ is a four-dimensional array (K times n.ahead times nr. of shocks times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
 \item{\code{rot.nr}}{ in case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
 \item{\code{shock}}{ in case identification is based on Cholesky decomposition (i.e. \code{ident="chol"}), this gives back the details of the identification specification.}
 \item{\code{sign.constr}}{ in case identification is based on sign restrictions (i.e. \code{ident="sign"}), this gives back the set of sign restrictions specified by the user.}
@@ -51,7 +51,7 @@ Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 \item{\code{xglobal}}{ used data of the model.}
 \item{\code{plag}}{ used lag specification of the model.}
 }}
-\item{\code{IRF_store}}{ is a four-dimensional array (K times nhor times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+\item{\code{IRF_store}}{ is a four-dimensional array (K times n.ahead times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
 }
 }
 \description{
@@ -67,7 +67,7 @@ W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN])
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
                       eigen=TRUE)
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(x=model.ssvs.eer,shock=shocks,nhor=24)
+irf.chol.us.mp<-irf(x=model.ssvs.eer,shock=shocks,n.ahead=24)
 
 sign.constr<-list()
 sign.constr$shock1$shock<-c("US.stir") 
@@ -78,7 +78,7 @@ sign.constr$shock1$rest.horz<-c(1,1,1)
 sign.constr$shock1$constr<-c(1,1,1)
 sign.constr$shock1$scal=+100 
 sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 }
 \donttest{
 oldpar <- par(no.readonly =TRUE)
@@ -89,19 +89,19 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,pri
                       eigen=TRUE)
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 # plots an impulse response function
 plot(irf.chol.us.mp,resp="US")
 
 # calculates generalized impulse response functions for the same shock as above
 shocks$ident="girf"
-irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 plot(irf.girf.ssvs,resp="US.y")
 # Shock to first ordered variable yields same responses of Cholesky and GIRF
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal<--100
-irf.chol<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 shocks$ident<-"girf"
-irf.girf<-irf(model.ssvs.eer,shock=shocks,nhor=24)
+irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
 matplot(cbind(irf.chol$posterior["US.y",,1,"median"],
               irf.girf$posterior["US.y",,1,"median"]),
         type="l",ylab="")
@@ -130,7 +130,7 @@ sign.constr$shock1$constr<-c(1,1,1)
 # a minus 100 bp shock to long-term interest rates (on average)
 sign.constr$shock1$scal=+100 
 sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 plot(irf.sign.us.mp,resp=c("US"))
 
 # second example, cross-country restrictions, multiple shocks and ECB country model
@@ -144,7 +144,7 @@ EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", "IE", "IT", "NL", "PT","GR",
 # Note that the ordering of the variables influences the response, the ordering is exactly as 
 # in the country models, to use a different order you have re-estimate the model (by bgvar)
 shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-irf.chol.ssvs<-irf(model.ssvs,shock=shocks,nhor=48)
+irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=48)
 plot(irf.chol.ssvs,resp=c("AT"))
 # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 sign.constr<-list()
@@ -167,7 +167,7 @@ sign.constr$shock1$constr<-c(1,0.5,0.5)
 # a minus 100 bp shock to long-term interest rates (on average)
 sign.constr$shock1$scal=-100 
 sign.constr$MaxTries<-200
-irf.sign.ssvs<-irf(model.ssvs,nhor=48,sign.constr=sign.constr)
+irf.sign.ssvs<-irf(model.ssvs,n.ahead=48,sign.constr=sign.constr)
 plot(irf.sign.ssvs,resp=c("AT"))
  
 # Same example but using a local (German) shock and cross-country restrictions.
@@ -175,7 +175,7 @@ plot(irf.sign.ssvs,resp=c("AT"))
 # the ordering is exactly as in the country models, to use a different order you have re-estimate
 # the model (by bgvar)
 shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-irf.chol.ssvs<-irf(model.ssvs,shock=shocks,nhor=24)
+irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
  
 # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
 sign.constr<-list()
@@ -198,7 +198,7 @@ sign.constr$shock1$constr<-c(1,0.5,0.5)
 # a minus 100 bp shock to long-term interest rates (on average)
 sign.constr$shock1$scal=-100
 sign.constr$MaxTries<-200
-irf.sign.ssvs<-irf(model.ssvs,nhor=24,sign.constr=sign.constr)
+irf.sign.ssvs<-irf(model.ssvs,n.ahead=24,sign.constr=sign.constr)
  
 # Example with zero restriction (Arias et al., 2018) and 
 # rationality conditions (D'Amico and King, 2017).
@@ -224,7 +224,7 @@ sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
 sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 sign.constr$shock1$scal=0.1
 sign.constr$MaxTries<-100
-irf.sign<-irf(model.ssvs.eer,nhor=20,sign.constr=sign.constr)
+irf.sign<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr)
 par(mfrow=c(4,1),mar=c(5.1,4.1,4.1,2.1))
 # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
 # US.stir between horizon 1 and 4

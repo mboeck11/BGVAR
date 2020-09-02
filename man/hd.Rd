@@ -5,10 +5,10 @@
 \alias{hd.bgvar.irf}
 \title{Historical Decomposition}
 \usage{
-hd(obj, R=NULL, verbose=TRUE)
+hd(x, R=NULL, verbose=TRUE)
 }
 \arguments{
-\item{obj}{an item fitted by \code{IRF}.}
+\item{x}{an item fitted by \code{IRF}.}
 
 \item{R}{If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
 
@@ -37,7 +37,7 @@ W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN])
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 HD <- hd(irf.chol.us.mp)
 }
 \donttest{
@@ -48,7 +48,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,nhor=48)
+irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
 
 HD <- hd(irf.chol.us.mp)
 # summing them up should get you back the original time series
@@ -61,7 +61,7 @@ legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),b
 Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
 }
 \seealso{
-\code{\link{bgvar}} and \code{\link{IRF}}.
+\code{\link{bgvar}} and \code{\link{irf}}.
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

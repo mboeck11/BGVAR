@@ -4,12 +4,12 @@
 \alias{avg.pair.cc}
 \title{Average pairwise cross-sectional correlations}
 \usage{
-avg.pair.cc(obj, digits=3)
+avg.pair.cc(object, digits=3)
 }
 \arguments{
-\item{digits}{Number of digits that should be used to print output to the console.}
+\item{object}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
 
-\item{obj}{Either an object of class \code{bgvar} or residuals of class \code{bgvar.res}.}
+\item{digits}{Number of digits that should be used to print output to the console.}
 }
 \value{
 Returns a list with the following elements

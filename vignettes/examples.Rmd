@@ -488,7 +488,7 @@ We have to set up a list `shock` that contains information about which variable 
 ```{r "us.mp", results="hide"}
   # US monetary policy shock
  shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
- irf.chol.us.mp<-IRF(obj=model.ssvs.1,shock=shocks,nhor=24,save.store=TRUE)
+ irf.chol.us.mp<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
 ```
 
 The results are stored in `irf.chol.us.mp`.
@@ -498,7 +498,7 @@ The results are stored in `irf.chol.us.mp`.
 names(irf.chol.us.mp)
 ```
 <p align="justify">
-`irf.chol.us.mp$posterior` is a $K \times nhor \times nr.of shocks \times 7$ object. The last slot contains the 50\%, 68\% and 95\% credible intervals along the posterior median. If `save.store=TRUE`, `IRF_store` contains the full set of impulse response draws. 
+`irf.chol.us.mp$posterior` is a $K \times n.ahead \times nr.of shocks \times 7$ object. The last slot contains the 50\%, 68\% and 95\% credible intervals along the posterior median. If `save.store=TRUE`, `IRF_store` contains the full set of impulse response draws. 
 </p>
 
 We can plot the complete responses of a particular country by typing:
@@ -515,10 +515,10 @@ For that purpose, let us look at a GDP shock.
 ```{r, "us.gdp", results="hide"}
 # Recursive US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-1
-irf.chol.us.y<-IRF(obj=model.ssvs.1,shock=shocks,nhor=24)
+irf.chol.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
 # GIRF US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="girf";shocks$scal=-1
-irf.girf.us.y<-IRF(obj=model.ssvs.1,shock=shocks,nhor=24)
+irf.girf.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
 ```
 
 ```{r, "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%",}
@@ -538,7 +538,7 @@ Last, we could also look at a *joint or global shock*. For example, we could be 
 
 ```{r, "global.gdp",results="hide"}
 shocks<-list();shocks$var="y";shocks$cN<-c("EA", "US", "RU");shocks$ident="girf";shocks$scal=-1
-irf.chol.ssvs<-IRF(obj=model.ssvs.1,shock=shocks,nhor=24)
+irf.chol.ssvs<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
 ```
 
 
@@ -598,7 +598,7 @@ We then invoke the `IRF` command to compute the impulse responses. The function 
 </p>
 
 ```{r, "us.spf.sign",message=FALSE, results="hide"}
-irf.sign<-IRF(obj=model.ssvs.eer,nhor=24,sign.constr=sign.constr.eer,save.store=TRUE)
+irf.sign<-IRF(obj=model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
 ```
 
 We can infer the number of successful rotation matrices by looking at 
@@ -644,7 +644,7 @@ sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
 sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 sign.constr$shock1$scal=1
 sign.constr$MaxTries<-200
-irf.sign.zero<-IRF(obj=model.ssvs.eer,nhor=20,sign.constr=sign.constr,save.store=TRUE)
+irf.sign.zero<-IRF(obj=model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
 ```
 <p align="justify">
 The figure below shows the results for short term interest rates (`stir`) and output (`y`). 
@@ -761,7 +761,7 @@ We can now compute the impulse responses using the same function as before.
 ```{r,"global.shock.irf",echo=TRUE,results="hide"}
 irf.sign.ssvs<-IRF(obj=model.ssvs,         # gvar object
                    shock=NULL,             # shockc is not needed 
-                   nhor=24,                # impulse response horizon
+                   n.ahead=24,                # impulse response horizon
                    sign.constr=sign.constr # list with sign-restrictions
                    )
 ```
@@ -796,7 +796,7 @@ One way of fixing this is to use generalized forecast error variance decompositi
 
 ```{r, "fevd"}
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,nhor=24,running=TRUE,cires=4)$GFEVD
+gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
@@ -868,10 +868,10 @@ model.ssvs.h8<-bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prio
                     SV=TRUE,thin=1,eigen=1.05,trend=TRUE,h=8)
 ```
 <p align="justify">
-The forecasts can then be calculated using the `predict` function. We calculate forecasts up to 8 periods ahead by setting `fhorz=8`-step
+The forecasts can then be calculated using the `predict` function. We calculate forecasts up to 8 periods ahead by setting `n.ahead=8`-step
 </p>
 ```{r,"fcast.predict", results="hide"}
-fcast <- predict(model.ssvs.h8, fhorz=8,save.store=TRUE)
+fcast <- predict(model.ssvs.h8, n.ahead=8,save.store=TRUE)
 ```
 <p align="justify">
 The forecasts are stored in `fcast$fcast` which contains also the credible intervals of the predictive posterior distribution. We can evaluate the forecasts with the retained observations looking at the root mean squared errors (RMSEs) or log-predictive scores (LPS).
@@ -902,7 +902,7 @@ Similar to structural analysis, it is possible to use conditional forecasts, ide
 
 ```{r "cond.predict",results="hide"}
 # matrix with constraints
-constr <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.1$xglobal))
+constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.1$xglobal))
 colnames(constr) <- colnames(model.ssvs.h8$xglobal)
 # set "US.Dp" for five periods on its last value
 constr[1:5,"US.Dp"] <-model.ssvs.h8$xglobal[nrow(model.ssvs.h8$xglobal),"US.Dp"]
@@ -914,7 +914,7 @@ We could impose the same restrictions as "soft conditions" accounting for uncert
 </p>
 ```{r "cond.predict.sd",results="hide"}
 # add uncertainty to conditional forecasts
-constr_sd <- matrix(NA,nrow=fcast$fhorz,ncol=ncol(model.ssvs.h8$xglobal))
+constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.h8$xglobal))
 colnames(constr_sd) <- colnames(model.ssvs.h8$xglobal)
 constr_sd[1:5,"US.Dp"] <- 0.001
 
@@ -1096,7 +1096,7 @@ model.ng<-bgvar(Data=monthlyData,
 
 * `obj`: An objected fitted by function `bgvar`.
 
-* `nhor`: Forecasting horizon.
+* `n.ahead`: Forecasting horizon.
 
 * `shock`: This is a list object. It should contain the following entries:
   + `var`: Character that contains the name of the variable to be shocked. 
@@ -1136,21 +1136,21 @@ Below, find some further examples.
   model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
   # US monetary policy shock
   shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-  irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+  irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
   
   # plots an impulse response function
   plot(irf.chol.us.mp,resp="US.y")
 
  # calculates generalized impulse response functions for the same shock as above
   shocks$ident="girf"
-  irf.girf.ssvs<-IRF(obj=model.ssvs.eer,shock=shocks,nhor=24)
+  irf.girf.ssvs<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
   plot(irf.girf.ssvs,resp="US.y")
 
 # Shock to first ordered variable yields same responses of cholesky and GIRF
   shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=+1
-  irf.chol<-IRF(model.ssvs.eer,shock=shocks,nhor=24)
+  irf.chol<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
   shocks$ident<-"girf"
-  irf.girf<-IRF(model.ssvs.eer,shock=shocks,nhor=24)
+  irf.girf<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
   matplot(cbind(irf.chol$posterior["US.y",,1,"median"],irf.girf$posterior["US.y",,1,"median"]),type="l",ylab="")
   matplot(cbind(irf.chol$posterior["US.Dp",,1,"median"],irf.girf$posterior["US.Dp",,1,"median"]),type="l",ylab="")
   matplot(cbind(irf.chol$posterior["EA.y",,1,"median"],irf.girf$posterior["EA.y",,1,"median"]),type="l",ylab="")
@@ -1170,7 +1170,7 @@ Below, find some further examples.
   # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
   # the model (by bgvar)
   shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,nhor=24)
+  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
 
   # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
   sign.constr<-list()
@@ -1183,14 +1183,14 @@ Below, find some further examples.
   sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
   sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
   sign.constr$MaxTries<-200
-  irf.sign.ssvs<-IRF(obj=model.ssvs,shock=NULL,nhor=24,sign.constr=sign.constr)
+  irf.sign.ssvs<-IRF(obj=model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 
 
  # Same example but using a local (German) shock and cross-country restrictions.
   # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
   # the model (by bgvar)
   shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,nhor=24)
+  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
 
   # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
   sign.constr<-list()
@@ -1203,7 +1203,7 @@ Below, find some further examples.
   sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
   sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
   sign.constr$MaxTries<-200
-  irf.sign.ssvs<-IRF(model.ssvs,shock=NULL,nhor=24,sign.constr=sign.constr)
+  irf.sign.ssvs<-IRF(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 
  # Example with zero restriction (Arias et al., 2018) and rationality conditions (D'Amico and King, 2017).
   data("eerDataspf")
@@ -1238,7 +1238,7 @@ Below, find some further examples.
   sign.constr$shock1$scal=1
   sign.constr$MaxTries<-200
   irf.sign<-IRF(obj=model.ssvs.eer,
-                nhor=20,
+                n.ahead=20,
                 sign.constr=sign.constr,
                 save.store=TRUE)
   par(mfrow=c(4,1))

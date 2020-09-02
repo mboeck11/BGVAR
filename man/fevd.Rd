@@ -40,7 +40,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=50,burnin=50,plag=1,
                       
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=48)
+irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -55,7 +55,7 @@ sign.constr$shock1$rest.horz         <- c(1,1,1)
 sign.constr$shock1$constr            <- c(1,1,1)
 sign.constr$shock1$scal              <- +100 
 sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -68,7 +68,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,nhor=48)
+irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -83,7 +83,7 @@ sign.constr$shock1$rest.horz         <- c(1,1,1)
 sign.constr$shock1$constr            <- c(1,1,1)
 sign.constr$shock1$scal              <- +100 
 sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,nhor=24)
+irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
@@ -93,7 +93,7 @@ fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
 }
 }
 \seealso{
-\code{\link{IRF}}
+\code{\link{irf}}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

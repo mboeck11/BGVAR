@@ -5,12 +5,12 @@
 \alias{gfevd.bgvar}
 \title{Generalized Forecast Error Variance Decomposition}
 \usage{
-gfevd(x, nhor=24, running=TRUE, multithread=FALSE, verbose=TRUE)
+gfevd(x, n.ahead=24, running=TRUE, applyfun=NULL, cores=NULL, verbose=TRUE)
 }
 \arguments{
 \item{x}{an object of class \code{bgvar}.}
 
-\item{nhor}{the forecast horizon.}
+\item{n.ahead}{the forecast horizon.}
 
 \item{running}{Default is set to \code{TRUE} and implies that only a running mean over the posterior draws is calculated. A full analysis including posterior bounds is likely to cause memory issues.}
 
@@ -22,7 +22,7 @@ gfevd(x, nhor=24, running=TRUE, multithread=FALSE, verbose=TRUE)
 }
 \value{
 Returns a list with two elements \itemize{
-\item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{nhor} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
+\item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{n.ahead} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
 \item{\code{xglobal}}{ used data of the model.}
 }
 }
@@ -40,7 +40,7 @@ W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN])
 model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
                       
-GFEVD<-gfevd(model.ssvs.eer,nhor=24,running=TRUE)
+GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
 }
 \donttest{
 library(BGVAR)
@@ -49,7 +49,7 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
                       
 # Calculates running mean GFEVDs for all variables in the system 
-GFEVD<-gfevd(model.ssvs.eer,nhor=24,running=TRUE)
+GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
 }
 }
 \references{
