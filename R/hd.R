@@ -41,12 +41,12 @@
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
+#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' 
 #' HD <- hd(irf.chol.us.mp)
 #' # summing them up should get you back the original time series
 #' org.ts<-apply(HD$hd_array,c(1,2),sum)
-#' matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="")
+#' matplot(cbind(HD$xglobal[,1],org.ts[,1]),type="l",ylab="")
 #' legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n")
 #' }
 #' @references 
@@ -163,7 +163,7 @@ hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
   hd_array[,,(bigK+3+trend)] <- (t(xdat)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
-  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=x, R=NULL), class="bgvar.hd")
+  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=xdat, R=NULL), class="bgvar.hd")
   if(verbose) cat(paste("Size of object:", format(object.size(out),unit="MB")))
   end.hd <- Sys.time()
   diff.hd <- difftime(end.hd,start.hd,units="mins")

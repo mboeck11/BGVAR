@@ -48,12 +48,12 @@ model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
 # US monetary policy shock
 shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp <- irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
+irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 
 HD <- hd(irf.chol.us.mp)
 # summing them up should get you back the original time series
 org.ts<-apply(HD$hd_array,c(1,2),sum)
-matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="")
+matplot(cbind(HD$xglobal[,1],org.ts[,1]),type="l",ylab="")
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n")
 }
 }
