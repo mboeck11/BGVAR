@@ -10,12 +10,11 @@
 #' @export
 #' @examples
 #' \donttest{
-#' # example for class 'bgvar'
 #' library(BGVAR)
 #' data(eerData)
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
-#' summary(model.ssvs)
+#' # example for class 'bgvar'
 #' plot(model.ssvs, resp="EA")
 #' }
 #' @importFrom graphics axis lines par plot abline matplot polygon segments
@@ -94,11 +93,6 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.resid'
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS")
-#' summary(model.ssvs)
 #' res <- residuals(model.ssvs)
 #' plot(res, resp="EA")
 #' }
@@ -165,11 +159,7 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.pred'
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
+#' fcast <- predict(model.ssvs,n.ahead=8,save.store=TRUE)
 #' plot(fcast, resp="US.Dp", Cut=20)
 #' }
 #' @export
@@ -245,14 +235,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, Cut=40){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.irf'
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-#' # plots an impulse response function
+#' irf.chol.us.mp<-irf(model.ssvs,shock=shocks,n.ahead=24)
 #' plot(irf.chol.us.mp,resp="US.y")
 #' }
 #' @export
@@ -322,19 +306,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, cumulative=FALSE){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.fevd'
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
-#'                       
-#' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(obj=model.ssvs.eer,shock=shocks,n.ahead=48)
-#' 
-#' # calculates FEVD for variables US.Dp and EA.y
-#' fevd.us.mp=fevd(obj=irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
-#' 
-#' plot(fevd.us.mp, ts="US.Dp", k.max=10)
+#' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
+#' plot(fevd.us.mp, resp="US.Dp", k.max=10)
 #' }
 #' @export
 plot.bgvar.fevd<-function(x, ..., resp, k.max=10){
