@@ -1,16 +1,16 @@
 # BGVAR: Bayesian Global Vector Autoregressions
 
 <!-- badges: start -->
-[![CRAN](http://www.r-pkg.org/badges/version/BGVAR)](http://cran.r-project.org/package=BGVAR)
-[![month](http://cranlogs.r-pkg.org/badges/BGVAR)](http://www.r-pkg.org/pkg/BGVAR)
-[![total](http://cranlogs.r-pkg.org/badges/grand-total/BGVAR)](http://www.r-pkg.org/pkg/BGVAR)
+[![CRAN](http://www.r-pkg.org/badges/version/BGVAR)](https://cran.r-project.org/package=BGVAR)
+[![month](http://cranlogs.r-pkg.org/badges/BGVAR)](https://www.r-pkg.org/pkg/BGVAR)
+[![total](http://cranlogs.r-pkg.org/badges/grand-total/BGVAR)](https://www.r-pkg.org/pkg/BGVAR)
 <!-- badges: end -->
 
 Estimation of Bayesian Global Vector Autoregressions with different prior setups and the possibility to introduce stochastic volatility. Built-in priors include the SIMS, SSVS and NG prior. Post-processing functions allow for doing predictions, structurally identify the model with short-run or sign-restrictions and compute impulse response function, historical decompositions and forecast error variance decompositions. Plotting functions are also available.
 
 ## Installation
 
-BGVAR is available on [CRAN](https://cran.r-project.org/web/packages/BGVAR/index.html). The latest development version can be installed from GitHub.
+BGVAR is available on [CRAN](https://CRAN.R-project.org/package=BGVAR). The latest development version can be installed from GitHub.
 
 ``` r
 install.packages("BGVAR")
