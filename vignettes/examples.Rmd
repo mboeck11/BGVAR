@@ -547,7 +547,7 @@ irf.chol.ssvs<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
 ## Identification with sign restrictions
 <p align="justify">
 In this section, we identify the shocks applying sign restrictions. For that purpose, we need to load another example data set and estimate a GVAR. This data set contains one-year ahead GDP, inflation and short-term interest rate forecasts for the USA, which we are going to need when imposing rationality conditions. The forecasts are from the  
-[survey of professional forecasters (SPF)](httphahas://www.philadelphiafed.org/research-and-data/real-time-center/survey-of-professional-forecasters) data base.
+[survey of professional forecasters (SPF)](https://www.philadelphiafed.org/research-and-data/real-time-center/survey-of-professional-forecasters) data base.
 </p>
 
 ```{r, hide=TRUE}
