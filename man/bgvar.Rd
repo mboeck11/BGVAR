@@ -23,7 +23,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1
 
 \item{burnin}{Number of burn-ins. Default set to \code{burnin=5000}.}
 
-\item{prior}{Either "SSVS", "MN" or "NG". See Details below.}
+\item{prior}{Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.}
 
 \item{SV}{If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.}
 
@@ -119,7 +119,7 @@ Returns a list of class \code{bgvar} with the following elements: \itemize{
 Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
 }
 \details{
-We provide three priors, the Minnesota labeled \code{MN}, the SSVS and the Normal-Gamma prior. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
+We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search Variable Selection prior labeled \code{SSVS} and the Normal-Gamma prior labeled \code{NG}. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
 }
 \examples{

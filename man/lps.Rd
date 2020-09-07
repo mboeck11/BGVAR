@@ -5,7 +5,7 @@
 \alias{lps.bgvar.pred}
 \title{Compute log-predictive scores}
 \usage{
-lps.bgvar.pred(object, ...)
+\method{lps}{bgvar.pred}(object, ...)
 }
 \arguments{
 \item{object}{an object of class \code{bgvar.predict}.}

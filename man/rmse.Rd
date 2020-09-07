@@ -5,7 +5,7 @@
 \alias{rmse.bgvar.pred}
 \title{Compute root mean squared errors}
 \usage{
-rmse.bgvar.pred(object, ...)
+\method{rmse}{bgvar.pred}(object, ...)
 }
 \arguments{
 \item{object}{an object of class \code{bgvar.predict}.}

@@ -329,8 +329,14 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   return(out)
 }
 
+#' @export
+"lps" <- function(object){
+  UseMethod("lps", object)
+}
+
 #' @name lps
 #' @title Compute log-predictive scores
+#' @method lps bgvar.pred
 #' @description  Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.
 #' @param ... additional arguments.
@@ -375,8 +381,14 @@ lps.bgvar.pred <- function(object, ...){
   return(out)
 }
 
+#' @export
+"rmse" <- function(object){
+  UseMethod("rmse", object)
+}
+
 #' @name rmse
 #' @title Compute root mean squared errors
+#' @method rmse bgvar.pred
 #' @description  Computes and prints root mean squared errors (RMSEs) of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.
 #' @param ... additional arguments.
