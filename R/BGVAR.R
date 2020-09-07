@@ -563,7 +563,7 @@ print.bgvar<-function(x, ...){
   invisible(x)
 }
 
-#' @name summary.bgvar
+#' @name summary
 #' @title Summarizing Bayesian Global Vector Autoregression Fits
 #' @description Output gives model information as well as some descriptive statistics on convergence properties, likelihood, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-country residuals.
 #' @aliases summary summary.bgvar
@@ -661,7 +661,7 @@ print.bgvar.summary <- function(x, ...){
   invisible(x)
 }
 
-#' @name residuals.bgvar
+#' @name residuals
 #' @export
 #' @title Extract residuals of Global Vector Autoregression
 #' @description Calculate residuals of the global model and the country models.
@@ -711,7 +711,7 @@ residuals.bgvar <- function(object, ...){
   return(out)
 }
 
-#' @rdname residuals.bgvar
+#' @rdname residuals
 #' @examples 
 #' \donttest{
 #' resid(model.ssvs)
@@ -719,7 +719,7 @@ residuals.bgvar <- function(object, ...){
 #' @export
 resid.bgvar <- residuals.bgvar
 
-#' @name coef.bgvar
+#' @name coef
 #' @title Extract model coefficients
 #' @description Extracts the global model coefficients for \code{bgvar} for certain quantiles of the posterior distribution. \code{coefficients} is an \emph{alias} for it.
 #' @param object an object of class \code{bgvar}.
@@ -741,7 +741,7 @@ coef.bgvar<-function(object, ..., quantile=.50){
   return(out)
 }
 
-#' @rdname coef.bgvar
+#' @rdname coef
 #' @examples
 #' \donttest{
 #' coefficients(model.ng)
@@ -750,7 +750,7 @@ coef.bgvar<-function(object, ..., quantile=.50){
 #' @export
 coefficients.bgvar <- coef.bgvar
 
-#' @name vcov.bgvar
+#' @name vcov
 #' @title Extract variance-covariance matrix
 #' @description Extracts the global variance-covariance matrix for \code{bgvar} for certain quantiles of the posterior distribution. 
 #' @param object an object of class \code{bgvar}.
@@ -778,7 +778,7 @@ vcov.bgvar<-function(object, ..., quantile=.50){
   return(out)
 }
 
-#' @name fitted.bgvar
+#' @name fitted
 #' @title Extract Model Fitted Values
 #' @description Extracts the fitted values for \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
@@ -812,7 +812,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
   return(fit)
 }
 
-#' @name logLik.bgvar
+#' @name logLik
 #' @title Extract Log-Likelihood
 #' @description Extract Log-Likelihood for \code{bgvar}.
 #' @param object an object of class \code{bgvar}.

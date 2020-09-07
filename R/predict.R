@@ -329,7 +329,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
   return(out)
 }
 
-#' @name lps.bgvar.pred
+#' @name lps
 #' @title Compute log-predictive scores
 #' @description  Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.
@@ -358,7 +358,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export
-lps <- function(object, ...){
+lps.bgvar.pred <- function(object, ...){
   hold.out <- object$hold.out
   h        <- nrow(hold.out)
   K        <- ncol(hold.out)
@@ -375,7 +375,7 @@ lps <- function(object, ...){
   return(out)
 }
 
-#' @name rmse.bgvar.predict
+#' @name rmse
 #' @title Compute root mean squared errors
 #' @description  Computes and prints root mean squared errors (RMSEs) of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.
@@ -405,7 +405,7 @@ lps <- function(object, ...){
 #' @importFrom knitr kable
 #' @importFrom stats dnorm
 #' @export
-rmse <- function(object, ...){
+rmse.bgvar.pred <- function(object, ...){
   hold.out <- object$hold.out
   h        <- nrow(hold.out)
   K        <- ncol(hold.out)
