@@ -4,7 +4,7 @@
 \alias{residuals}
 \alias{residuals.bgvar}
 \alias{resid.bgvar}
-\title{Extract residuals of Global Vector Autoregression}
+\title{Extract Residuals of Bayesian GVAR}
 \usage{
 \method{residuals}{bgvar}(object, ...)
 

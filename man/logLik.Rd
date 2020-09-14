@@ -3,7 +3,7 @@
 \name{logLik}
 \alias{logLik}
 \alias{logLik.bgvar}
-\title{Extract Log-Likelihood}
+\title{Extract Log-likelihood of Bayesian GVAR}
 \usage{
 \method{logLik}{bgvar}(object, ..., quantile = 0.5)
 }

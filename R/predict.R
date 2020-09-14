@@ -1,5 +1,5 @@
 #' @name predict
-#' @title Compute predictions
+#' @title Predictions
 #' @description A function that computes predictions based on a object of class \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
@@ -335,7 +335,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 }
 
 #' @name lps
-#' @title Compute log-predictive scores
+#' @title Compute Log-predictive Scores
 #' @method lps bgvar.pred
 #' @description  Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.
@@ -387,7 +387,7 @@ lps.bgvar.pred <- function(object, ...){
 }
 
 #' @name rmse
-#' @title Compute root mean squared errors
+#' @title Compute Root Mean Squared Errors
 #' @method rmse bgvar.pred
 #' @description  Computes and prints root mean squared errors (RMSEs) of an object of class \code{bgvar.predict}.
 #' @param object an object of class \code{bgvar.predict}.

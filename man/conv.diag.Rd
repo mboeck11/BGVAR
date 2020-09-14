@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{conv.diag}
 \alias{conv.diag}
-\title{MCMC convergence diagnostics}
+\title{MCMC Convergence Diagnostics}
 \usage{
 conv.diag(object, crit.val=1.96)
 }

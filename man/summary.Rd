@@ -3,7 +3,7 @@
 \name{summary}
 \alias{summary}
 \alias{summary.bgvar}
-\title{Summarizing Bayesian Global Vector Autoregression Fits}
+\title{Summary of Bayesian GVAR}
 \usage{
 \method{summary}{bgvar}(object, ...)
 }

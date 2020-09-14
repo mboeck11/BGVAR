@@ -2,7 +2,7 @@
 % Please edit documentation in R/helpers.R
 \name{avg.pair.cc}
 \alias{avg.pair.cc}
-\title{Average pairwise cross-sectional correlations}
+\title{Average Pairwise Cross-sectional Correlations}
 \usage{
 avg.pair.cc(object, digits=3)
 }

@@ -4,7 +4,7 @@
 }
 
 #' @name irf
-#' @title Impulse Response Functions
+#' @title Impulse Response Function
 #' @description This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in Pesaran and Shin (1998), orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 #' @export
 #' @usage irf(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, 

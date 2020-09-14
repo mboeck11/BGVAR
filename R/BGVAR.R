@@ -1,6 +1,6 @@
 #' @name bgvar
 #' @export
-#' @title BGVAR
+#' @title Estimation of Bayesian GVAR
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
 #' @usage 
 #' bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
@@ -564,7 +564,7 @@ print.bgvar<-function(x, ...){
 }
 
 #' @name summary
-#' @title Summarizing Bayesian Global Vector Autoregression Fits
+#' @title Summary of Bayesian GVAR
 #' @description Output gives model information as well as some descriptive statistics on convergence properties, likelihood, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-country residuals.
 #' @aliases summary summary.bgvar
 #' @param object an object of class \code{bgvar}.
@@ -611,7 +611,7 @@ summary.bgvar <- function(object, ...){
 #' @method print bgvar.summary
 #' @export
 print.bgvar.summary <- function(x, ...){
-  cat("---------------------------------------------------------------------------------------")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat("Model Info:")
   cat("\n")
@@ -627,13 +627,13 @@ print.bgvar.summary <- function(x, ...){
   }
   cat(paste("Number of countries: ",length(x$object$gW),sep=""))
   cat("\n")
-  cat("---------------------------------------------------------------------------------------")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat("Convergence diagnostics")
   cat("\n")
-  cat(paste("Geweke statistic: ",x$CD$perc,sep=""))
+  cat(paste("Geweke statistic:\n",x$CD$perc,sep=""))
   cat("\n")
-  cat("---------------------------------------------------------------------------------------")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat(paste("Global Likelihood: ",round(x$logLik,2),sep=""))
   cat("\n")
@@ -645,7 +645,7 @@ print.bgvar.summary <- function(x, ...){
   for(ii in 1:length(temp)){
     cat(paste0(temp[ii],"\n"))
   }
-  cat("--------------------------------------------------------------------------------------")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat("Average pairwise cross-country correlation of country model residuals")
   cat("\n")
@@ -655,7 +655,7 @@ print.bgvar.summary <- function(x, ...){
   for(ii in 1:length(temp)){
     cat(paste0(temp[ii],"\n"))
   }
-  cat("--------------------------------------------------------------------------------------")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   
   invisible(x)
@@ -663,7 +663,7 @@ print.bgvar.summary <- function(x, ...){
 
 #' @name residuals
 #' @export
-#' @title Extract residuals of Global Vector Autoregression
+#' @title Extract Residuals of Bayesian GVAR
 #' @description Calculate residuals of the global model and the country models.
 #' @aliases residuals residuals.bgvar
 #' @param object a fitted \code{bgvar} object.
@@ -720,7 +720,7 @@ residuals.bgvar <- function(object, ...){
 resid.bgvar <- residuals.bgvar
 
 #' @name coef
-#' @title Extract model coefficients
+#' @title Extract Model Coefficients of Bayesian GVAR
 #' @description Extracts the global model coefficients for \code{bgvar} for certain quantiles of the posterior distribution. \code{coefficients} is an \emph{alias} for it.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
@@ -751,7 +751,7 @@ coef.bgvar<-function(object, ..., quantile=.50){
 coefficients.bgvar <- coef.bgvar
 
 #' @name vcov
-#' @title Extract variance-covariance matrix
+#' @title Extract Variance-covariance Matrix of Bayesian GVAR
 #' @description Extracts the global variance-covariance matrix for \code{bgvar} for certain quantiles of the posterior distribution. 
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
@@ -779,7 +779,7 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 }
 
 #' @name fitted
-#' @title Extract Model Fitted Values
+#' @title Extract Fitted Values of Bayesian GVAR
 #' @description Extracts the fitted values for \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
@@ -813,7 +813,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 }
 
 #' @name logLik
-#' @title Extract Log-Likelihood
+#' @title Extract Log-likelihood of Bayesian GVAR
 #' @description Extract Log-Likelihood for \code{bgvar}.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.

@@ -3,7 +3,7 @@
 \name{resid.corr.test}
 \alias{resid.corr.test}
 \alias{residual.corr.test}
-\title{Residual autocorrelation test}
+\title{Residual Autocorrelation Test}
 \usage{
 residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 }

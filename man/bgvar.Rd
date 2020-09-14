@@ -2,7 +2,7 @@
 % Please edit documentation in R/bgvar.R
 \name{bgvar}
 \alias{bgvar}
-\title{BGVAR}
+\title{Estimation of Bayesian GVAR}
 \usage{
 bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,

@@ -3,7 +3,7 @@
 \name{predict}
 \alias{predict}
 \alias{predict.bgvar}
-\title{Compute predictions}
+\title{Predictions}
 \usage{
 \method{predict}{bgvar}(object, ..., n.ahead = 1, save.store = FALSE, verbose = TRUE)
 }

@@ -3,7 +3,7 @@
 \name{irf}
 \alias{irf}
 \alias{irf.bgvar}
-\title{Impulse Response Functions}
+\title{Impulse Response Function}
 \usage{
 irf(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, 
            applyfun=NULL, cores=NULL, verbose=TRUE)

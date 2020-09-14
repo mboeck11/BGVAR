@@ -4,7 +4,7 @@
 \alias{coef}
 \alias{coef.bgvar}
 \alias{coefficients.bgvar}
-\title{Extract model coefficients}
+\title{Extract Model Coefficients of Bayesian GVAR}
 \usage{
 \method{coef}{bgvar}(object, ..., quantile = 0.5)
 

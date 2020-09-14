@@ -170,19 +170,19 @@ the adjusted `W.trade0012` weight matrix:
 
 ```{r "model.1",results="hide"}
  model.1<-bgvar(Data=eerData,
-                    W=W.trade0012,
-                    draws=100,
-                    burnin=100,
-                    plag=1,
-                    prior="NG",
-                    hyperpara=NULL, 
-                    SV=TRUE,
-                    thin=1,
-                    trend=TRUE,
-                    h=0,
-                    save.country.store=FALSE,
-                    eigen=1.05
-                    )
+                W=W.trade0012,
+                draws=100,
+                burnin=100,
+                plag=1,
+                prior="NG",
+                hyperpara=NULL, 
+                SV=TRUE,
+                thin=1,
+                trend=TRUE,
+                h=0,
+                save.country.store=FALSE,
+                eigen=1.05
+                )
 
 ```
 <p align=justify>
@@ -255,7 +255,7 @@ The last part of the summary output contains a statistic of cross-unit correlati
  
 
 <p align="justify">
-Some other useful methods the `bgvar` toolbox offers contain the `coef` (or `coefficients` as its alias) methods to extract the $k \times k \times plag$ matrix of reduced form coefficients of the global model. Via the `vcov` command, we can access the global variance covariance matrix and the `logLik` function allows us to gather the global log likelihood (as provided by the `summary` command). 
+Some other useful methods the `BGVAR` toolbox offers contain the `coef` (or `coefficients` as its alias) methods to extract the $k \times k \times plag$ matrix of reduced form coefficients of the global model. Via the `vcov` command, we can access the global variance covariance matrix and the `logLik()` function allows us to gather the global log likelihood (as provided by the `summary` command). 
 </p>
 
 
@@ -281,19 +281,19 @@ plot(model.1, global=FALSE, resp="EA")
 We can estimate the model with two further priors on the unit models, the SSVS prior and the Minnesota prior. To give a concrete example, the SSVS prior can be invoked by typing:
 ```{r "ssvs.1",echo=TRUE, results="hide"}
  model.ssvs.1<-bgvar(Data=eerData,
-                    W=W.trade0012,
-                    draws=100,
-                    burnin=100,
-                    plag=1,
-                    prior="SSVS",
-                    hyperpara=NULL, 
-                    SV=TRUE,
-                    thin=1,
-                    trend=TRUE,
-                    h=0,
-                    save.country.store=FALSE,
-                    eigen=1.05
-                    )
+                     W=W.trade0012,
+                     draws=100,
+                     burnin=100,
+                     plag=1,
+                     prior="SSVS",
+                     hyperpara=NULL, 
+                     SV=TRUE,
+                     thin=1,
+                     trend=TRUE,
+                     h=0,
+                     save.country.store=FALSE,
+                     eigen=1.05
+                     )
 
 ```
 
@@ -474,7 +474,7 @@ We could also compare the models based on their fit, the likelihood, information
 \section{Structural analysis}
 # Structural analysis
 <p align="justify">
-Structural analysis can be performed by invoking the `IRF` function. This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
+Structural analysis can be performed by invoking the `irf()` function. This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 </p>
 
 
@@ -488,7 +488,7 @@ We have to set up a list `shock` that contains information about which variable 
 ```{r "us.mp", results="hide"}
   # US monetary policy shock
  shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
- irf.chol.us.mp<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
+ irf.chol.us.mp<-irf(model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
 ```
 
 The results are stored in `irf.chol.us.mp`.
@@ -515,10 +515,10 @@ For that purpose, let us look at a GDP shock.
 ```{r, "us.gdp", results="hide"}
 # Recursive US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-1
-irf.chol.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.chol.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 # GIRF US GDP
 shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="girf";shocks$scal=-1
-irf.girf.us.y<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.girf.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 ```
 
 ```{r, "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%",}
@@ -538,7 +538,7 @@ Last, we could also look at a *joint or global shock*. For example, we could be 
 
 ```{r, "global.gdp",results="hide"}
 shocks<-list();shocks$var="y";shocks$cN<-c("EA", "US", "RU");shocks$ident="girf";shocks$scal=-1
-irf.chol.ssvs<-IRF(obj=model.ssvs.1,shock=shocks,n.ahead=24)
+irf.chol.ssvs<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
 ```
 
 
@@ -559,14 +559,14 @@ W.trade0012.spf<-apply(W.trade0012.spf,2,function(x)x/rowSums(W.trade0012.spf))
 
 ```{r, "us.spf", results="hide"}
 model.ssvs.eer<-bgvar(Data=eerDataspf,
-                    W=W.trade0012.spf,
-                    plag=1,
-                    draws=100,
-                    burnin=100,
-                    prior="SSVS",
-                    SV=TRUE,
-                    thin=1
-                    )
+                      W=W.trade0012.spf,
+                      plag=1,
+                      draws=100,
+                      burnin=100,
+                      prior="SSVS",
+                      SV=TRUE,
+                      thin=1
+                      )
 ```
 <p align="justify">
 For now, we start with an identification of two standard shocks in economics in the US model, namely an aggregate demand and aggregate supply shock. 
@@ -594,11 +594,11 @@ We specify the sign restrictions by setting up a list that has to contain the in
 
 
 <p align="justify">
-We then invoke the `IRF` command to compute the impulse responses. The function draws rotation matrices using the algorithm of @Ramirez2010. In case we specify additional zero restrictions (see the next example below), we use the algorithm of @Arias2018. By default, we use one CPU core (`cores=NULL`) and do not store the full set of responses (`save.store=FALSE`). The maximum number of rotation matrices sampled per MCMC draw before we jump to the next draw can be specified by `MaxTries`. 
+We then invoke the `irf()` command to compute the impulse responses. The function draws rotation matrices using the algorithm of @Ramirez2010. In case we specify additional zero restrictions (see the next example below), we use the algorithm of @Arias2018. By default, we use one CPU core (`cores=NULL`) and do not store the full set of responses (`save.store=FALSE`). The maximum number of rotation matrices sampled per MCMC draw before we jump to the next draw can be specified by `MaxTries`. 
 </p>
 
 ```{r, "us.spf.sign",message=FALSE, results="hide"}
-irf.sign<-IRF(obj=model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
+irf.sign<-irf(model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
 ```
 
 We can infer the number of successful rotation matrices by looking at 
@@ -644,7 +644,7 @@ sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
 sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
 sign.constr$shock1$scal=1
 sign.constr$MaxTries<-200
-irf.sign.zero<-IRF(obj=model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
+irf.sign.zero<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
 ```
 <p align="justify">
 The figure below shows the results for short term interest rates (`stir`) and output (`y`). 
@@ -746,11 +746,11 @@ sign.constr$shock1$scal=-100
 sign.constr$MaxTries<-200
 ```
 
-The slot `sign.constr$shock1$shock` contains the countries and variables to shock and `sign.constr$restrictions` the restrictions on the cross-section.
+The slot `sign.constr$shock1$shock` contains the countries and variables to shock and `sign.constr$shock1$restrictions` the restrictions on the cross-section.
 
 ```{r,"global.restrictions"}
-sign.constr$shock1
-sign.constr$restrictions
+sign.constr$shock1$shock
+sign.constr$shock1$restrictions
 ```
 <p align="justify">
 The restrictions on the cross-section can be specified to hold only for a percentage of countries
@@ -759,9 +759,9 @@ We have used the following specification: `sign.constr$shock1$constr<-c(1,0.5,0.
 
 We can now compute the impulse responses using the same function as before.
 ```{r,"global.shock.irf",echo=TRUE,results="hide"}
-irf.sign.ssvs<-IRF(obj=model.ssvs,         # gvar object
+irf.sign.ssvs<-irf(model.ssvs,             # gvar object
                    shock=NULL,             # shockc is not needed 
-                   n.ahead=24,                # impulse response horizon
+                   n.ahead=24,             # impulse response horizon
                    sign.constr=sign.constr # list with sign-restrictions
                    )
 ```
@@ -796,7 +796,7 @@ One way of fixing this is to use generalized forecast error variance decompositi
 
 ```{r, "fevd"}
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd.decomp(obj=model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
+gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cires=4)$GFEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
@@ -815,13 +815,13 @@ The plot above shows a typical pattern: On impact and in the first periods, EA v
 </p>
 
 <p align="justify">
-In case we want to focus on a single country, which we have fully identified either using a Cholesky decomposition or sign restrictions, we can compute a simple forecast error variance decomposition (FEVD). This can be done by using the command `fevd.decomp`. Since the computation is very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC draw or using a running mean). In case the underlying shock has been identified via sign restrictions, the corresponding rotation matrix is the one that fulfills the sign restrictions at the point estimate of the posterior median of the reduced form coefficients (stored in `irf.obj$struc.obj$Rmed`). Alternatively one can submit a rotation matrix using the option `R`.
+In case we want to focus on a single country, which we have fully identified either using a Cholesky decomposition or sign restrictions, we can compute a simple forecast error variance decomposition (FEVD). This can be done by using the command `fevd()`. Since the computation is very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC draw or using a running mean). In case the underlying shock has been identified via sign restrictions, the corresponding rotation matrix is the one that fulfills the sign restrictions at the point estimate of the posterior median of the reduced form coefficients (stored in `irf.obj$struc.obj$Rmed`). Alternatively one can submit a rotation matrix using the option `R`.
 </p>
 
 
 ```{r, "fevd.struc"}  
 # calculates FEVD for variables US.y
-fevd.us.y=fevd.decomp(obj=irf.sign,var.slct=c("US.y"))$FEVD
+fevd.us.y=fevd(irf.sign,var.slct=c("US.y"))$FEVD
 idx<-which(grepl("US.",rownames(fevd.us.y)))
 
 ```
@@ -833,11 +833,11 @@ barplot(fevd.us.y[idx,,])
 \subsection{Historical decomposition}
 ## Historical decomposition
 <p align="justify">
-Historical decompositions allow to examine the relative importance of structural shocks in explaining deviations of a time series from its unconditional mean. This can be used to assess the hypothetical question of how data would have looked like if it was driven only by a particular structural shock (e.g., monetary policy shock) or a combination of structural shocks. It can be calculated using the function `hd.decomp`. The function also allows to compute the structural error of the model. To save computational time as well as due to storage limits, we use the point estimate of the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected. If not specified otherwise (via `R`), the rotation matrix based on the posterior median of the reduced form coefficients (`irf.obj$struc.obj$Rmed`) will be used.
+Historical decompositions allow to examine the relative importance of structural shocks in explaining deviations of a time series from its unconditional mean. This can be used to assess the hypothetical question of how data would have looked like if it was driven only by a particular structural shock (e.g., monetary policy shock) or a combination of structural shocks. It can be calculated using the function `hd()`. The function also allows to compute the structural error of the model. To save computational time as well as due to storage limits, we use the point estimate of the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected. If not specified otherwise (via `R`), the rotation matrix based on the posterior median of the reduced form coefficients (`irf.obj$struc.obj$Rmed`) will be used.
 </p>
 
-```{r,"hd.decomp"}
- HD<-hd.decomp(irf.chol.us.mp)
+```{r,"hd"}
+ HD<-hd(irf.chol.us.mp)
  # summing them up should get you back the original time series
  org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
 ```  
@@ -1091,10 +1091,10 @@ model.ng<-bgvar(Data=monthlyData,
 ```
 
 
-\subsection{IRF function}
-## Function arguments `IRF` 
+\subsection{irf() function}
+## Function arguments `irf()` 
 
-* `obj`: An objected fitted by function `bgvar`.
+* `x`: An objected fitted by function `bgvar`.
 
 * `n.ahead`: Forecasting horizon.
 
@@ -1136,21 +1136,21 @@ Below, find some further examples.
   model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
   # US monetary policy shock
   shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-  irf.chol.us.mp<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
+  irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
   
   # plots an impulse response function
   plot(irf.chol.us.mp,resp="US.y")
 
  # calculates generalized impulse response functions for the same shock as above
   shocks$ident="girf"
-  irf.girf.ssvs<-IRF(obj=model.ssvs.eer,shock=shocks,n.ahead=24)
+  irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
   plot(irf.girf.ssvs,resp="US.y")
 
 # Shock to first ordered variable yields same responses of cholesky and GIRF
   shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=+1
-  irf.chol<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
+  irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
   shocks$ident<-"girf"
-  irf.girf<-IRF(model.ssvs.eer,shock=shocks,n.ahead=24)
+  irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
   matplot(cbind(irf.chol$posterior["US.y",,1,"median"],irf.girf$posterior["US.y",,1,"median"]),type="l",ylab="")
   matplot(cbind(irf.chol$posterior["US.Dp",,1,"median"],irf.girf$posterior["US.Dp",,1,"median"]),type="l",ylab="")
   matplot(cbind(irf.chol$posterior["EA.y",,1,"median"],irf.girf$posterior["EA.y",,1,"median"]),type="l",ylab="")
@@ -1170,7 +1170,7 @@ Below, find some further examples.
   # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
   # the model (by bgvar)
   shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
+  irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
 
   # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
   sign.constr<-list()
@@ -1183,14 +1183,14 @@ Below, find some further examples.
   sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
   sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
   sign.constr$MaxTries<-200
-  irf.sign.ssvs<-IRF(obj=model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
+  irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 
 
  # Same example but using a local (German) shock and cross-country restrictions.
   # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
   # the model (by bgvar)
   shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-IRF(model.ssvs,shock=shocks,n.ahead=24)
+  irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
 
   # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
   sign.constr<-list()
@@ -1203,7 +1203,7 @@ Below, find some further examples.
   sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
   sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
   sign.constr$MaxTries<-200
-  irf.sign.ssvs<-IRF(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
+  irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
 
  # Example with zero restriction (Arias et al., 2018) and rationality conditions (D'Amico and King, 2017).
   data("eerDataspf")
@@ -1237,7 +1237,7 @@ Below, find some further examples.
   sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
   sign.constr$shock1$scal=1
   sign.constr$MaxTries<-200
-  irf.sign<-IRF(obj=model.ssvs.eer,
+  irf.sign<-irf(model.ssvs.eer,
                 n.ahead=20,
                 sign.constr=sign.constr,
                 save.store=TRUE)

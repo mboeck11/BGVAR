@@ -3,7 +3,7 @@
 \name{fitted}
 \alias{fitted}
 \alias{fitted.bgvar}
-\title{Extract Model Fitted Values}
+\title{Extract Fitted Values of Bayesian GVAR}
 \usage{
 \method{fitted}{bgvar}(object, ..., global = TRUE)
 }

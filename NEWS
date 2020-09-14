@@ -1,4 +1,9 @@
-Changes in Version 2.1
+Changes in Version 2.1.2
+- adapted various roxygen articles
+- summary output needs now less space
+- citations are adapted with Working paper
+
+Changes in Version 2.1.1
 - changed argument names of 'bgvar' to be more similar to existing Bayesian packages
   - 'saves' is now 'draws'
   - 'burns' is now 'burnin'

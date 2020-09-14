@@ -3,7 +3,7 @@
 \name{vcov}
 \alias{vcov}
 \alias{vcov.bgvar}
-\title{Extract variance-covariance matrix}
+\title{Extract Variance-covariance Matrix of Bayesian GVAR}
 \usage{
 \method{vcov}{bgvar}(object, ..., quantile = 0.5)
 }

@@ -1,6 +1,6 @@
 #' @name avg.pair.cc
 #' @export
-#' @title Average pairwise cross-sectional correlations
+#' @title Average Pairwise Cross-sectional Correlations
 #' @description Computes average pairwise cross-sectional correlations of the data and the country models' residuals.
 #' @details If used for analyzing the country models' residuals, \code{avg.pair.cc} computes for each country and a given variable, the average cross-sectional correlation (either for the data or for the residuals). In theory, including foreign variables should soak up cross-sectional residual dependence and  correlation of the residuals should be small. Otherwise dynamic analysis, especially using GIRFs, might lead to invalid results. See Dees et al. (2007) for more details.
 #' @usage avg.pair.cc(object, digits=3)
@@ -129,7 +129,7 @@ avg.pair.cc=function(object, digits=3){
 
 #' @name conv.diag
 #' @export
-#' @title MCMC convergence diagnostics
+#' @title MCMC Convergence Diagnostics
 #' @description This function computes Geweke's Convergence diagnostic making use of the \code{coda} package.
 #' @usage conv.diag(object, crit.val=1.96)
 #' @param object a fitted \code{bgvar} object.
@@ -246,7 +246,7 @@ DIC <- function(object, ...){
 
 #' @name resid.corr.test
 #' @export
-#' @title Residual autocorrelation test
+#' @title Residual Autocorrelation Test
 #' @description An F-test for serial autocorrelation in the residuals.
 #' @usage residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 #' @param obj an object of class \code{bgvar}.

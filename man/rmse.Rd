@@ -3,7 +3,7 @@
 \name{rmse}
 \alias{rmse}
 \alias{rmse.bgvar.pred}
-\title{Compute root mean squared errors}
+\title{Compute Root Mean Squared Errors}
 \usage{
 \method{rmse}{bgvar.pred}(object, ...)
 }
