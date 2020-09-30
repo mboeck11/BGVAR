@@ -796,7 +796,7 @@ One way of fixing this is to use generalized forecast error variance decompositi
 
 ```{r, "fevd"}
 #calculates the LN GFEVD 
-gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cores=4)$GFEVD
+gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cores=4)$FEVD
 
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))

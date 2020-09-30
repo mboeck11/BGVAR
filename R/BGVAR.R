@@ -404,7 +404,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
         next
       }
       default_hyperpara[para] <- hyperpara[para]
-      if(para=="a_start") a_log <- FALSE
+      if(para=="a_start") default_hyperpara["a_log"] <- FALSE
     }
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }

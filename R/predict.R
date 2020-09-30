@@ -36,7 +36,6 @@
 #' @export
 predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
-  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   if(verbose) cat("\nStart computing predictions of Bayesian Global Vector Autoregression.\n\n")
   draws      <- object$args$thindraws
   plag       <- object$args$plag
