@@ -32,23 +32,10 @@ This function calculates a complete generalized forecast error variance decompos
 \examples{
 \dontshow{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
+data(eerDatasmall)
+model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,
                       prior="SSVS",thin=1,eigen=TRUE)
                       
-GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
-}
-\donttest{
-library(BGVAR)
-data(eerData)
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
-                      prior="SSVS",thin=1,eigen=TRUE)
-                      
-# Calculates running mean GFEVDs for all variables in the system 
 GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
 }
 }

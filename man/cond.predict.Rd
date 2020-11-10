@@ -31,14 +31,10 @@ Function that computes conditional forecasts for Bayesian Vector Autoregressions
 Conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
 }
 \examples{
-\dontshow{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
+data(eerDatasmall)
+model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+                      plag=1,prior="SSVS",eigen=TRUE)
 
 # compute predictions
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
@@ -54,29 +50,6 @@ colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
 constr_sd[1:5,"US.Dp"] <- 0.001
 
 cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
-}
-\donttest{
-library(BGVAR)
-data(eerData)
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
-
-# compute predictions
-fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-
-# set up constraints matrix of dimension n.ahead times K
-constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-colnames(constr) <- colnames(model.ssvs.eer$xglobal)
-constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
-
-# add uncertainty to conditional forecasts
-constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
-constr_sd[1:5,"US.Dp"] <- 0.001
-
-cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
-plot(cond_fcast, resp="US.Dp", Cut=10)
-}
 }
 \references{
 Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.

@@ -1,4 +1,4 @@
-// [[Rcpp::depends(RcppArmadillo)]]
+// [[Rcpp::depends(RcppArmadillo,stochvol,GIGrvg)]]
 #include <RcppArmadillo.h>
 #include <stochvol.h>
 #include <stdlib.h>
@@ -194,22 +194,27 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
     Sv_para(mm,1) = .9;
     Sv_para(mm,2) = .2;
   }
-  mat mixprob(10, T,fill::zeros); vec mixprob_vec(mixprob.begin(), mixprob.n_elem, false);
-  ivec rec(T);
+  uvec rec(T); rec.fill(5);
   double h0 = -10;
-  const double B011inv = 1e-8;
-  const double B022inv = 1e-12;
-  const bool Gammaprior = true;
-  const double MHcontrol = -1;
-  int parameterization = 3;
-  const bool centered_baseline = parameterization % 2; // 1 for C, 0 for NC baseline
-  const int MHsteps = 2;
-  const bool dontupdatemu = false;
-  const double cT = T/2;
-  const double C0 = 1.5*Bsigma;
-  const bool truncnormal = false;
-  const double priorlatent0 = -1;
-  const double offset = 0;
+  const double offset = 0;  // maybe want to change to 1e-40 or so to be on the safe side? I have got random NAs because of log(0) for real data inputs
+  using stochvol::PriorSpec;
+  const PriorSpec prior_spec = {  // prior specification object for the update_*_sv functions
+    PriorSpec::Latent0(),  // stationary prior distribution on priorlatent0
+    PriorSpec::Mu(PriorSpec::Normal(bmu, std::sqrt(Bmu))),  // normal prior on mu
+    PriorSpec::Phi(PriorSpec::Beta(a0, b0)),  // stretched beta prior on phi
+    PriorSpec::Sigma2(PriorSpec::Gamma(0.5, 0.5 / Bsigma))  // normal(0, Bsigma) prior on sigma
+  };  // heavy-tailed, leverage, regression turned off
+  using stochvol::ExpertSpec_FastSV;
+  const ExpertSpec_FastSV expert {  // very expert settings for the Kastner, Fruehwirth-Schnatter (2014) sampler
+    true,  // interweave
+    stochvol::Parameterization::CENTERED,  // centered baseline always
+    1e-8,  // B011inv,
+    1e-12,  //B022inv,
+    2,  // MHsteps,
+    ExpertSpec_FastSV::ProposalSigma2::INDEPENDENCE,  // independece proposal for sigma
+    -1,  // unused for independence prior for sigma
+    ExpertSpec_FastSV::ProposalPhi::IMMEDIATE_ACCEPT_REJECT_NORMAL  // immediately reject (mu,phi,sigma) if proposed phi is outside (-1, 1)
+  };
   //---------------------------------------------------------------------------------------------------------------
   // SAMPLER MISCELLANEOUS
   //---------------------------------------------------------------------------------------------------------------
@@ -434,18 +439,18 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
     // Step 3: Sample covariances
     for(int mm=0; mm < M; mm++){
       vec data_sv = Em_str_draw.col(mm);
-      vec datastand = log(data_sv%data_sv + offset);
-      vec cur_sv  = Sv_draw.col(mm);
+      vec cur_sv  = Sv_draw.unsafe_col(mm);  // changed to **unsafe**_col which reuses memory
       if(sv){
-        vec para_sv = Sv_para.row(mm).t();
-        stochvol::update_sv(datastand, para_sv, cur_sv, h0, mixprob_vec, rec, centered_baseline, C0, cT,
-                            Bsigma, a0, b0, bmu, Bmu, B011inv, B022inv, Gammaprior, truncnormal,
-                            MHcontrol, MHsteps, parameterization, dontupdatemu, priorlatent0);
-        Sv_para.row(mm) = para_sv.t();
-        Sv_draw.col(mm) = cur_sv;
+        const vec datastand = log(data_sv%data_sv + offset);
+        double mu = Sv_para(mm, 0);
+        double phi = Sv_para(mm, 1);
+        double sigma = Sv_para(mm, 2);
+        stochvol::update_fast_sv(datastand, mu, phi, sigma, h0, cur_sv, rec, prior_spec, expert);
+        Sv_para.row(mm) = arma::rowvec({mu, phi, sigma});
+        //Sv_draw.col(mm) = cur_sv;  // unsafe_col overwrites the original data without copying
       }else{
         sample_sig2(cur_sv, data_sv, a_1, b_1, T);
-        Sv_draw.col(mm) = log(cur_sv);
+        //Sv_draw.col(mm) = log(cur_sv);
       }
     }
     //-----------------------------------------------

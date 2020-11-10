@@ -23,31 +23,12 @@
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,
 #'                       prior="SSVS",thin=1,eigen=TRUE)
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
 #' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
 #' HD <- hd(irf.chol.us.mp)
-#' }
-#' \donttest{
-#' set.seed(571)
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
-#' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
-#' 
-#' HD <- hd(irf.chol.us.mp)
-#' # summing them up should get you back the original time series
-#' org.ts<-apply(HD$hd_array,c(1,2),sum)
-#' matplot(cbind(HD$xglobal[,1],org.ts[,1]),type="l",ylab="")
-#' legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n")
 #' }
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.

@@ -52,17 +52,19 @@
 #' 
 #' Pesaran, H.M. and Y. Shin (1998) \emph{Generalized impulse response analysis in linear multivariate models.} Economics Letters, Volume 58, Issue 1, p. 17-29.
 #' @examples
-#' \dontshow{
+#' oldpar <- par(no.readonly =TRUE)
+#' # First example, a US monetary policy shock, quarterly data
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE)
+#' # US monetary policy shock
 #' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(x=model.ssvs.eer,shock=shocks,n.ahead=24)
+#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
+#' # plots an impulse response function
+#' plot(irf.chol.us.mp,resp="US")
 #' 
+#' # Second example, using sign restrictions
 #' sign.constr<-list()
 #' sign.constr$shock1$shock<-c("US.stir") 
 #' sign.constr$shock1$restrictions$res1<-c("US.y")
@@ -73,20 +75,8 @@
 #' sign.constr$shock1$scal=+100 
 #' sign.constr$MaxTries<-200
 #' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
-#' }
+#' plot(irf.sign.us.mp, resp="US")
 #' \donttest{
-#' oldpar <- par(no.readonly =TRUE)
-#' # First example, a US monetary policy shock, quarterly data
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-#' # plots an impulse response function
-#' plot(irf.chol.us.mp,resp="US")
-#' 
 #' # calculates generalized impulse response functions for the same shock as above
 #' shocks$ident="girf"
 #' irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
@@ -245,7 +235,6 @@
 #' par(oldpar)
 #' }
 #' @importFrom abind adrop
-#' @importFrom parallel parLapply mclapply
 irf.bgvar <- function(x,n.ahead=24,shock=NULL,sign.constr=NULL,save.store=FALSE,applyfun=NULL,cores=NULL,verbose=TRUE){
   start.irf <- Sys.time()
   if(verbose) cat("\nStart computing impulse response functions of Bayesian Global Vector Autoregression.\n\n")
@@ -566,7 +555,7 @@ irf.bgvar <- function(x,n.ahead=24,shock=NULL,sign.constr=NULL,save.store=FALSE,
         on.exit(parallel::stopCluster(cl_cores))
         function(X, FUN, ...) parallel::parLapply(cl = cl_cores, X, FUN, ...)
       } else {
-        function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores = 
+        function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores =
                                                    cores)
       }
     }
@@ -719,14 +708,12 @@ irf.bgvar <- function(x,n.ahead=24,shock=NULL,sign.constr=NULL,save.store=FALSE,
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' }
-#' # very time-consuming
 #' \dontrun{
+#' library(BGVAR)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE)
+#' # very time-consuming
 #' irfcf <- irfcf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",n.ahead=24)
 #' }
 #' @importFrom stats quantile

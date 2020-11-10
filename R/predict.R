@@ -14,23 +14,11 @@
 #' \item{\code{hold.out}}{ if \code{h} is not set to zero, this contains the hold-out sample.}
 #' }
 #' @examples
-#' \dontshow{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
+#' data(eerDatasmall)
+#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' fcast <- predict(model.ssvs, n.ahead=8)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS")
-#' fcast <- predict(model.ssvs, n.ahead=8)
-#' }
 #' @importFrom stats rnorm tsp sd
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @export
@@ -164,14 +152,10 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
 #' }
 #' @author Maximilian Boeck
 #' @examples
-#' \dontshow{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE)
 #' 
 #' # compute predictions
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
@@ -187,29 +171,6 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
 #' constr_sd[1:5,"US.Dp"] <- 0.001
 #' 
 #' cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE)
-#' 
-#' # compute predictions
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' 
-#' # set up constraints matrix of dimension n.ahead times K
-#' constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-#' colnames(constr) <- colnames(model.ssvs.eer$xglobal)
-#' constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
-#' 
-#' # add uncertainty to conditional forecasts
-#' constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-#' colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
-#' constr_sd[1:5,"US.Dp"] <- 0.001
-#' 
-#' cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
-#' plot(cond_fcast, resp="US.Dp", Cut=10)
-#' }
 #' @references 
 #' Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
 #' 
@@ -341,25 +302,12 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' @param ... additional arguments.
 #' @return Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples 
-#' \dontshow{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' lps   <- lps(fcast)
-#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export
@@ -393,25 +341,12 @@ lps.bgvar.pred <- function(object, ...){
 #' @param ... additional arguments.
 #' @return Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples
-#' \dontshow{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE,h=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
-#' }
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
-#' model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-#'                       eigen=TRUE,h=8)
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' rmse   <- rmse(fcast)
-#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom knitr kable
 #' @importFrom stats dnorm

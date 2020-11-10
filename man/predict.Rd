@@ -31,23 +31,11 @@ Returns an object of class \code{bgvar.pred} with the following elements \itemiz
 A function that computes predictions based on a object of class \code{bgvar}.
 }
 \examples{
-\dontshow{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
+data(eerDatasmall)
+model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 fcast <- predict(model.ssvs, n.ahead=8)
-}
-\donttest{
-library(BGVAR)
-data(eerData)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-                    prior="SSVS")
-fcast <- predict(model.ssvs, n.ahead=8)
-}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

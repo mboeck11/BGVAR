@@ -264,7 +264,8 @@
   if(default_hyperpara[["a_log"]]){
     default_hyperpara["a_start"] <- 1/log(ncol(Yraw))
   }
-  invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)),type="message"))
+  invisible(capture.output(bvar<-BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
+                                             thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), type="message"))
   if(is(bvar,"try-error")){
     bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)
   }
@@ -376,10 +377,11 @@
 }
 
 #' @name .BVAR_linear_R
-#' @importFrom stochvol svsample2
+#' @importFrom stochvol svsample_fast_cpp specify_priors default_fast_sv
 #' @importFrom MASS ginv mvrnorm
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
+#' @export
 #' @noRd
 .BVAR_linear_R <- function(Y_in,W_in,p_in,draws_in,burnin_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
   #----------------------------------------INPUTS----------------------------------------------------#
@@ -558,7 +560,7 @@
   # NG
   lambda2_L <- 0.01
   L_tau     <- a_start
-  L_accept <- 0
+  L_accept  <- 0
   L_tuning  <- .43
   #------------------------------------
   # SV quantities
@@ -567,10 +569,9 @@
   svdraw <- list(para=c(mu=-10,phi=.9,sigma=.2),latent=rep(-3,bigT))
   svl <- list()
   for (jj in 1:M) svl[[jj]] <- svdraw
-  pars_var <- matrix(0,3,M)
+  pars_var <- matrix(c(-3,.9,.2,-3),4,M,dimnames=list(c("mu","phi","sigma","latent0"),NULL))
   
   hv <- svdraw$latent
-  para <- list(mu=-3,phi=.9,sigma=.2)
   
   eta <- list()
   #---------------------------------------------------------------------------------------------------------
@@ -582,7 +583,7 @@
   
   # thinning
   thin         <- thin_in
-  count <- 0
+  count        <- 0
   thindraws    <- nsave/thin
   thin.draws   <- seq(nburn+1,ntot,by=thin)
   #---------------------------------------------------------------------------------------------------------
@@ -593,7 +594,7 @@
   res_store    <- array(NA,c(thindraws,bigT,M))
   # SV
   Sv_store     <- array(NA,c(thindraws,bigT,M))
-  pars_store   <- array(NA,c(thindraws,3,M))
+  pars_store   <- array(NA,c(thindraws,4,M))
   # MN
   shrink_store <- array(NA,c(thindraws,3))
   # SSVS
@@ -839,13 +840,21 @@
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
     if (sv){
-      pars_var <- matrix(0,3,M)
       for (jj in 1:M){
-        svdraw <- svsample2(Em_str[,jj],startpara=svl[[jj]]$para,startlatent=Sv_draw[,jj],
-                            priormu=c(bmu,sqrt(Bmu)),priorphi=c(a0, b0), priorsigma=Bsigma)
+        para   <- as.list(pars_var[,jj])
+        para$nu = Inf; para$rho=0; para$beta<-0
+        svdraw <- svsample_fast_cpp(y=Em_str[,jj], draws=1, burnin=0, designmatrix=matrix(NA_real_), 
+                                    priorspec=specify_priors(), thinpara=1, thinlatent=1, keeptime="all", 
+                                    startpara=para, startlatent=Sv_draw[,jj], 
+                                    keeptau=FALSE, print_settings=list(quiet=TRUE, n_chains=1, chain=1), 
+                                    correct_model_misspecification=FALSE, interweave=TRUE, myoffset=0, 
+                                    fast_sv=default_fast_sv)
         svl[[jj]] <- svdraw
-        h_ <- exp(svdraw$latent)
-        pars_var[,jj] <- svl[[jj]]$para
+        h_ <- exp(svdraw$latent[1,])
+        para$mu      <- svdraw$para[1,"mu"]
+        para$phi     <- svdraw$para[1,"phi"]
+        para$sigma   <- svdraw$para[1,"sigma"]
+        para$latent0 <- svdraw$latent0
         Sv_draw[,jj] <- log(h_)
       }
     }else{
@@ -861,11 +870,11 @@
     # Step 4: store draws
     if(irep %in% thin.draws){
       count <- count+1
-      A_store[count,,] <- A_draw
-      L_store[count,,] <- L_draw
+      A_store[count,,]   <- A_draw
+      L_store[count,,]   <- L_draw
       res_store[count,,] <- Y-X%*%A_draw
       # SV
-      Sv_store[count,,] <- Sv_draw
+      Sv_store[count,,]   <- Sv_draw
       pars_store[count,,] <- pars_var
       # MN
       shrink_store[count,] <- c(shrink1,shrink2,shrink4)

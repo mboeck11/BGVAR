@@ -19,25 +19,12 @@ Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h ti
 Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 }
 \examples{
-\dontshow{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE,h=8)
+data(eerDatasmall)
+model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+                      plag=1,prior="SSVS",eigen=TRUE,h=8)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 lps <- lps(fcast)
-}
-\donttest{
-library(BGVAR)
-data(eerData)
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE,h=8)
-fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-lps   <- lps(fcast)
-}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher

@@ -149,9 +149,9 @@ arma::vec dmvnrm_arma_fast(const arma::mat& x,
   }
 }
 
-arma::vec dmvnrm_arma_old(arma::mat& x,  
-                          arma::mat& mean,  
-                          arma::mat& sigma, 
+arma::vec dmvnrm_arma_old(mat& x,  
+                          mat& mean,  
+                          mat& sigma, 
                           bool logd = false) { 
   double const log2pi = std::log(2.0 * M_PI);
   using arma::uword;

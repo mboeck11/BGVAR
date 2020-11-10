@@ -26,6 +26,6 @@ The data loads two objects \code{eerData}, which is a list object of length \cod
 eerData
 }
 \description{
-This data set contains 76 quarterly observations by country, spanning the period from 1995Q1 to 2013Q4. The country coverage is 43 countries and the euro area (EA) as a regional aggregate.
+This data set contains 76 quarterly observations by country, spanning the period from 1995Q1 to 2013Q4. The country coverage is 43 countries and the Euro area (EA) as a regional aggregate.
 }
 \keyword{datasets}

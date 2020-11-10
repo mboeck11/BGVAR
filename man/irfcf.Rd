@@ -39,14 +39,12 @@ Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 Function to perform counterfactual analysis. It enables to neutralize the response of a specific variable to a given shock.
 }
 \examples{
-\donttest{
-library(BGVAR)
-data(eerData)
-model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="SSVS",
-                      eigen=TRUE)
-}
-# very time-consuming
 \dontrun{
+library(BGVAR)
+data(eerDatasmall)
+model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+                      plag=1,prior="SSVS",eigen=TRUE)
+# very time-consuming
 irfcf <- irfcf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",n.ahead=24)
 }
 }

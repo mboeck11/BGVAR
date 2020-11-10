@@ -123,23 +123,12 @@ We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search 
  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
 }
 \examples{
-\dontshow{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+data(eerDatasmall)
 hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
+model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
-
-W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
-variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
-model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")],plag=1,draws=100, 
-                  burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
-print(model.mn)
-}
-\donttest{
+\dontrun{
 library(BGVAR)
 # replicate Feldkircher and Huber (2016) using trade based weights
 data(eerData)
@@ -148,7 +137,7 @@ model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 print(model.ssvs)
 
-data("eerData")
+# use different weight matrices
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, draws=200, 
                   burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)

@@ -9,11 +9,13 @@
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @export
 #' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerData)
+#' \dontshow{
+#' cN<-c("EA","US","UK")
+#' eerData<-eerData[cN]
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))}
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
+#' \donttest{
 #' # example for class 'bgvar'
 #' plot(model.ssvs, resp="EA")
 #' }

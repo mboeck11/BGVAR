@@ -23,8 +23,8 @@ Extract Log-Likelihood for \code{bgvar}.
 \examples{
 \donttest{
 library(BGVAR)
-data(eerData)
-model.ng <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100)
+data(eerDatasmall)
+model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
 logLik(model.ng)
 }
 }

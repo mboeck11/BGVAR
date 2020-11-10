@@ -27,13 +27,6 @@ W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN])
 model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
 DIC(model.mn)
 }
-\donttest{
-set.seed(1)
-library(BGVAR)
-data(eerData)
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="MN")
-DIC(model.mn)
-}
 }
 \references{
 Spiegelhalter, D. J. and Best, N. G., Carlin, B. P. and Linde, A. (2002) \emph{Bayesian measures of model complexity and fit.} Journal of the Royal Statistical Society, Series B, Vol. 64(4), pp. 583-639.
