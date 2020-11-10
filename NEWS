@@ -1,3 +1,8 @@
+Change in Version 2.1.4
+- updated backends of new 'stochvol' package
+- added dataset 'eerDatasmall' to check functionality of package faster
+- minor bug fixes
+
 Change in Version 2.1.3
 - fixed typo in vignette
 
