@@ -564,13 +564,6 @@ print.bgvar<-function(x, ...){
 #' \code{\link{avg.pair.cc}} to compute average pairwise cross-country correlation of cross-country residuals separately.
 #' \code{\link{resid.corr.test}} to compute F-test on first-order autocorrelation of cross-country residuals separately.
 #' @author Maximilian Boeck
-#' @examples
-#' set.seed(571)
-#' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS",thin=1,SV=TRUE,trend=TRUE)
-#' summary(model.ssvs)
 #' @export
 summary.bgvar <- function(object, ...){
   CD  <- conv.diag(object)

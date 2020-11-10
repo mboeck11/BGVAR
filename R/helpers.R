@@ -22,8 +22,8 @@
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
+#' data(eerDatasmall)
+#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,SV=TRUE,
 #'                   draws=100,burnin=100,prior="MN")
 #' avg.pair.cc(model.mn)
 #' 
@@ -145,8 +145,8 @@ avg.pair.cc=function(object, digits=3){
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=200,burnin=200,prior="MN")
+#' data(eerDatasmall)
+#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=200,burnin=200,prior="MN")
 #' geweke <- conv.diag(model.mn)
 #' }
 #' @references 
@@ -193,13 +193,10 @@ print.bgvar.CD <- function(x, ...){
 #' @author Maximilian Boeck
 #' @export
 #' @examples
-#' \dontshow{
+#' \donttest{
 #' library(BGVAR)
-#' data(eerData)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
+#' data(eerDatasmall)
+#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
 #' DIC(model.mn)
 #' }
 #' @references 
@@ -259,12 +256,11 @@ DIC <- function(object, ...){
 #' Godfrey, L.G. (1978a) \emph{Testing Against General Autoregressive and Moving Average Error Models When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1293-1302.
 #' Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
 #' Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
-#' 
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerData)
-#' model.mn <- bgvar(Data=eerData,W=W.trade0012,draws=100,burnin=100,plag=1,prior="MN")
+#' data(eerDatasmall)
+#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,prior="MN")
 #' residual.corr.test(model.mn)
 #' }
 #' @importFrom stats pf qf

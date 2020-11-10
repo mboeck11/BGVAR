@@ -18,13 +18,10 @@ Returns a numeric value with the corresponding DIC.
 Computes the Deviance information criterion for an object \code{bgvar}.
 }
 \examples{
-\dontshow{
+\donttest{
 library(BGVAR)
-data(eerData)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=2,draws=100,burnin=100,prior="MN")
+data(eerDatasmall)
+model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
 DIC(model.mn)
 }
 }

@@ -18,14 +18,6 @@ No return value.
 \description{
 Output gives model information as well as some descriptive statistics on convergence properties, likelihood, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-country residuals.
 }
-\examples{
-set.seed(571)
-library(BGVAR)
-data(eerDatasmall)
-model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
-                    prior="SSVS",thin=1,SV=TRUE,trend=TRUE)
-summary(model.ssvs)
-}
 \seealso{
 \code{\link{bgvar}} to estimate a \code{bgvar} object.
 \code{\link{avg.pair.cc}} to compute average pairwise cross-country correlation of cross-country residuals separately.

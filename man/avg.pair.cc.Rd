@@ -29,8 +29,8 @@ If used for analyzing the country models' residuals, \code{avg.pair.cc} computes
 \examples{
 \donttest{
 library(BGVAR)
-data(eerData)
-model.mn <- bgvar(Data=eerData,W=W.trade0012,plag=1,SV=TRUE,
+data(eerDatasmall)
+model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,SV=TRUE,
                   draws=100,burnin=100,prior="MN")
 avg.pair.cc(model.mn)
 
