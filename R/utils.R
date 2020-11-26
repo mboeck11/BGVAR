@@ -377,7 +377,7 @@
 }
 
 #' @name .BVAR_linear_R
-#' @importFrom stochvol svsample_fast_cpp specify_priors default_fast_sv
+#' @importFrom stochvol svsample_fast_cpp specify_priors get_default_fast_sv
 #' @importFrom MASS ginv mvrnorm
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
@@ -848,7 +848,7 @@
                                     startpara=para, startlatent=Sv_draw[,jj], 
                                     keeptau=FALSE, print_settings=list(quiet=TRUE, n_chains=1, chain=1), 
                                     correct_model_misspecification=FALSE, interweave=TRUE, myoffset=0, 
-                                    fast_sv=default_fast_sv)
+                                    fast_sv=get_default_fast_sv())
         svl[[jj]] <- svdraw
         h_ <- exp(svdraw$latent[1,])
         para$mu      <- svdraw$para[1,"mu"]
