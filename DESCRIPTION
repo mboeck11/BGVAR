@@ -22,7 +22,7 @@ Depends: R (>= 2.10)
 SystemRequirements: C++11
 Imports:
    abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 
-   Rcpp (>= 1.0.3), stats, stochvol, utils, xts, zoo
+   Rcpp (>= 1.0.3), stats, stochvol (>= 3.0.3), utils, xts, zoo
 Suggests: 
     rmarkdown, testthat (>= 2.1.0)
 LazyData: true
