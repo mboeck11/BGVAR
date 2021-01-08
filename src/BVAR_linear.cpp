@@ -1,4 +1,3 @@
-// [[Rcpp::depends(RcppArmadillo,stochvol,GIGrvg)]]
 #include <RcppArmadillo.h>
 #include <stochvol.h>
 #include <stdlib.h>
@@ -11,6 +10,7 @@ using namespace arma;
 
 //' @name BVAR_linear
 //' @noRd
+//[[Rcpp::interfaces(r, cpp)]]
 //[[Rcpp::export]]
 List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
                  const SEXP draws_in, const SEXP burnin_in,
@@ -188,11 +188,12 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   // SV quantitites
   //---------------------------------------------------------------
   mat Sv_draw(T,M); Sv_draw.fill(-3);
-  mat Sv_para(M,3);
+  mat Sv_para(4,M);
   for(int mm=0; mm < M; mm++){
-    Sv_para(mm,0) = -10;
-    Sv_para(mm,1) = .9;
-    Sv_para(mm,2) = .2;
+    Sv_para(0,mm) = -10;
+    Sv_para(1,mm) = .9;
+    Sv_para(2,mm) = .2;
+    Sv_para(3,mm) = -10;
   }
   uvec rec(T); rec.fill(5);
   double h0 = -10;
@@ -233,7 +234,7 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
   cube res_store(thindraws,T,M);
   // SV
   cube Sv_store(thindraws,T,M);
-  cube pars_store(thindraws,M,3);
+  cube pars_store(thindraws,4,M);
   // SIMS
   mat shrink_store(thindraws,3, fill::zeros);
   // SSVS
@@ -442,11 +443,12 @@ List BVAR_linear(const SEXP Y_in, const SEXP W_in, const SEXP p_in,
       vec cur_sv  = Sv_draw.unsafe_col(mm);  // changed to **unsafe**_col which reuses memory
       if(sv){
         const vec datastand = log(data_sv%data_sv + offset);
-        double mu = Sv_para(mm, 0);
-        double phi = Sv_para(mm, 1);
-        double sigma = Sv_para(mm, 2);
+        double mu = Sv_para(0, mm);
+        double phi = Sv_para(1, mm);
+        double sigma = Sv_para(2, mm);
+        double h0 = Sv_para(3, mm);
         stochvol::update_fast_sv(datastand, mu, phi, sigma, h0, cur_sv, rec, prior_spec, expert);
-        Sv_para.row(mm) = arma::rowvec({mu, phi, sigma});
+        Sv_para.col(mm) = arma::colvec({mu, phi, sigma});
         //Sv_draw.col(mm) = cur_sv;  // unsafe_col overwrites the original data without copying
       }else{
         sample_sig2(cur_sv, data_sv, a_1, b_1, T);

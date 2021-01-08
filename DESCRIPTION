@@ -1,7 +1,7 @@
 Package: BGVAR
 Type: Package
 Title: Bayesian Global Vector Autoregressions
-Version: 2.1.5
+Version: 2.2.0
 Author: Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
     Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
@@ -19,13 +19,13 @@ Encoding: UTF-8
 License: GPL-3
 Language: en-US
 Depends: R (>= 2.10)
-SystemRequirements: C++11
+SystemRequirements: C++11, GNU make
 Imports:
    abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 
-   Rcpp (>= 1.0.3), stats, stochvol (>= 3.0.3), utils, xts, zoo
+   Rcpp (>= 1.0.3), RcppParallel, stats, stochvol (>= 3.0.3), utils, xts, zoo
 Suggests: 
     rmarkdown, testthat (>= 2.1.0)
 LazyData: true
-LinkingTo: Rcpp, RcppArmadillo, RcppProgress, stochvol, GIGrvg
+LinkingTo: Rcpp, RcppArmadillo, RcppProgress, RcppParallel, stochvol, GIGrvg
 RoxygenNote: 7.1.1
 VignetteBuilder: knitr

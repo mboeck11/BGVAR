@@ -8,7 +8,8 @@
 #' \code{\link{bgvar}} for estimating a Bayesian GVAR.
 #' \code{\link{predict}} for doing predictions with a Bayesian GVAR.
 #' \code{\link{irf}} for doing impulse response analysis with a Bayesian GVAR.
-#' 
+#' @importFrom Rcpp sourceCpp
+#' @importFrom RcppParallel RcppParallelLibs
 #' @useDynLib BGVAR, .registration=TRUE
 NULL
 

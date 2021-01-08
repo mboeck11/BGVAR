@@ -28,7 +28,6 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   draws      <- object$args$thindraws
   plag       <- object$args$plag
   xglobal    <- object$xglobal
-  x          <- xglobal[(plag+1):nrow(xglobal),]
   S_large    <- object$stacked.results$S_large
   A_large    <- object$stacked.results$A_large
   Ginv_large <- object$stacked.results$Ginv_large
@@ -38,7 +37,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   vars       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
   N          <- length(cN)
   Traw       <- nrow(xglobal)
-  bigT       <- nrow(x)
+  bigT       <- Traw-plag
   M          <- ncol(xglobal)
   cons       <- 1
   trend      <- ifelse(object$args$trend,1,0)
@@ -102,7 +101,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   imp_posterior[,,"high84"] <- apply(fcst_t,c(2,3),quantile,0.84,na.rm=TRUE)
   
   h                        <- object$args$h
-  if(h>n.ahead) h            <- n.ahead
+  if(h>n.ahead) h          <- n.ahead
   yfull                    <- object$args$yfull
   if(h>0){
     lps.stats                <- array(0,dim=c(M,2,h))

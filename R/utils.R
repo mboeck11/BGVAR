@@ -566,14 +566,8 @@
   # SV quantities
   #------------------------------------
   Sv_draw <- matrix(-3,bigT,M)
-  svdraw <- list(para=c(mu=-10,phi=.9,sigma=.2),latent=rep(-3,bigT))
-  svl <- list()
-  for (jj in 1:M) svl[[jj]] <- svdraw
   pars_var <- matrix(c(-3,.9,.2,-3),4,M,dimnames=list(c("mu","phi","sigma","latent0"),NULL))
-  
-  hv <- svdraw$latent
-  
-  eta <- list()
+  Sv_priors <- specify_priors(mu=sv_normal(mean=bmu, sd=Bmu), phi=sv_beta(a0,b0), sigma2=sv_gamma(shape=0.5,rate=1/(2*Bsigma)))
   #---------------------------------------------------------------------------------------------------------
   # SAMPLER MISCELLANEOUS
   #---------------------------------------------------------------------------------------------------------
@@ -840,22 +834,21 @@
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
     if (sv){
-      for (jj in 1:M){
-        para   <- as.list(pars_var[,jj])
+      for (mm in 1:M){
+        para   <- as.list(pars_var[,mm])
         para$nu = Inf; para$rho=0; para$beta<-0
-        svdraw <- svsample_fast_cpp(y=Em_str[,jj], draws=1, burnin=0, designmatrix=matrix(NA_real_), 
-                                    priorspec=specify_priors(), thinpara=1, thinlatent=1, keeptime="all", 
-                                    startpara=para, startlatent=Sv_draw[,jj], 
+        svdraw <- svsample_fast_cpp(y=Em_str[,mm], draws=1, burnin=0, designmatrix=matrix(NA_real_), 
+                                    priorspec=Sv_priors, thinpara=1, thinlatent=1, keeptime="all", 
+                                    startpara=para, startlatent=Sv_draw[,mm], 
                                     keeptau=FALSE, print_settings=list(quiet=TRUE, n_chains=1, chain=1), 
                                     correct_model_misspecification=FALSE, interweave=TRUE, myoffset=0, 
                                     fast_sv=get_default_fast_sv())
-        svl[[jj]] <- svdraw
-        h_ <- exp(svdraw$latent[1,])
-        para$mu      <- svdraw$para[1,"mu"]
-        para$phi     <- svdraw$para[1,"phi"]
-        para$sigma   <- svdraw$para[1,"sigma"]
-        para$latent0 <- svdraw$latent0
-        Sv_draw[,jj] <- log(h_)
+        para$mu       <- svdraw$para[1,"mu"]
+        para$phi      <- svdraw$para[1,"phi"]
+        para$sigma    <- svdraw$para[1,"sigma"]
+        para$latent0  <- svdraw$latent0[1,"h_0"]
+        pars_var[,mm] <- unlist(para[c("mu","phi","sigma","latent0")])
+        Sv_draw[,mm]  <- svdraw$latent[1,]
       }
     }else{
       for (jj in 1:M){
