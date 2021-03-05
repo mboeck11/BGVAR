@@ -2,11 +2,8 @@
 #' @export
 #' @title Estimation of Bayesian GVAR
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
-#' @usage 
-#' bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
-#'       hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
-#'       Ex=NULL, trend=FALSE, save.country.store=FALSE, applyfun=NULL, cores=NULL, 
-#'       verbose=TRUE)
+#' @usage bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
+#'       hyperpara=NULL, eigen=FALSE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 #' @param Data Either a \itemize{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
@@ -17,8 +14,13 @@
 #' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
 #' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
-#' @param h Defines the hold-out sample. Default without hold-out sample, thus set to zero.
+#' @param hold.out Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 #' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
+#' @param Ex For including truly exogenous variables to the model. Either a \itemize{
+#' \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
+#' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
+#' }
+#' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
 #' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS} or \code{NG}. \itemize{
 #' \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 #' \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
@@ -50,21 +52,19 @@
 #'       }}
 #'  }
 #' @param eigen Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).
-#' @param variable.list In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weight matrix. See the help file on \code{getweights} for details. Default is \code{NULL}.
-#' @param OE.weights Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
-#' \item{\code{weights}}{ a vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
-#' \item{\code{variables}}{ a vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
-#' \item{\code{exo}}{ a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
+#' @param expert Experting settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+#' \item{\code{variable.list}}{ In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weight matrix. Default is \code{NULL}.}
+#' \item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
+#' \item{\code{weights}}{ Vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
+#' \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
+#' \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
+#' }}
+#' \item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
+#' \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
+#' \item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
+#' \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
+#' \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
 #' }
-#' @param Wex.restr A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically. See function \code{getweights} for more details.
-#' @param Ex For including truly exogenous variables to the model. Either a \itemize{
-#' \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
-#' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
-#' }
-#' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
-#' @param save.country.store If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.
-#' @param applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.
-#' @param cores Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search Variable Selection prior labeled \code{SSVS} and the Normal-Gamma prior labeled \code{NG}. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
 #'  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
@@ -111,22 +111,22 @@
 #' # use different weight matrices
 #' variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 #' model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, draws=200, 
-#'                   burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+#'                   burnin=100,prior="MN",SV=TRUE,thin=2,expert=list(variable.list=variable.list))
 #' print(model.mn)
 #' 
 #' data(monthlyData)
 #' EA.weights$variables <- c("EAstir","total.assets","M3","ciss","y","p")
 #' OC.weights$variables <- c("poil","qoil","y")
 #' OE.weights <- list(EB=EA.weights,OC=OC.weights)
-#' hyperpara<-list(c_tau = 0.01, d_tau = 0.01,e_lambda=1.5,d_lambda=1, 
-#'                 prmean=0,a_i=0.01,b_i=0.01,a_start=.6,sample_A=FALSE)
+#' hyperpara<-list(d_lambda = 0.01, e_lambda = 0.01,e_lambda=1.5,d_lambda=1, 
+#'                 prmean=0,a_1=0.01,b_1=0.01,tau_theta=.6,sample_tau=FALSE)
 #' model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
-#'                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,OE.weights=OE.weights)
+#'                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,expert=list(OE.weights=OE.weights))
 #' print(model.ssvs)
 #' }
 #' @references 
 #' Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) Forecasting with Global Vector Autoregressive Models: A Bayesian Approach. \emph{Journal of Applied Econometrics}, Vol. 31(7), pp. 1371-1391.
-
+#'
 #' Doan, T. R., Litterman, B. R. and C. A. Sims (1984) Forecasting and Conditional Projection Using Realistic Prior Distributions. \emph{Econometric Reviews}, Vol. 3, pp. 1-100.
 #' 
 #' Dovern, J., Feldkircher, M. and F. Huber (2016) Does joint modelling of the world economy pay off? Evaluating multivariate forecasts from a Bayesian GVAR. \emph{Journal of Economic Dynamics and Control}, Vol. 70, pp. 86-100.
@@ -157,7 +157,8 @@
 #' @importFrom parallel parLapply mclapply
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
-bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin=1,hyperpara=NULL,eigen=FALSE,variable.list=NULL,OE.weights=NULL,Wex.restr=NULL,Ex=NULL,trend=FALSE,save.country.store=FALSE,applyfun=NULL,cores=NULL,verbose=TRUE){
+bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out=0,thin=1,hyperpara=NULL,
+                eigen=FALSE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
   start.bgvar <- Sys.time()
   #--------------------------------- checks  ------------------------------------------------------#
   if(!is.list(Data) & !is.matrix(Data)){
@@ -186,10 +187,27 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
   if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
     stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
   }
+  #-------------------------- expert settings -------------------------------------------------------#
+  # expert settings
+  expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
+  if(!is.null(expert)){
+    if(!(is.null(expert$cores) || is.numeric(expert$cores))){
+      stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
+    }
+    for(n in names(expert))
+      expert.list[[n]] <- expert[[n]]
+  }
+  variable.list <- expert.list$variable.list
+  OE.weights    <- expert.list$OE.weights
+  Wex.restr     <- expert.list$Wex.restr
+  use_R         <- expert.list$use_R
+  applyfun      <- expert.list$applyfun
+  cores         <- expert.list$cores
+  save.country.store <- expert.list$save.country.store
   #-------------------------- construct arglist ----------------------------------------------------#
   args <- .construct.arglist(bgvar)
   if(verbose){
-    cat("\nStart estimation of Bayesian Global Vector Autoregression.\n\n")
+    cat("Start estimation of Bayesian Global Vector Autoregression.\n\n")
     cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
     cat(paste("Lag order: ",plag,"\n",sep=""))
     cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
@@ -205,8 +223,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
     }
     cN <- unique(unlist(lapply(strsplit(colnames(Data),".",fixed=TRUE),function(l) l[1])))
     N  <- length(cN)
-    if(!all(nchar(cN)>1)){
-      stop("Please provide entity names with minimal two characters.")
+    if(!all(nchar(cN)==2)){
+      stop("Please provide entity names with exactly two characters.")
     }
     temp <- list()
     for(cc in 1:N){
@@ -224,8 +242,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
       names(Data)<-paste(c,1:length(Data),sep="")
     }
     cN <- names(Data)
-    if(!all(nchar(cN)>1)){
-      stop("Please provide entity names with minimal two characters..")
+    if(!all(nchar(cN)==2)){
+      stop("Please provide entity names with exactly two characters.")
     }
     isTS  <- unlist(lapply(Data,function(l)is.ts(l)))
     isXTS <- unlist(lapply(Data,function(l)is.xts(l)))
@@ -380,9 +398,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
-                            e_lambda=0.01,d_lambda=0.01,a_start=0.7,sample_A=FALSE,a_log=TRUE) # NG
+                            d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=FALSE,tau_log=TRUE) # NG
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
-                 "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","e_lambda","d_lambda","a_start","sample_A")
+                 "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
     if(verbose) cat("\t No hyperparameters are chosen, default setting applied.\n")
   }
@@ -393,13 +411,12 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
         next
       }
       default_hyperpara[para] <- hyperpara[para]
-      if(para=="a_start") default_hyperpara["a_log"] <- FALSE
+      if(para=="tau_theta") default_hyperpara["tau_log"] <- FALSE
     }
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }
   #------------------------------ get weights -----------------------------------------------------------------#
   xglobal <- .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)
-  
   exo.countries<-xglobal$exo.countries
   exo     <- xglobal$exo
   endo    <- xglobal$endo
@@ -407,8 +424,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,h=0,thin
   xglobal <- xglobal$bigx
   #---------------------------------hold out sample------------------------------------------------------------#
   args$yfull <- xglobal
-  xglobal    <- xglobal[1:(nrow(xglobal)-h),,drop=FALSE]
-  args$time  <- args$time[1:(length(args$time)-h)]
+  xglobal    <- xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
+  args$time  <- args$time[1:(length(args$time)-hold.out)]
   #------------------------------ prepare applyfun --------------------------------------------------------#
   if(is.null(applyfun)) {
     applyfun <- if(is.null(cores)) {
@@ -517,11 +534,13 @@ print.bgvar<-function(x, ...){
   cat("\n")
   cat("Model Info:")
   cat("\n")
-  cat(paste("Prior: ",x$args$prior,sep=""))
+  cat(paste("Prior: ",ifelse(x$args$prior=="MN","Minnesota prior (MN)",
+                             ifelse(x$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
+                                    "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Nr. of lags: ",x$args$plag,sep=""))
+  cat(paste("Number of lags: ",x$args$plag,sep=""))
   cat("\n")
-  cat(paste("Nr. of posterior draws: ",x$args$draws,"/",x$args$thin,"=",floor(x$args$draws/x$args$thin),sep=""))
+  cat(paste("Number of posterior draws: ",x$args$draws,"/",x$args$thin,"=",floor(x$args$draws/x$args$thin),sep=""))
   cat("\n")
   cat(paste("Size of GVAR object: ",format(object.size(x),units="MB"),sep=""))
   cat("\n")
@@ -585,11 +604,13 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat("Model Info:")
   cat("\n")
-  cat(paste("Prior: ",x$object$args$prior,sep=""))
+  cat(paste("Prior: ",ifelse(x$args$prior=="MN","Minnesota prior (MN)",
+                             ifelse(x$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
+                                    "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Nr. of lags: ",x$object$args$plag,sep=""))
+  cat(paste("Number of lags: ",x$object$args$plag,sep=""))
   cat("\n")
-  cat(paste("Nr. of posterior draws: ",x$object$args$draws,"/",x$object$args$thin,"=",x$object$args$draws/x$object$args$thin,sep=""))
+  cat(paste("Number of posterior draws: ",x$object$args$draws,"/",x$object$args$thin,"=",x$object$args$draws/x$object$args$thin,sep=""))
   cat("\n")
   if(x$object$args$eigen){
     cat("Number of stable posterior draws: ",length(x$object$stacked.results$F.eigen))
@@ -606,6 +627,8 @@ print.bgvar.summary <- function(x, ...){
   cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat(paste("Global Likelihood: ",round(x$logLik,2),sep=""))
+  cat("\n")
+  cat("-------------------------------------------------------------------------------")
   cat("\n")
   cat("F-test, first order serial autocorrelation of cross-country residuals")
   cat("\n")

@@ -173,7 +173,7 @@ conv.diag<-function(object, crit.val=1.96){
   geweke<-geweke.diag(mcmc.obj)
   geweke.z<-as.numeric(unlist(geweke$z)) # if z is smaller or greater than 1.96 there is evidence that the means of both distributions are different
   idx<-which(abs(geweke.z)>crit.val)
-  xx<-paste(length(idx), " out of ",K, " variables' z-values exceed the 1.96 threshold", " (", round(length(idx)/K*100,2),"%)",sep="")
+  xx<-paste(length(idx), " out of ",K, " variables' z-values exceed the 1.96 threshold", " (", round(length(idx)/K*100,2),"%).",sep="")
   return <- structure(list(geweke.z=geweke.z,perc=xx), class="bgvar.CD")
   return(return)
 }

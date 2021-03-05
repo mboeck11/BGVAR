@@ -39,7 +39,7 @@ void sample_arcoefs(arma::mat& A_out, arma::mat& H_out, arma::mat& Em_out, arma:
         rand_normal(i) = R::rnorm(0,1);
       }
       mat V_p_chol_lower;
-      bool chol_success = chol(V_p_chol_lower, V_p,"lower");
+      bool chol_success = chol(V_p_chol_lower, V_p, "lower");
       // Fall back on Rs chol if armadillo fails (it suppports pivoting)
       if(chol_success == false){
         NumericMatrix tmp = Rchol(V_p, true, false, -1);
@@ -157,7 +157,7 @@ void sample_tau(double& tau, double& lambda, arma::vec& theta, double& tuning, d
   double post_tau_prop = tau_post(proposal, lambda, theta, 1);
   double post_tau_curr = tau_post(old_value, lambda, theta, 1);
   
-  double diff = post_tau_prop - post_tau_curr;
+  double diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(old_value);
   if(diff > log(unif)){
     tau = proposal;
     accept += 1;

@@ -13,22 +13,31 @@
 
 \method{plot}{bgvar.resid}(x, ..., resp = NULL, global = TRUE)
 
-\method{plot}{bgvar.pred}(x, ..., resp = NULL, Cut = 40)
+\method{plot}{bgvar.pred}(x, ..., resp = NULL, cut = 40, quantiles = c(0.1, 0.16, 0.5, 0.84, 0.9))
 
-\method{plot}{bgvar.irf}(x, ..., resp = NULL, shock.nr = 1, cumulative = FALSE)
+\method{plot}{bgvar.irf}(
+  x,
+  ...,
+  resp = NULL,
+  shock.nr = 1,
+  quantiles = c(0.1, 0.16, 0.5, 0.84, 0.9),
+  cumulative = FALSE
+)
 
 \method{plot}{bgvar.fevd}(x, ..., resp, k.max = 10)
 }
 \arguments{
-\item{x}{either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.}
+\item{x}{Either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 
 \item{resp}{specify a variable to plot predictions.}
 
 \item{global}{if \code{TRUE} global residuals are plotted, otherwise country residuals.}
 
-\item{Cut}{length of series to be plotted before prediction begins.}
+\item{cut}{length of series to be plotted before prediction begins.}
+
+\item{quantiles}{Numeric vector with posterior quantiles. Default is set to plot median along with 68\%/80\% confidence intervals.}
 
 \item{shock.nr}{specify shock to be plotted.}
 
@@ -44,35 +53,38 @@ Plotting function for fitted values, residuals, predictions, impulse responses a
 }
 \examples{
 \dontshow{
+library(BGVAR)
 cN<-c("EA","US","UK")
 eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))}
+W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+}
 model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 \donttest{
 # example for class 'bgvar'
-plot(model.ssvs, resp="EA")
+plot(model.ssvs, resp=c("EA.y","US.Dp"))
 }
 \donttest{
 # example for class 'bgvar.resid'
 res <- residuals(model.ssvs)
-plot(res, resp="EA")
+plot(res, resp="EA.y")
 }
 \donttest{
 # example for class 'bgvar.pred'
-fcast <- predict(model.ssvs,n.ahead=8,save.store=TRUE)
-plot(fcast, resp="US.Dp", Cut=20)
+fcast <- predict(model.ssvs,n.ahead=8)
+plot(fcast, resp="y", cut=20)
 }
 \donttest{
 # example for class 'bgvar.irf'
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs,shock=shocks,n.ahead=24)
-plot(irf.chol.us.mp,resp="US.y")
+shockinfo <- get_shockinfo("chol")
+shockinfo$shock <- "US.stir"; shockinfo$scale <- +1
+irf.chol<-irf(model.ssvs, n.ahead=24, ident="chol", shockinfo=shockinfo)
+plot(irf.chol, resp="US")
 }
 \donttest{
 # example for class 'bgvar.fevd'
-fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
-plot(fevd.us.mp, resp="US.Dp", k.max=10)
+fevd.us=fevd(irf.chol,var.slct=c("US.stir"))
+plot(fevd.us, resp="US.stir", k.max=10)
 }
 }
 \author{

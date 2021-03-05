@@ -179,3 +179,178 @@ bgvar.sim <- function(len, M, N, plag=1, cons=FALSE, trend=FALSE, SV=FALSE){
   
   return(list(obs=obs,true.global=true.global,true.cc=true.cc))
 }
+
+#' @noRd
+"irfcf" <- function(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE){
+  UseMethod("irfcf", x)
+}
+
+#' @name irfcf
+#' @title Counterfactual Analysis
+#' @description Function to perform counterfactual analysis. It enables to neutralize the response of a specific variable to a given shock.
+#' @export
+#' @usage irfcf(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE)
+#' @param x an object of class \code{bgvar}.
+#' @param shockvar structural shock of interest.
+#' @param resp response variable to neutralize.
+#' @param n.ahead forecasting horizon.
+#' @param save.store If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.
+#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
+#' @return Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
+#' \item{\code{posterior}}{ is a four-dimensional array (K times K times n.ahead times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
+#' \item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
+#' \item{\code{A}}{ median posterior of global coefficient matrix.}
+#' \item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
+#' \item{\code{S}}{ posterior median of matrix with country variance-covariance matrices on the main diagonal.}
+#' }}
+#' \item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\itemize{
+#' \item{\code{xglobal}}{ used data of the model.}
+#' \item{\code{plag}}{ used lag specification of the model.}
+#' }}
+#' \item{\code{IRF_store}}{ is a four-dimensional array (K times n.ahead times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+#' }
+#' @author Maximilian Boeck, Martin Feldkircher
+#' @examples
+#' \dontrun{
+#' library(BGVAR)
+#' data(eerDatasmall)
+#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#'                       plag=1,prior="SSVS",eigen=TRUE)
+#' # very time-consuming
+#' irfcf <- irfcf(model.ssvs.eer,shockvar="US.stir",resp="US.rer",n.ahead=24)
+#' }
+#' @noRd
+#' @importFrom stats quantile
+irfcf.bgvar.irf <- function(x, shockvar, resp, n.ahead=24, save.store=FALSE, verbose=TRUE){
+  start.irf <- Sys.time()
+  if(verbose) cat("\nStart counterfactual analysis of Bayesian Global Vector Autoregression.\n\n")
+  #----------------get stuff-------------------------------------------------------#
+  plag        <- x$args$plag
+  xglobal     <- x$xglobal
+  bigK        <- ncol(xglobal)
+  A_large     <- x$stacked.results$A_large
+  F_large     <- x$stacked.results$F_large
+  S_large     <- x$stacked.results$S_large
+  Ginv_large  <- x$stacked.results$Ginv_large
+  F.eigen     <- x$stacked.results$F.eigen
+  thindraws   <- length(F.eigen)
+  varNames    <- colnames(xglobal)
+  #----------------------checks-----------------------------------------------------#
+  if(length(shockvar)!=1&&length(resp)!=1){
+    stop("Please specify only one shock and one response variable to neutralize.")
+  }
+  if(!(shockvar%in%varNames)){
+    stop("Please respecify shockvar. Variable not contained in dataset.")
+  }
+  if(!(resp%in%varNames)){
+    stop("Please respecify response variable. Variable not contained in dataset.")
+  }
+  neutR <- which(varNames%in%shockvar)
+  neutS <- which(varNames%in%resp)
+  if(verbose){
+    cat(paste("Shock of interest: ",shockvar,".\n",sep=""))
+    cat(paste("Response to neutralize: ",resp,".\n",sep=""))
+  }
+  #--------------compute-----------------------------------------------------------#
+  if(verbose) cat("Start computing...\n")
+  IRF_store     <- array(NA, dim=c(thindraws,bigK,bigK,n.ahead))
+  dimnames(IRF_store)[[2]] <- dimnames(IRF_store)[[3]] <- colnames(xglobal)
+  pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  for(irep in 1:thindraws){
+    Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
+    irf<-Phi2<- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
+                            smat=t(chol(Sigma_u)),nstep=n.ahead)
+    for(h in 1:n.ahead){
+      aux<-NULL
+      e0<-Phi2[neutR,,h]/irf[neutR,neutS,1] # shocks are vectorized, no loop here
+      for(i in 1:bigK){ # loop over varibles / responses
+        idx<-c(1:(n.ahead-h+1))
+        aux<-rbind(aux,matrix(irf[i,neutS,idx],nrow=bigK,ncol=length(idx),byrow=TRUE)*e0)
+      }
+      dim(aux)<-c(bigK,bigK,length(idx));aux<-aperm(aux,c(2,1,3))
+      Phi2[,,(h:n.ahead)]<-Phi2[,,(h:n.ahead),drop=FALSE]-aux
+    }
+    IRF_store[irep,,,] <- Phi2
+    setTxtProgressBar(pb, irep)
+  }
+  #---------------------compute posterior----------------------------------------#
+  imp_posterior <- array(NA, dim=c(bigK,bigK,n.ahead,7))
+  dimnames(imp_posterior)[[1]] <- colnames(xglobal)
+  dimnames(imp_posterior)[[2]] <- colnames(xglobal)
+  dimnames(imp_posterior)[[3]] <- 1:n.ahead
+  dimnames(imp_posterior)[[4]] <- c("low25","low16","low05","median","high75","high84","high95")
+  imp_posterior[,,,"low25"] <- apply(IRF_store,c(2,3,4),quantile,.25,na.rm=TRUE)
+  imp_posterior[,,,"low16"] <- apply(IRF_store,c(2,3,4),quantile,.16,na.rm=TRUE)
+  imp_posterior[,,,"low05"] <- apply(IRF_store,c(2,3,4),quantile,.05,na.rm=TRUE)
+  imp_posterior[,,,"median"]<- apply(IRF_store,c(2,3,4),quantile,.50,na.rm=TRUE)
+  imp_posterior[,,,"high75"]<- apply(IRF_store,c(2,3,4),quantile,.75,na.rm=TRUE)
+  imp_posterior[,,,"high84"]<- apply(IRF_store,c(2,3,4),quantile,.84,na.rm=TRUE)
+  imp_posterior[,,,"high95"]<- apply(IRF_store,c(2,3,4),quantile,.95,na.rm=TRUE)
+  # other stuff
+  A         <- apply(A_large,c(2,3),median)
+  Fmat      <- apply(F_large,c(2,3,4),median)
+  Ginv      <- apply(Ginv_large,c(2,3),median)
+  Smat      <- apply(S_large,c(2,3),median)
+  Sigma_u   <- Ginv%*%Smat%*%t(Ginv)
+  struc.obj <- list(A=A,Fmat=Fmat,Ginv=Ginv,Smat=Smat)
+  model.obj <- list(xglobal=xglobal,plag=plag)
+  #--------------------------------- prepare output----------------------------------------------------------------------#
+  out <- structure(list("posterior"   = imp_posterior,
+                        "struc.obj"   = struc.obj,
+                        "model.obj"   = model.obj), 
+                   class="bgvar.irf")
+  if(save.store){
+    out$IRF_store = IRF_store
+  }
+  if(verbose) cat(paste("\nSize of irf object: ", format(object.size(out),unit="MB")))
+  end.irf <- Sys.time()
+  diff.irf <- difftime(end.irf,start.irf,units="mins")
+  mins.irf <- round(diff.irf,0); secs.irf <- round((diff.irf-floor(diff.irf))*60,0)
+  if(verbose) cat(paste("\nNeeded time for impulse response analysis: ",mins.irf," ",ifelse(mins.irf==1,"min","mins")," ",secs.irf, " ",ifelse(secs.irf==1,"second.","seconds.\n"),sep=""))
+  return(out)
+}
+
+#' @name .impulsdtrf
+#' @noRd
+.impulsdtrf <- function(B,smat,nstep)
+{
+  
+  neq <- dim(B)[1]
+  nvar <- dim(B)[2]
+  lags <- dim(B)[3]
+  dimnB <- dimnames(B)
+  if(dim(smat)[2] != dim(B)[2]) stop("B and smat conflict on # of variables")
+  response <- array(0,dim=c(neq,nvar,nstep+lags-1));
+  response[ , , lags] <- smat
+  response <- aperm(response, c(1,3,2))
+  irhs <- 1:(lags*nvar)
+  ilhs <- lags * nvar + (1:nvar)
+  response <- matrix(response, ncol=neq)
+  B <- B[, , seq(from=lags, to=1, by=-1)]  #reverse time index to allow matrix mult instead of loop
+  B <- matrix(B,nrow=nvar)
+  for (it in 1:(nstep-1)) {
+    response[ilhs, ] <- B %*% response[irhs, ]
+    irhs <- irhs + nvar
+    ilhs <- ilhs + nvar
+  }
+  dim(response) <- c(nvar, nstep + lags - 1, nvar)
+  #drop the zero initial conditions; array in usual format
+  if(lags>1){
+    response<-response[,-(1:(lags-1)),]
+  }
+  response <- aperm(response, c(1, 3, 2))
+  dimnames(response) <- list(dimnB[[1]], dimnames(smat)[[2]], NULL)
+  ## dimnames(response)[2] <- dimnames(smat)[1]
+  ## dimnames(response)[1] <- dimnames(B)[2]
+  return(response)
+}
+
+#' @name .divisors
+#' @noRd
+.divisors <- function (n,div) {
+  div <- round(div)
+  for(dd in div:1){
+    if(n%%div==0) break else div<-div-1
+  }
+  return(div)
+}

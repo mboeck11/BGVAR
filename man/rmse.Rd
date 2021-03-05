@@ -22,7 +22,7 @@ Computes and prints root mean squared errors (RMSEs) of an object of class \code
 library(BGVAR)
 data(eerDatasmall)
 model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
-                      plag=1,prior="SSVS",eigen=TRUE,h=8)
+                      plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 rmse <- rmse(fcast)
 }

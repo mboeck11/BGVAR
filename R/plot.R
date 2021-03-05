@@ -1,23 +1,26 @@
 #' @name plot
 #' @title Graphical summary of output created with \code{bgvar}
 #' @description Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
-#' @param x either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.
-#' @param ... additional arguments.
-#' @param resp if only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
-#' @param global if \code{TRUE} global fitted values are plotted, otherwise country fitted values.
+#' @param x Either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.
+#' @param ... Additional arguments.
+#' @param resp If only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
+#' @param global If \code{TRUE} global fitted values are plotted, otherwise country fitted values.
+#' @param quantiles Numeric vector with posterior quantiles. Default is set to plot median along with 68\%/80\% confidence intervals.
 #' @return No return value.
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @export
 #' @examples
 #' \dontshow{
+#' library(BGVAR)
 #' cN<-c("EA","US","UK")
 #' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))}
+#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+#' }
 #' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' \donttest{
 #' # example for class 'bgvar'
-#' plot(model.ssvs, resp="EA")
+#' plot(model.ssvs, resp=c("EA.y","US.Dp"))
 #' }
 #' @importFrom graphics axis lines par plot abline matplot polygon segments
 #' @importFrom stats median quantile plot.ts
@@ -35,47 +38,80 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   if(trend) XX <- cbind(XX,seq(1,bigT))
   time     <- .timelabel(x$args$time)
   varNames <- dimnames(xglobal)[[2]]
-  varAll   <- varNames
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  max.vars <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  cN   <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
+  vars <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+  Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
     A_post <- apply(x$stacked.results$A_large,c(2,3),median)
     fit    <- XX%*%t(A_post)
   }else{
     fit <- YY-do.call("cbind",x$cc.results$res)
   }
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
+  if(is.null(resp)){
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
+        plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        lines(YY[,idx],col="grey40", lwd=3, lty=2)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
     }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc)varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
+  }else if(all(resp%in%cN)){
+    cidx <- which(cN%in%resp)
+    cN   <- cN[cidx]; Ki <- Ki[cidx]
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
+        plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        lines(YY[,idx],col="grey40", lwd=3, lty=2)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%vars)){
+    vidx <- which(vars%in%resp)
+    vars <- vars[vidx]; Ki <- rep(length(cN),length(vidx))
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(vv in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[vv]][1],nrc[[vv]][2]))
+      for(kk in 1:Ki[vv]){
+        idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
+        if(length(idx)==0) next
+        lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
+        plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        lines(YY[,idx],col="grey40", lwd=3, lty=2)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%varNames)){
+    ridx <- which(varNames%in%resp)
+    Ki <- length(ridx)
+    nrc <- .get_nrc(Ki)
+    par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
+    for(kk in 1:Ki){
+      idx <- ridx[kk]
       lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
-      plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varAll[idx], ylim=lims,
+      plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
               xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
               lwd=3)
       lines(YY[,idx],col="grey40", lwd=3, lty=2)
@@ -84,6 +120,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
       axis(2, cex.axis=0.6, cex.lab=2.5)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
+  }else{
+    stop("Please specify 'resp' either as one or more specific variable names in the dataset, as general variable name or as unit name, but not as a combination therof. Respecify.")
   }
   return(invisible(x))
 }
@@ -96,7 +134,7 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
 #' \donttest{
 #' # example for class 'bgvar.resid'
 #' res <- residuals(model.ssvs)
-#' plot(res, resp="EA")
+#' plot(res, resp="EA.y")
 #' }
 plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
   # reset user par settings on exit
@@ -105,127 +143,216 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
   bigT     <- nrow(x$Data)
   time     <- .timelabel(rownames(x$Data))
   varNames <- dimnames(x$Data)[[2]]
-  varAll   <- varNames
   cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  max.vars <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  Ki       <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
     res <- apply(x$global,c(2,3),median)
   }else{
     res <- apply(x$country,c(2,3),median)
   }
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
+  if(is.null(resp)){
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        lims <- c(min(res[,idx]),max(res[,idx]))
+        plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
     }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc)varAll[grepl(cc,varAll)])
-  }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
+  }else if(all(resp%in%cN)){
+    cidx <- which(cN%in%resp)
+    cN   <- cN[cidx]; Ki <- Ki[cidx]
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        lims <- c(min(res[,idx]),max(res[,idx]))
+        plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%vars)){
+    vidx <- which(vars%in%resp)
+    vars <- vars[vidx]; Ki <- rep(length(cN),length(vidx))
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(vv in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[vv]][1],nrc[[vv]][2]))
+      for(kk in 1:Ki[vv]){
+        idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
+        if(length(idx)==0) next
+        lims <- c(min(res[,idx]),max(res[,idx]))
+        plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+                xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+                lwd=3)
+        axisindex <- round(seq(1,bigT,length.out=8))
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
+        axis(2, cex.axis=0.6, cex.lab=2.5)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%varNames)){
+    ridx <- which(varNames%in%resp)
+    Ki <- length(ridx)
+    nrc <- .get_nrc(Ki)
+    par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
+    for(kk in 1:Ki){
+      idx <- ridx[kk]
       lims <- c(min(res[,idx]),max(res[,idx]))
-      plot.ts(res[,idx], type="l", xlab="", ylab="",main = varAll[idx], ylim=lims,
-              cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, lwd=3, xaxt="n", yaxt="n")
-      axisindex <- seq(1,bigT,length.out=8)
+      plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
+              xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
+              lwd=3)
+      axisindex <- round(seq(1,bigT,length.out=8))
       axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
       axis(2, cex.axis=0.6, cex.lab=2.5)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
+  }else{
+    stop("Please specify 'resp' either as one or more specific variable names in the dataset, as general variable name or as unit name, but not as a combination therof. Respecify.")
   }
   return(invisible(x))
 }
 
 #' @name plot
 #' @param resp specify a variable to plot predictions.
-#' @param Cut length of series to be plotted before prediction begins.
+#' @param cut length of series to be plotted before prediction begins.
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.pred'
-#' fcast <- predict(model.ssvs,n.ahead=8,save.store=TRUE)
-#' plot(fcast, resp="US.Dp", Cut=20)
+#' fcast <- predict(model.ssvs,n.ahead=8)
+#' plot(fcast, resp="y", cut=20)
 #' }
 #' @export
-plot.bgvar.pred<-function(x, ..., resp=NULL, Cut=40){
+plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84,.90)){
   # reset user par settings on exit
   oldpar<- par(no.readonly=TRUE)
   on.exit(par(oldpar))
   fcast <- x$fcast
   Xdata <- x$xglobal
   hstep <- x$n.ahead
+  if(!all(paste0("Q",quantiles*100)%in%dimnames(fcast)[[3]])){
+    stop("Please provide available quantiles.")
+  }
   thin<-nrow(Xdata)-hstep
-  if(thin>Cut){
-    Xdata<-Xdata[(nrow(Xdata)-Cut+1):nrow(Xdata),]
+  if(thin>cut){
+    Xdata<-Xdata[(nrow(Xdata)-cut+1):nrow(Xdata),]
   }
   varNames  <- colnames(Xdata)
-  varAll    <- varNames
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar.predict' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar.predict' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc) varAll[grepl(cc,varAll)])
+  Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  Q         <- length(quantiles)
+  if((Q %% 2) == 0){
+    stop("Please provide odd numbers of quantiles: median along with intervals.")
   }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      x <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low25","median","high75")])
-      y <- rbind(cbind(NA,Xdata[,idx],NA),fcast[idx,,c("low16","median","high84")])
-      b <- range(x,y, na.rm=TRUE)
-      b1<-b[1];b2<-rev(b)[1]
-      matplot(x,type="l",col=c("black","black","black"),xaxt="n",lwd=4,ylab="",main=varAll[idx],yaxt="n",
-              cex.main=bgvar.env$plot$cex.main,cex.axis=bgvar.env$plot$cex.axis,
-              cex.lab=bgvar.env$plot$cex.lab,lty=c(0,1,0),ylim=c(b1,b2))
-      polygon(c(1:nrow(y),rev(1:nrow(y))),c(y[,1],rev(y[,3])),col=bgvar.env$plot$col.75,border=NA)
-      polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,1],rev(x[,3])),col=bgvar.env$plot$col.68,border=NA)
-      lines(c(rep(NA,Cut),x[seq(Cut+1,Cut+hstep),2]),col=bgvar.env$plot$col.50,lwd=4)
-      
+  if(is.null(resp)){
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
+        axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
+        axisindex <- round(seq(1,length(axisnames),length.out=8))
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
+        axis(side=2, cex.axis=0.6)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%cN)){
+    cidx <- which(cN%in%resp)
+    cN   <- cN[cidx]; Ki <- Ki[cidx]
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
+        axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
+        axisindex <- round(seq(1,length(axisnames),length.out=8))
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
+        axis(side=2, cex.axis=0.6)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%vars)){
+    vidx <- which(vars%in%resp)
+    vars <- vars[vidx]; Ki <- rep(length(cN),length(vidx))
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(vv in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[vv]][1],nrc[[vv]][2]))
+      for(kk in 1:Ki[vv]){
+        idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
+        if(length(idx)==0) next
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
+        axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
+        axisindex <- round(seq(1,length(axisnames),length.out=8))
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
+        axis(side=2, cex.axis=0.6)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%varNames)){
+    ridx <- which(varNames%in%resp)
+    Ki <- length(ridx)
+    nrc <- .get_nrc(Ki)
+    par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
+    for(kk in 1:Ki){
+      idx <- ridx[kk]
+      x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+      b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
+      plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+              lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+              cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+      for(qq in 1:floor(Q/2)){
+        polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+      }
+      lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
       axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
-      axisindex <- c(round(seq(1,Cut,length.out=8)),seq(Cut+1,Cut+hstep))
+      axisindex <- round(seq(1,length(axisnames),length.out=8))
       axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
       axis(side=2, cex.axis=0.6)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
+  }else{
+    stop("Please specify 'resp' either as one or more specific variable names in the dataset, as general variable name or as unit name, but not as a combination therof. Respecify.")
   }
   return(invisible(x))
 }
@@ -237,68 +364,130 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, Cut=40){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.irf'
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs,shock=shocks,n.ahead=24)
-#' plot(irf.chol.us.mp,resp="US.y")
+#' shockinfo <- get_shockinfo("chol")
+#' shockinfo$shock <- "US.stir"; shockinfo$scale <- +1
+#' irf.chol<-irf(model.ssvs, n.ahead=24, ident="chol", shockinfo=shockinfo)
+#' plot(irf.chol, resp="US")
 #' }
 #' @export
-plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, cumulative=FALSE){
+plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.84,.90), cumulative=FALSE){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  if(length(shock.nr)!=1){stop("Please select only one shock.")}
+  if(length(shock.nr)!=1){
+    stop("Please select only one shock.")
+  }
   posterior <- x$posterior
+  if(!all(paste0("Q",quantiles*100)%in%dimnames(posterior)[[4]])){
+    stop("Please provide available quantiles.")
+  }
   varNames  <- dimnames(posterior)[[1]]
-  varAll    <- varNames
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  
-  if(!is.null(resp)){
-    resp.p <- strsplit(resp,".",fixed=TRUE)
-    resp.c <- sapply(resp.p,function(x) x[1])
-    resp.v <- sapply(resp.p,function(x) x[2])
-    if(!all(unique(resp.c)%in%cN)){
-      stop("Please provide country names corresponding to the ones of the 'bgvar.irf' object.")
-    }
-    cN       <- cN[cN%in%resp.c]
-    varNames <- lapply(cN,function(x)varNames[grepl(x,varNames)])
-    if(all(!is.na(resp.v))){
-      if(!all(unlist(lapply(resp,function(r)r%in%varAll)))){
-        stop("Please provide correct variable names corresponding to the ones in the 'bgvar' object.")
-      }
-      varNames <- lapply(varNames,function(l)l[l%in%resp])
-    }
-    max.vars <- unlist(lapply(varNames,length))
-  }else{
-    varNames <- lapply(cN,function(cc) varAll[grepl(cc,varAll)])
+  Ki        <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  Q         <- length(quantiles)
+  if((Q %% 2) == 0){
+    stop("Please provide odd numbers of quantiles: median along with intervals.")
   }
-  for(cc in 1:length(cN)){
-    rows <- max.vars[cc]/2
-    if(rows<1) cols <- 1 else cols <- 2
-    if(rows%%1!=0) rows <- ceiling(rows)
-    if(rows%%1!=0) rows <- ceiling(rows)
-    # update par settings
-    par(mar=bgvar.env$mar,mfrow=c(rows,cols))
-    for(kk in 1:max.vars[cc]){
-      idx  <- grep(cN[cc],varAll)
-      idx <- idx[varAll[idx]%in%varNames[[cc]]][kk]
-      x<-posterior[idx,,shock.nr,c("low25","median","high75"),drop=TRUE] # first dimension is nr. of variables to be plotted
-      y<-posterior[idx,,shock.nr,c("low16","median","high84"),drop=TRUE] # first dimension is nr. of variables to be plotted
+  if(is.null(resp)){
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        b <- range(x);b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
+        segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axisindex<-seq(1,nrow(x),length.out=8)
+        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%cN)){
+    cidx <- which(cN%in%resp)
+    cN   <- cN[cidx]; Ki <- Ki[cidx]
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(cc in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      for(kk in 1:Ki[cc]){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        b <- range(x);b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
+        segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axisindex<-seq(1,nrow(x),length.out=8)
+        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%vars)){
+    vidx <- which(vars%in%resp)
+    vars <- vars[vidx]; Ki <- rep(length(cN),length(vidx))
+    nrc  <- lapply(Ki,function(k).get_nrc(k))
+    for(vv in 1:length(nrc)){
+      par(mar=bgvar.env$mar,mfrow=c(nrc[[vv]][1],nrc[[vv]][2]))
+      for(kk in 1:Ki[vv]){
+        idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
+        if(length(idx)==0) next
+        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        b <- range(x);b1<-b[1];b2<-rev(b)[1]
+        plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+        for(qq in 1:floor(Q/2)){
+          polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+        }
+        lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
+        segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axisindex<-seq(1,nrow(x),length.out=8)
+        axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
+        abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
+      }
+    }
+  }else if(all(resp%in%varNames)){
+    ridx <- which(varNames%in%resp)
+    Ki <- length(ridx)
+    nrc <- .get_nrc(Ki)
+    par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
+    for(kk in 1:Ki){
+      idx <- ridx[kk]
+      x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
       if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
-      b <- range(x,y)
-      b1<-b[1];b2<-rev(b)[1]
-      matplot(x,type="l",col=c("black",bgvar.env$plot$col.50,"black"),yaxt="n",xaxt="n",
-              lwd=bgvar.env$plot$lwd.line,ylab="",main=varAll[idx],cex.main=bgvar.env$plot$cex.main,
-              cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,lty=c(0,1,0),ylim=c(b1,b2))
-      polygon(c(1:nrow(y),rev(1:nrow(y))),c(y[,1],rev(y[,3])),col=bgvar.env$plot$col.75,border=NA)
-      polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,1],rev(x[,3])),col=bgvar.env$plot$col.68,border=NA)
+      b <- range(x);b1<-b[1];b2<-rev(b)[1]
+      plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
+              lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+              cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
+      for(qq in 1:floor(Q/2)){
+        polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
+      }
+      lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
       segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-      lines(x[,2],col=bgvar.env$plot$col.50,lwd=4)
       axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
-      axisindex<-seq(1,nrow(x),by=4)
+      axisindex<-seq(1,nrow(x),length.out=8)
       axis(side=1, las=1,at=axisindex, labels=c(0:nrow(x))[axisindex], cex.axis=1.6,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
+  }else{
+    stop("Please specify 'resp' either as one or more specific variable names in the dataset, as general variable name or as unit name, but not as a combination therof. Respecify.")
   }
   return(invisible(x))
 }
@@ -308,8 +497,8 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, cumulative=FALSE){
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.fevd'
-#' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
-#' plot(fevd.us.mp, resp="US.Dp", k.max=10)
+#' fevd.us=fevd(irf.chol,var.slct=c("US.stir"))
+#' plot(fevd.us, resp="US.stir", k.max=10)
 #' }
 #' @export
 plot.bgvar.fevd<-function(x, ..., resp, k.max=10){

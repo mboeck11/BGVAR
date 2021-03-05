@@ -5,12 +5,12 @@
 \alias{fevd.bgvar.irf}
 \title{Forecast Error Variance Decomposition}
 \usage{
-fevd(x, R=NULL, var.slct=NULL, verbose=TRUE)
+fevd(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 }
 \arguments{
 \item{x}{an object of class \code{bgvar.irf}.}
 
-\item{R}{If \code{NULL} and the \code{x} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
+\item{rotation.matrix}{If \code{NULL} and the \code{x} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
 
 \item{var.slct}{character vector that contains the variables for which forecast error variance decomposition should be performed. If \code{NULL} the FEVD is computed for the whole system, which is very time consuming.}
 
@@ -32,34 +32,30 @@ Since the calculations are very time consuming, the FEVDs are based on the poste
 \dontshow{
 library(BGVAR)
 data(eerDatasmall)
-model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=50,burnin=50,plag=1,
-                      prior="SSVS",thin=1,eigen=TRUE)
+model.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=50,burnin=50,plag=1,
+                 eigen=TRUE)
                       
 # US monetary policy shock
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
+shockinfo <- get_shockinfo("chol")
+shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
 
 # US monetary policy shock with sign restrictions
-sign.constr<-list()
-sign.constr$shock1$shock             <- c("US.stir")
-sign.constr$shock1$restrictions$res1 <- c("US.y")
-sign.constr$shock1$restrictions$res2 <- c("US.Dp")
-sign.constr$shock1$sign              <- c(">","<","<")
-sign.constr$shock1$rest.horz         <- c(1,1,1)
-sign.constr$shock1$constr            <- c(1,1,1)
-sign.constr$shock1$scal              <- +100 
-sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
+shockinfo <- get_shockinfo("sign")
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir", 
+                           restriction=c("US.y","US.Dp"), 
+                           sign=c("<","<"), horizon=c(1,1), 1, 100)
+irf.sign.us.mp<-irf(model.eer,n.ahead=24,ident="sign",shockinfo=shockinfo)
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
 }
 }
 \seealso{
-\code{\link{irf}}
+\code{\link{bgvar}}, \code{\link{irf}}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

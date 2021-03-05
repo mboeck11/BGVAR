@@ -5,240 +5,107 @@
 \alias{irf.bgvar}
 \title{Impulse Response Function}
 \usage{
-irf(x, n.ahead=24, shock=NULL, sign.constr=NULL, save.store=FALSE, 
-           applyfun=NULL, cores=NULL, verbose=TRUE)
+irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL, 
+    expert=NULL, verbose=TRUE)
 }
 \arguments{
 \item{x}{an object of class \code{bgvar}.}
 
 \item{n.ahead}{forecasting horizon.}
 
-\item{shock}{This is a list object. It should contain an entry labeled \code{var} that contains the name of the variable to be shocked. Also it should contain a list entry labeled \code{cN} that contains a character (or character vector) of the country (countries) in which the variable should be shocked. Finally it has to contain an entry labeled \code{ident} that is either \code{chol} if the shock is based on a short-run identification scheme done with the Cholesky decomposition or \code{girf} if generalized impulse responses should be calculated. In case impulses should be normalized (e.g., a +100bp increase in the interest rate), add another entry \code{scal} that contains a numeric value of the desired impact normalization.}
+\item{ident}{Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.}
 
-\item{sign.constr}{the user should submit a list containing the following entries \itemize{
-\item{\code{shock1}}{ is a list object that defines sign restrictions for a particular shock. \itemize{
-\item{\code{shockvar}}{ is a character vector containing the country and variable to shock separated by a dot. Example, "AT.ltir" (long-term interest rates in Austria).}
-\item{\code{restrictions}}{ is a list containing the variables to restrict. Can have several sub-list restrictions, e.g., \code{sign.constr$shock1$restricionts$rest1=c("DE.y","AT.y")}, \code{sign.constr$shock1$restricionts$rest2=c("NL.p","AT.p")}, putting restrictions on GDP in Germany and Austria and a second set of restrictions on prices in the Netherlands and Austria.}
-\item{\code{sign}}{ is a character vector of length of set of restrictions + 1, specifying the signs to impose. Use either \code{>}, \code{<} or \code{0}. The latter implements zero restrictions according to Arias et al. (2019). First entry is for the shock, say \code{AT.ltir} should go up, the following entries refer to the restrictions. \code{sign.constr$shock1$sign=c(">", "<", "<")} would impose \code{AT.ltir} to increase, and variables specified in \code{sign.constr$shock1$restricionts$rest1} and \code{sign.constr$shock1$restricionts$rest2} to decrease.}
-\item{\code{rest.horz}}{ is a vector with same length as slot \code{sign} above and specifies the length of periods the restrictions are imposed. If \code{rest.horz} is 1, only impact restrictions are considered.}
-\item{\code{constr}}{ is a vector with same length as slot \code{sign} above with elements lying between \code{0} and \code{1}. It specifies the percentage of countries for which cross-country restrictions have to hold. If no cross-country restrictions are supplied, set all elements of \code{constr} to 1.}
-\item{\code{scal}}{ optional numeric in case impact normalization is desired.}}
-#' \item{\code{MaxTries}}{ Optional numeric corresponding to the maximum tries to search for a rotation matrix that fulfills the user-specified restrictions. Default is set to 7500. After \code{MaxTries} unsuccessful tries the algorithm sets the impulse response for that specific posterior draw to \code{NA}.}
-\item{\code{shock2}}{ define a second list with the same arguments as \code{shock1} to identify a second shock. Can be used iteratively to identify multiple shocks.}}}}
+\item{shockinfo}{Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be differently specified. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.}
 
-\item{save.store}{If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.}
+\item{quantiles}{Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.}
 
-\item{applyfun}{Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
-
-\item{cores}{Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.}
+\item{expert}{Experting settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+\item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times.}
+\item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both impulses responses and rotation matrices are returned. Default is set to \code{FALSE} in order to save storage.}
+\item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
+\item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
+\item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
+}}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
-\item{\code{posterior}}{ is a four-dimensional array (K times n.ahead times nr. of shocks times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
-\item{\code{rot.nr}}{ in case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
-\item{\code{shock}}{ in case identification is based on Cholesky decomposition (i.e. \code{ident="chol"}), this gives back the details of the identification specification.}
-\item{\code{sign.constr}}{ in case identification is based on sign restrictions (i.e. \code{ident="sign"}), this gives back the set of sign restrictions specified by the user.}
-\item{\code{ident}}{ character giving back the chosen identification scheme.}
-\item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
-\item{\code{A}}{ median posterior of global coefficient matrix.}
-\item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
-\item{\code{S}}{ posterior median of matrix with country variance-covariance matrices on the main diagonal.}
-\item{\code{Rmed}}{ posterior rotation matrix if \code{ident="sign"}.}
+\item{\code{posterior}}{ Four-dimensional array (K times n.ahead times number of shocks times Q) that contains Q quantiles of the posterior distribution of the impulse response functions.}
+\item{\code{ident}}{ Character showing the chosen identification scheme.}
+\item{\code{shockinfo}}{ Dataframe with details on identification specification.}
+\item{\code{rot.nr}}{ In case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
+\item{\code{struc.obj}}{ List object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
+\item{\code{A}}{ Median posterior of global coefficient matrix.}
+\item{\code{Ginv}}{ Median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
+\item{\code{S}}{ Posterior median of matrix with country variance-covariance matrices on the main diagonal.}
+\item{\code{Rmed}}{ Posterior rotation matrix if \code{ident="sign"}.}
 }}
-\item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\itemize{
-\item{\code{xglobal}}{ used data of the model.}
-\item{\code{plag}}{ used lag specification of the model.}
+\item{\code{model.obj}}{ List object that contains model-specific information, in particular\itemize{
+\item{\code{xglobal}}{ Data of the model.}
+\item{\code{plag}}{ Lag specification of the model.}
 }}
-\item{\code{IRF_store}}{ is a four-dimensional array (K times n.ahead times nr. of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.irf.store=TRUE}.}
+\item{\code{IRF_store}}{ Four-dimensional array (K times n.ahead times number of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.store=TRUE}.}
+\item{\code{R_store}}{ Three-dimensional array (K times K times draws) which stores all rotation matrices. Exists only if \code{save.store=TRUE}.}
 }
 }
 \description{
 This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in Pesaran and Shin (1998), orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 }
 \examples{
-oldpar <- par(no.readonly =TRUE)
+oldpar <- par(no.readonly = TRUE)
 # First example, a US monetary policy shock, quarterly data
 library(BGVAR)
 data(eerDatasmall)
-model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
-                      plag=1,prior="SSVS",eigen=TRUE)
 # US monetary policy shock
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-# plots an impulse response function
-plot(irf.chol.us.mp,resp="US")
+model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
+                 plag=1, prior="SSVS", eigen=TRUE)
 
-# Second example, using sign restrictions
-sign.constr<-list()
-sign.constr$shock1$shock<-c("US.stir") 
-sign.constr$shock1$restrictions$res1<-c("US.y")
-sign.constr$shock1$restrictions$res2<-c("US.Dp")
-sign.constr$shock1$sign<-c(">","<","<")
-sign.constr$shock1$rest.horz<-c(1,1,1)
-sign.constr$shock1$constr<-c(1,1,1)
-sign.constr$shock1$scal=+100 
-sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
-plot(irf.sign.us.mp, resp="US")
+# generalized impulse responses
+irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf")
+
+# cholesky identification
+shockinfo <- get_shockinfo("chol")
+shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
+
+# sign restrictions
+shockinfo <- get_shockinfo("sign")
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
+sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
+irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+
+# sign restrictions with relaxed cross-country restrictions
+shockinfo <- get_shockinfo("sign")
+# restriction for other countries holds to 75\\%
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"), 
+                           sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
+                           sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
 \donttest{
-# calculates generalized impulse response functions for the same shock as above
-shocks$ident="girf"
-irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-plot(irf.girf.ssvs,resp="US.y")
-# Shock to first ordered variable yields same responses of Cholesky and GIRF
-shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal<--100
-irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-shocks$ident<-"girf"
-irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-matplot(cbind(irf.chol$posterior["US.y",,1,"median"],
-              irf.girf$posterior["US.y",,1,"median"]),
-        type="l",ylab="")
-matplot(cbind(irf.chol$posterior["US.Dp",,1,"median"],
-              irf.girf$posterior["US.Dp",,1,"median"]),
-        type="l",ylab="")
-matplot(cbind(irf.chol$posterior["EA.y",,1,"median"],
-              irf.girf$posterior["EA.y",,1,"median"]),
-        type="l",ylab="")
-
-sign.constr<-list()
-# the variable to shock, can be imposed for more than one country
-sign.constr$shock1$shock<-c("US.stir") 
-# but should be the same variable for all of them 
-sign.constr$shock1$restrictions$res1<-c("US.y")
-sign.constr$shock1$restrictions$res2<-c("US.Dp")
-# first entry is for the shock, following entries for the restrictions 
-# (ltir should go up, y and p go down)
-sign.constr$shock1$sign<-c(">","<","<")
-# nr. of time periods restrictions are imposed, first entry is for the shock, 
-# following entries for the restrictions 
-sign.constr$shock1$rest.horz<-c(1,1,1) 
-# are constraints binding for all (1) countries specified for 
-# at least 50\\% of the countries (0.5), or 75\\% (0.75)
-sign.constr$shock1$constr<-c(1,1,1) 
-# a minus 100 bp shock to long-term interest rates (on average)
-sign.constr$shock1$scal=+100 
-sign.constr$MaxTries<-200
-irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
-plot(irf.sign.us.mp,resp=c("US"))
-
-# second example, cross-country restrictions, multiple shocks and ECB country model
-data(monthlyData);monthlyData$OC<-NULL
-OE.weights <- list(EB=EA.weights)
-model.ssvs<-bgvar(Data=monthlyData,W=W,draws=100,burnin=100,plag=1,prior="SSVS",
-                  thin=1,eigen=TRUE,OE.weights=OE.weights)
-EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", "IE", "IT", "NL", "PT","GR","SK")
-# A simultaneous Cholesky shock to long-term interest rates in the euro area countries, 
-# scaled to amount to -100 basis points (on average over the EA countries).
-# Note that the ordering of the variables influences the response, the ordering is exactly as 
-# in the country models, to use a different order you have re-estimate the model (by bgvar)
-shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=48)
-plot(irf.chol.ssvs,resp=c("AT"))
-# imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
-sign.constr<-list()
-# the variable to shock, can be imposed for more than one country
-sign.constr$shock1$shock<-c(paste(EA_countries[-c(3,12)],".ltir",sep="")) 
-# but should be the same variable for all of them
-# restrictions (industrial production should decrease for selected countries)
-sign.constr$shock1$restrictions$res1<-paste(EA_countries,".y",sep="")
-# another set of restrictions (inflation  should decrease for selected countries) 
-sign.constr$shock1$restrictions$res2<-paste(EA_countries,".p",sep="")
-# first entry is for the shock, following entries for the restrictions 
-# (ltir should go up, y and p go down) 
-sign.constr$shock1$sign<-c(">","<","<") 
-# nr. of time periods restrictions are imposed, first entry is for the shock, 
-# following entries for the restrictions
-sign.constr$shock1$rest.horz<-c(1,1,1) 
-# are constraints binding for all (1) countries specified or for 
-# at least 50\\% of the countries (0.5), or 75\\% (0.75)
-sign.constr$shock1$constr<-c(1,0.5,0.5) 
-# a minus 100 bp shock to long-term interest rates (on average)
-sign.constr$shock1$scal=-100 
-sign.constr$MaxTries<-200
-irf.sign.ssvs<-irf(model.ssvs,n.ahead=48,sign.constr=sign.constr)
-plot(irf.sign.ssvs,resp=c("AT"))
- 
-# Same example but using a local (German) shock and cross-country restrictions.
-# Note that the ordering of the variables influences the response, 
-# the ordering is exactly as in the country models, to use a different order you have re-estimate
-# the model (by bgvar)
-shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
- 
-# imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
-sign.constr<-list()
-sign.constr$shock1$shock<-c("DE.ltir") # the variable to shock, 
-# can be imposed for more than one country
-#but should be the same variable for all of them
-# restrictions (industrial production should decrease for selected countries)
-sign.constr$shock1$restrictions$res1<-paste(EA_countries,".y",sep="") 
-# another set of restrictions (inflation  should decrease for selected countries)
-sign.constr$shock1$restrictions$res2<-paste(EA_countries,".p",sep="")
-# first entry is for the shock, following entries for the restrictions 
-# (ltir should go up, y and p go down)
-sign.constr$shock1$sign<-c(">","<","<") 
-# nr. of time periods restrictions are imposed, 
-# first entry is for the shock, following entries for the restrictions
-sign.constr$shock1$rest.horz<-c(2,2,1) 
-# are constraints binding for all (1) countries specified or for 
-# at least 50\\% of the countries (0.5), or 75\\% (0.75)
-sign.constr$shock1$constr<-c(1,0.5,0.5) 
-# a minus 100 bp shock to long-term interest rates (on average)
-sign.constr$shock1$scal=-100
-sign.constr$MaxTries<-200
-irf.sign.ssvs<-irf(model.ssvs,n.ahead=24,sign.constr=sign.constr)
- 
 # Example with zero restriction (Arias et al., 2018) and 
 # rationality conditions (D'Amico and King, 2017).
 data("eerDataspf")
-model.ssvs.eer<-bgvar(Data=eerDataspf,W=W.trade0012.spf,draws=300,burnin=300,
-                      plag=1,prior="SSVS",thin=1,eigen=TRUE)
-sign.constr<-list()
-sign.constr$shock1$shock<-"US.stir_t+4"
-sign.constr$shock1$restrictions$res1<-"US.Dp_t+4"
-sign.constr$shock1$restrictions$res2<-"US.stir"
-sign.constr$shock1$restrictions$res3<-"US.y_t+4"
-# rationality condition: US.stir_t+4 on impact is equal to average of
-# IRF of US.stir between horizon 1 and 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res4<-"US.stir_t+4"
-# rationality condition: US.Dp_t+4 on impact is equal to H-step ahead IRF of US.Dp in 
-# horizon 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res5<-"US.Dp_t+4"
-# rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF of US.y in 
-# horizon 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res6<-"US.y_t+4"
-sign.constr$shock1$sign<-c(">","<","0","<","ratio.avg","ratio.H","ratio.H")
-sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
-sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
-sign.constr$shock1$scal=0.1
-sign.constr$MaxTries<-100
-irf.sign<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr)
-par(mfrow=c(4,1),mar=c(5.1,4.1,4.1,2.1))
-# rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
-# US.stir between horizon 1 and 4
-matplot(cbind(irf.sign$posterior["US.stir_t+4",,1,"median"],
-              irf.sign$posterior["US.stir",,1,"median"]),
-        type="l",ylab="",main="stir")
-abline(h=mean(irf.sign$posterior["US.stir",2:5,1,"median"]))
-abline(v=c(1,5),lty=3,col="grey")
-# rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF of US.y in horizon 4
-matplot(cbind(irf.sign$posterior["US.y_t+4",,1,"median"],
-              irf.sign$posterior["US.y",,1,"median"]),
-        type="l",ylab="",main="y")
-abline(h=irf.sign$posterior["US.y_t+4",1,1,"median"])
-abline(v=5,lty=3,col="grey")
-# rationality condition: US.Dp_t+4 on impact is equal to H-step ahead IRF of US.Dp in horizon 4
-matplot(cbind(irf.sign$posterior["US.Dp_t+4",,1,"median"],
-              irf.sign$posterior["US.Dp",,1,"median"]),
-        type="l",ylab="",main="Dp")
-abline(h=irf.sign$posterior["US.Dp_t+4",1,1,"median"])
-abline(v=5,lty=3,col="grey")
-par(mar=rep(0,4))
-plot("1",type="n",axes=FALSE)
-legend("center",c("expectation","actual"),lty=1:2,col=c("black","red"),bty="n",ncol=2)
-par(oldpar)
+model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
+                 plag=1, prior="SSVS", eigen=TRUE)
+shockinfo <- get_shockinfo("sign")
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", 
+                           restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
+                           sign=c("<","0","<"), horizon=1, prob=1, scale=1)
+# rationality condition: US.stir_t+4 on impact is equal to average of 
+# IRF of US.stir between horizon 1 to 4
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
+                           sign="ratio.avg", horizon=5, prob=1, scale=1)
+# rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
+                           sign="ratio.H", horizon=5, prob=1, scale=1)
+# rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
+                           sign="ratio.H", horizon=5, prob=1, scale=1)
+# regulate maximum number of tries with expert settings
+irf.ratio <- irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo,
+                 expert=list(MaxTries=10))
 }
 }
 \references{
@@ -247,6 +114,9 @@ Arias, J.E., Rubio-Ramirez, J.F, and D.F. Waggoner (2018) \emph{Inference Based 
 D'Amico, S. and T. B. King (2017) \emph{What Does Anticipated Monetary Policy Do?} Federal Reserve Bank of Chicago Working paper series, Nr. 2015-10.
 
 Pesaran, H.M. and Y. Shin (1998) \emph{Generalized impulse response analysis in linear multivariate models.} Economics Letters, Volume 58, Issue 1, p. 17-29.
+}
+\seealso{
+\code{\link{bgvar}}, \code{\link{get_shockinfo}}, \code{\link{add_shockinfo}}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

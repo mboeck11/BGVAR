@@ -1,13 +1,17 @@
 #' @name predict
 #' @title Predictions
-#' @description A function that computes predictions based on a object of class \code{bgvar}.
+#' @description A function that computes predictions and conditional predictions based on a object of class \code{bgvar}.
+#' @details Predictions are performed up to an horizon of \code{n.ahead}. Note that conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
 #' @param object an object of class \code{bgvar}.
 #' @param ... additional arguments.
 #' @param n.ahead the forecast horizon.
+#' @param constr a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.
+#' @param constr_sd a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.
+#' @param quantiles Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.
 #' @param save.store If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns an object of class \code{bgvar.pred} with the following elements \itemize{
-#' \item{\code{fcast}}{ is a K times n.ahead times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the posterior predictive distribution.}
+#' \item{\code{fcast}}{ is a K times n.ahead times Q-dimensional array that contains  Q quantiles of the posterior predictive distribution.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 #' \item{\code{n.ahead}}{ specified forecast horizon.}
 #' \item{\code{lps.stats}}{ is an array object of dimension K times 2 times n.ahead and contains the mean and standard deviation of the log-predictive scores for each variable and each forecast horizon.}
@@ -19,16 +23,40 @@
 #' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' fcast <- predict(model.ssvs, n.ahead=8)
+#' 
+#' # conditional predictions
+#' # et up constraints matrix of dimension n.ahead times K
+#' constr <- matrix(NA,nrow=8,ncol=ncol(model.ssvs$xglobal))
+#' colnames(constr) <- colnames(model.ssvs$xglobal)
+#' constr[1:5,"US.Dp"] <- model.ssvs$xglobal[76,"US.Dp"]
+#' 
+#' # add uncertainty to conditional forecasts
+#' constr_sd <- matrix(NA,nrow=8,ncol=ncol(model.ssvs$xglobal))
+#' colnames(constr_sd) <- colnames(model.ssvs$xglobal)
+#' constr_sd[1:5,"US.Dp"] <- 0.001
+#' 
+#' fcast_cond <- predict(model.ssvs, n.ahead=8, constr=constr, constr_sd=constr_sd)
+#' @references 
+#' Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
+#' 
+#' Waggoner, D., F. and T. Zha (1999) \emph{Conditional Forecasts in Dynamic Multivariate Models.} Review of Economics and Statistics, Vol. 81(4), pp. 639-561.
 #' @importFrom stats rnorm tsp sd
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @export
-predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE){
+predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, quantiles=NULL, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
-  if(verbose) cat("\nStart computing predictions of Bayesian Global Vector Autoregression.\n\n")
-  draws      <- object$args$thindraws
+  if(is.null(quantiles)){
+    quantiles <- c(.05,.10,.16,.50,.84,.90,.95)
+  }
+  if(!is.numeric(quantiles)){
+    stop("Please provide 'quantiles' as numeric vector.")
+  }
+  if(verbose) cat("Start computing predictions of Bayesian Global Vector Autoregression.\n\n")
+  thindraws  <- object$args$thindraws
   plag       <- object$args$plag
   xglobal    <- object$xglobal
   S_large    <- object$stacked.results$S_large
+  F_large    <- object$stacked.results$F_large
   A_large    <- object$stacked.results$A_large
   Ginv_large <- object$stacked.results$Ginv_large
   F.eigen    <- object$stacked.results$F.eigen
@@ -38,12 +66,29 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   N          <- length(cN)
   Traw       <- nrow(xglobal)
   bigT       <- Traw-plag
-  M          <- ncol(xglobal)
+  bigK       <- ncol(xglobal)
   cons       <- 1
   trend      <- ifelse(object$args$trend,1,0)
-  
-  varndxv <- c(M,cons+trend,plag)
-  nkk     <- (plag*M)+cons+trend
+  Q          <- length(quantiles)
+  flag_cond  <- FALSE
+  #---------------------check conditional predictions--------------------------------#
+  if(!is.null(constr)){
+    if(!all(dim(constr)==c(n.ahead,bigK))){
+      stop("Please respecify dimensions of 'constr'.")
+    }
+    if(!is.null(constr_sd)){
+      if(!all(dim(constr_sd)==c(n.ahead,bigK))){
+        stop("Please respecify dimensions of 'constr_sd'.")
+      }
+      constr_sd[is.na(constr_sd)] <- 0
+    }else{
+      constr_sd <- matrix(0,n.ahead,bigK)
+    }
+    flag_cond <- TRUE
+  }
+  #---------------------------------------------------------------------------------#
+  varndxv <- c(bigK,cons+trend,plag)
+  nkk     <- (plag*bigK)+cons+trend
   
   Yn <- xglobal
   Xn <- cbind(.mlag(Yn,plag),1)
@@ -51,12 +96,10 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   Yn <- Yn[(plag+1):Traw,,drop=FALSE]
   if(trend) Xn <- cbind(Xn,seq(1,bigT))
   
-  fcst_t <- array(NA,dim=c(draws,M,n.ahead))
-  
+  pred_store <- array(NA,dim=c(thindraws,bigK,n.ahead))
   # start loop here
-  if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = draws, style = 3)
-  for(irep in 1:draws){
+  if(verbose) cat("Start computing predictions...\n")
+  for(irep in 1:thindraws){
     #Step I: Construct a global VC matrix Omega_t
     Ginv    <- Ginv_large[irep,,]
     Sig_t   <- Ginv%*%(S_large[irep,,])%*%t(Ginv)
@@ -73,58 +116,102 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
     Jm    <- aux$Jm
     Jsigt <- Jm%*%Sig_t%*%t(Jm)
     # this is the forecast loop
-    for (ih in 1:n.ahead){
+    for(ih in 1:n.ahead){
       z1      <- Mm%*%z1
       Sigma00 <- Mm%*%Sigma00%*%t(Mm) + Jsigt
-      chol_varyt <- try(t(chol(Sigma00[1:M,1:M])),silent=TRUE)
+      chol_varyt <- try(t(chol(Sigma00[1:bigK,1:bigK])),silent=TRUE)
       if(is(chol_varyt,"try-error")){
-        yf <- mvrnorm(1,mu=z1[1:M],Sigma00[1:M,1:M])
+        yf <- mvrnorm(1,mu=z1[1:bigK],Sigma00[1:bigK,1:bigK])
       }else{
-        yf <- z1[1:M]+chol_varyt%*%rnorm(M,0,1)
+        yf <- z1[1:bigK]+chol_varyt%*%rnorm(bigK,0,1)
       }
       y2 <- cbind(y2,yf)
     }
-    
-    fcst_t[irep,,] <- y2
-    if(verbose) setTxtProgressBar(pb, irep)
+    pred_store[irep,,] <- y2
   }
-  
-  imp_posterior<-array(NA,dim=c(M,n.ahead,5))
-  dimnames(imp_posterior)[[1]] <- varNames
-  dimnames(imp_posterior)[[2]] <- 1:n.ahead
-  dimnames(imp_posterior)[[3]] <- c("low25","low16","median","high75","high84")
-  
-  imp_posterior[,,"low25"]  <- apply(fcst_t,c(2,3),quantile,0.25,na.rm=TRUE)
-  imp_posterior[,,"low16"]  <- apply(fcst_t,c(2,3),quantile,0.16,na.rm=TRUE)
-  imp_posterior[,,"median"] <- apply(fcst_t,c(2,3),quantile,0.50,na.rm=TRUE)
-  imp_posterior[,,"high75"] <- apply(fcst_t,c(2,3),quantile,0.75,na.rm=TRUE)
-  imp_posterior[,,"high84"] <- apply(fcst_t,c(2,3),quantile,0.84,na.rm=TRUE)
-  
-  h                        <- object$args$h
-  if(h>n.ahead) h          <- n.ahead
-  yfull                    <- object$args$yfull
-  if(h>0){
-    lps.stats                <- array(0,dim=c(M,2,h))
-    dimnames(lps.stats)[[1]] <- colnames(xglobal)
-    dimnames(lps.stats)[[2]] <- c("mean","sd")
-    dimnames(lps.stats)[[3]] <- 1:h
-    lps.stats[,"mean",]      <- apply(fcst_t[,,1:h],c(2:3),mean)
-    lps.stats[,"sd",]        <- apply(fcst_t[,,1:h],c(2:3),sd)
-    hold.out<-yfull[(nrow(yfull)+1-h):nrow(yfull),,drop=FALSE]
+  #----------do conditional forecasting -------------------------------------------#
+  if(flag_cond){
+    cond_store <- array(NA, c(thindraws, bigK, n.ahead))
+    dimnames(cond_store)[[2]] <- varNames
+    
+    if(verbose) cat("Start computing conditional predictions...\n")
+    if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+    for(irep in 1:thindraws){
+      pred    <- pred_store[irep,,]
+      Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
+      irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
+                             smat=t(chol(Sigma_u)),nstep=n.ahead)
+      
+      temp <- as.vector(constr) + rnorm(bigK*n.ahead,0,as.vector(constr_sd))
+      constr_use <- matrix(temp,n.ahead,bigK)
+      
+      v <- sum(!is.na(constr))
+      s <- bigK * n.ahead
+      r <- c(rep(0, v))
+      R <- matrix(0, v, s)
+      pos <- 1
+      for(i in 1:n.ahead) {
+        for(j in 1:bigK) {
+          if(is.na(constr_use[i, j])) {next}
+          r[pos] <- constr_use[i, j] - pred[j, i]
+          for(k in 1:i) {
+            R[pos, ((k - 1) * bigK + 1):(k * bigK)] <- irf[j,,(i - k + 1)]
+          }
+          pos <- pos + 1
+        }
+      }
+      
+      R_svd <- svd(R, nu=nrow(R), nv=ncol(R))
+      U     <- R_svd[["u"]]
+      P_inv <- diag(1/R_svd[["d"]])
+      V1    <- R_svd[["v"]][,1:v]
+      V2    <- R_svd[["v"]][,(v+1):s]
+      eta   <- V1 %*% P_inv %*% t(U) %*% r + V2 %*% rnorm(s-v)
+      eta   <- matrix(eta, n.ahead, bigK, byrow=TRUE)
+      
+      for(ih in 1:n.ahead) {
+        temp <- matrix(0, bigK, 1)
+        for(k in 1:ih) {
+          temp <- temp + irf[, , (ih - k + 1)] %*% t(eta[k , , drop=FALSE])
+        }
+        cond_store[irep,,ih] <- pred[,ih,drop=FALSE] + temp
+      }
+      if(verbose) setTxtProgressBar(pb, irep)
+    }
+  }
+  #--------------- compute posteriors ----------------------------------------------#
+  imp_posterior<-array(NA,dim=c(bigK,n.ahead,Q), dimnames=list(varNames,seq(1,n.ahead),paste0("Q",quantiles*100)))
+  for(qq in 1:Q){
+    if(flag_cond){
+      imp_posterior[,,qq] <- apply(cond_store,c(2,3),quantile,quantiles[qq],na.rm=TRUE)
+    }else{
+      imp_posterior[,,qq] <- apply(pred_store,c(2,3),quantile,quantiles[qq],na.rm=TRUE)
+    }
+  }
+  #---------------------------------------------------------------------------------#
+  hold.out <- object$args$hold.out
+  if(hold.out>n.ahead) hold.out <- n.ahead
+  yfull <- object$args$yfull
+  if(hold.out>0){
+    lps.stats <- array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
+    lps.stats[,"mean",] <- apply(pred_store[,,1:hold.out],c(2:3),mean)
+    lps.stats[,"sd",]   <- apply(pred_store[,,1:hold.out],c(2:3),sd)
+    hold.out.sample<-yfull[(nrow(yfull)+1-hold.out):nrow(yfull),,drop=FALSE]
   }else{
     lps.stats<-NULL
-    hold.out<-NULL
+    hold.out.sample<-NULL
   }
+  #---------------------------------------------------------------------------------#
   rownames(xglobal)<-.timelabel(object$args$time)
   
   out <- structure(list(fcast=imp_posterior,
                         xglobal=xglobal,
                         n.ahead=n.ahead,
                         lps.stats=lps.stats,
-                        hold.out=hold.out),
+                        hold.out.sample=hold.out.sample),
                    class="bgvar.pred")
   if(save.store){
-    out$pred_store = fcst_t
+    out$pred_store = pred_store
   }
   if(verbose) cat(paste("\n\nSize of object:", format(object.size(out),unit="MB")))
   end.pred <- Sys.time()
@@ -134,158 +221,20 @@ predict.bgvar <- function(object, ..., n.ahead=1, save.store=FALSE, verbose=TRUE
   return(out)
 }
 
-#' @name cond.predict
-#' @title Conditional Forecasts
-#' @description Function that computes conditional forecasts for Bayesian Vector Autoregressions.
-#' @usage cond.predict(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TRUE)
-#' @details Conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
-#' @param constr a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.
-#' @param bgvar.obj an item fitted by \code{bgvar}.
-#' @param pred.obj an item fitted by \code{predict}. Note that \code{save.store=TRUE} is required as argument!
-#' @param constr_sd a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.
-#' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
-#' @return Returns an object of class \code{bgvar.pred} with the following elements \itemize{
-#' \item{\code{fcast}}{ is a K times n.ahead times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the conditional posterior predictive distribution.}
-#' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
-#' \item{\code{n.ahead}}{ specified forecast horizon.}
-#' }
-#' @author Maximilian Boeck
-#' @examples
-#' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
-#'                       plag=1,prior="SSVS",eigen=TRUE)
-#' 
-#' # compute predictions
-#' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
-#' 
-#' # set up constraints matrix of dimension n.ahead times K
-#' constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-#' colnames(constr) <- colnames(model.ssvs.eer$xglobal)
-#' constr[1:5,"US.Dp"] <- model.ssvs.eer$xglobal[76,"US.Dp"]
-#' 
-#' # add uncertainty to conditional forecasts
-#' constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.eer$xglobal))
-#' colnames(constr_sd) <- colnames(model.ssvs.eer$xglobal)
-#' constr_sd[1:5,"US.Dp"] <- 0.001
-#' 
-#' cond_fcast <- cond.predict(constr, model.ssvs.eer, fcast, constr_sd)
-#' @references 
-#' Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
-#' 
-#' Waggoner, D., F. and T. Zha (1999) \emph{Conditional Forecasts in Dynamic Multivariate Models.} Review of Economics and Statistics, Vol. 81(4), pp. 639-561.
-#' @importFrom abind adrop
-#' @importFrom stats rnorm
+#' @method print bgvar.pred
 #' @export
-cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TRUE){
-  start.cond <- Sys.time()
-  if(!inherits(pred.obj, "bgvar.pred")) {stop("Please provide a `bgvar.predict` object.")}
-  if(!inherits(bgvar.obj, "bgvar")) {stop("Please provide a `bgvar` object.")}
-  if(verbose) cat("\nStart conditional forecasts of Bayesian Global Vector Autoregression.\n\n")
-  #----------------get stuff-------------------------------------------------------#
-  plag        <- bgvar.obj$args$plag
-  xglobal     <- pred.obj$xglobal
-  Traw        <- nrow(xglobal)
-  bigK        <- ncol(xglobal)
-  bigT        <- Traw-plag
-  A_large     <- bgvar.obj$stacked.results$A_large
-  F_large     <- bgvar.obj$stacked.results$F_large
-  S_large     <- bgvar.obj$stacked.results$S_large
-  Ginv_large  <- bgvar.obj$stacked.results$Ginv_large
-  F.eigen     <- bgvar.obj$stacked.results$F.eigen
-  thindraws   <- length(F.eigen)
-  x           <- xglobal[(plag+1):Traw,,drop=FALSE]
-  horizon     <- pred.obj$n.ahead
-  varNames    <- colnames(xglobal)
-  cN          <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  var         <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-  #---------------------checks------------------------------------------------------#
-  if(is.null(pred.obj$pred_store)){
-    stop("Please set 'save.store=TRUE' when computing predictions.")
-  }
-  if(!all(dim(constr)==c(horizon,bigK))){
-    stop("Please respecify dimensions of 'constr'.")
-  }
-  if(!is.null(constr_sd)){
-    if(!all(dim(constr_sd)==c(horizon,bigK))){
-      stop("Please respecify dimensions of 'constr_sd'.")
-    }
-    constr_sd[is.na(constr_sd)] <- 0
-  }else{
-    constr_sd <- matrix(0,horizon,bigK)
-  }
-  pred_array <- pred.obj$pred_store
-  #---------------container---------------------------------------------------------#
-  cond_pred <- array(NA, c(thindraws, bigK, horizon))
-  dimnames(cond_pred)[[2]] <- varNames
-  #----------do conditional forecasting -------------------------------------------#
-  if(verbose) cat("Start computing...\n")
-  if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
-  for(irep in 1:thindraws){
-    pred    <- pred_array[irep,,]
-    Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
-    irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
-                           smat=t(chol(Sigma_u)),nstep=horizon)
-    
-    temp <- as.vector(constr) + rnorm(bigK*horizon,0,as.vector(constr_sd))
-    constr_use <- matrix(temp,horizon,bigK)
-    
-    v <- sum(!is.na(constr))
-    s <- bigK * horizon
-    r <- c(rep(0, v))
-    R <- matrix(0, v, s)
-    pos <- 1
-    for(i in 1:horizon) {
-      for(j in 1:bigK) {
-        if(is.na(constr_use[i, j])) {next}
-        r[pos] <- constr_use[i, j] - pred[j, i]
-        for(k in 1:i) {
-          R[pos, ((k - 1) * bigK + 1):(k * bigK)] <- irf[j,,(i - k + 1)]
-        }
-        pos <- pos + 1
-      }
-    }
-    
-    R_svd <- svd(R, nu=nrow(R), nv=ncol(R))
-    U     <- R_svd[["u"]]
-    P_inv <- diag(1/R_svd[["d"]])
-    V1    <- R_svd[["v"]][,1:v]
-    V2    <- R_svd[["v"]][,(v+1):s]
-    eta   <- V1 %*% P_inv %*% t(U) %*% r + V2 %*% rnorm(s-v)
-    eta   <- matrix(eta, horizon, bigK, byrow=TRUE)
-    
-    for(h in 1:horizon) {
-      temp <- matrix(0, bigK, 1)
-      for(k in 1:h) {
-        temp <- temp + irf[, , (h - k + 1)] %*% t(eta[k , , drop=FALSE])
-      }
-      cond_pred[irep,,h] <- pred[,h,drop=FALSE] + temp
-    }
-    if(verbose) setTxtProgressBar(pb, irep)
-  }
-  #------------compute posteriors----------------------------------------------#
-  imp_posterior<-array(NA,dim=c(bigK,horizon,5))
-  dimnames(imp_posterior)[[1]] <- varNames
-  dimnames(imp_posterior)[[2]] <- 1:horizon
-  dimnames(imp_posterior)[[3]] <- c("low25","low16","median","high75","high84")
+print.bgvar.pred <- function(x, ...){
+  cat("---------------------------------------------------------------------------------------")
+  cat("\n")
+  cat("Object contains predictions of object estimated with 'bgvar':")
+  cat("\n")
+  cat(paste0("Size of posterior containing predictions: ",dim(x$fcast)[[1]]," x ",dim(x$fcast)[[2]]," x ",dim(x$fcast)[[3]],"."))
+  cat("\n")
+  cat(paste0("Size ob object: ",format(object.size(x),unit="MB")))
+  cat("\n")
+  cat("---------------------------------------------------------------------------------------")
   
-  imp_posterior[,,"low25"]  <- apply(cond_pred,c(2,3),quantile,0.25,na.rm=TRUE)
-  imp_posterior[,,"low16"]  <- apply(cond_pred,c(2,3),quantile,0.16,na.rm=TRUE)
-  imp_posterior[,,"median"] <- apply(cond_pred,c(2,3),quantile,0.50,na.rm=TRUE)
-  imp_posterior[,,"high75"] <- apply(cond_pred,c(2,3),quantile,0.75,na.rm=TRUE)
-  imp_posterior[,,"high84"] <- apply(cond_pred,c(2,3),quantile,0.84,na.rm=TRUE)
-  
-  #----------------------------------------------------------------------------------#
-  out <- structure(list(fcast=imp_posterior,
-                        xglobal=xglobal,
-                        n.ahead=horizon),
-                   class="bgvar.pred")
-  if(verbose) cat(paste("\n\nSize of object:", format(object.size(out),unit="MB")))
-  end.cond <- Sys.time()
-  diff.cond <- difftime(end.cond,start.cond,units="mins")
-  mins.cond <- round(diff.cond,0); secs.cond <- round((diff.cond-floor(diff.cond))*60,0)
-  if(verbose) cat(paste("\nNeeded time for computation: ",mins.cond," ",ifelse(mins.cond==1,"min","mins")," ",secs.cond, " ",ifelse(secs.cond==1,"second.","seconds.\n"),sep=""))
-  return(out)
+  return(invisible(x))
 }
 
 #' @export
@@ -304,7 +253,7 @@ cond.predict <- function(constr, bgvar.obj, pred.obj, constr_sd=NULL, verbose=TR
 #' library(BGVAR)
 #' data(eerDatasmall)
 #' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
-#'                       plag=1,prior="SSVS",eigen=TRUE,h=8)
+#'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
 #' @author Maximilian Boeck, Martin Feldkircher
@@ -343,7 +292,7 @@ lps.bgvar.pred <- function(object, ...){
 #' library(BGVAR)
 #' data(eerDatasmall)
 #' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
-#'                       plag=1,prior="SSVS",eigen=TRUE,h=8)
+#'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
 #' @author Maximilian Boeck, Martin Feldkircher

@@ -5,7 +5,16 @@
 \alias{predict.bgvar}
 \title{Predictions}
 \usage{
-\method{predict}{bgvar}(object, ..., n.ahead = 1, save.store = FALSE, verbose = TRUE)
+\method{predict}{bgvar}(
+  object,
+  ...,
+  n.ahead = 1,
+  constr = NULL,
+  constr_sd = NULL,
+  quantiles = NULL,
+  save.store = FALSE,
+  verbose = TRUE
+)
 }
 \arguments{
 \item{object}{an object of class \code{bgvar}.}
@@ -14,13 +23,19 @@
 
 \item{n.ahead}{the forecast horizon.}
 
+\item{constr}{a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.}
+
+\item{constr_sd}{a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.}
+
+\item{quantiles}{Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.}
+
 \item{save.store}{If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
 Returns an object of class \code{bgvar.pred} with the following elements \itemize{
-\item{\code{fcast}}{ is a K times n.ahead times 5-dimensional array that contains 16\%th, 25\%th, 50\%th, 75\%th and 84\% percentiles of the posterior predictive distribution.}
+\item{\code{fcast}}{ is a K times n.ahead times Q-dimensional array that contains  Q quantiles of the posterior predictive distribution.}
 \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 \item{\code{n.ahead}}{ specified forecast horizon.}
 \item{\code{lps.stats}}{ is an array object of dimension K times 2 times n.ahead and contains the mean and standard deviation of the log-predictive scores for each variable and each forecast horizon.}
@@ -28,7 +43,10 @@ Returns an object of class \code{bgvar.pred} with the following elements \itemiz
 }
 }
 \description{
-A function that computes predictions based on a object of class \code{bgvar}.
+A function that computes predictions and conditional predictions based on a object of class \code{bgvar}.
+}
+\details{
+Predictions are performed up to an horizon of \code{n.ahead}. Note that conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
 }
 \examples{
 library(BGVAR)
@@ -36,6 +54,24 @@ data(eerDatasmall)
 model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 fcast <- predict(model.ssvs, n.ahead=8)
+
+# conditional predictions
+# et up constraints matrix of dimension n.ahead times K
+constr <- matrix(NA,nrow=8,ncol=ncol(model.ssvs$xglobal))
+colnames(constr) <- colnames(model.ssvs$xglobal)
+constr[1:5,"US.Dp"] <- model.ssvs$xglobal[76,"US.Dp"]
+
+# add uncertainty to conditional forecasts
+constr_sd <- matrix(NA,nrow=8,ncol=ncol(model.ssvs$xglobal))
+colnames(constr_sd) <- colnames(model.ssvs$xglobal)
+constr_sd[1:5,"US.Dp"] <- 0.001
+
+fcast_cond <- predict(model.ssvs, n.ahead=8, constr=constr, constr_sd=constr_sd)
+}
+\references{
+Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
+
+Waggoner, D., F. and T. Zha (1999) \emph{Conditional Forecasts in Dynamic Multivariate Models.} Review of Economics and Statistics, Vol. 81(4), pp. 639-561.
 }
 \author{
 Maximilian Boeck, Martin Feldkircher, Florian Huber

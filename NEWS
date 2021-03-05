@@ -1,3 +1,11 @@
+Change in Version 2.2.0
+- complete redesign of 'irf' function
+  - computation of irf now in C++
+  - makes use of parallel computing via RcppParallel
+- conditional predictions now possible within predict function
+- synchronization of parameter names with accompanied paper
+- minor bug fixes
+
 Change in Version 2.1.4
 - updated backends of new 'stochvol' package
 - added dataset 'eerDatasmall' to check functionality of package faster

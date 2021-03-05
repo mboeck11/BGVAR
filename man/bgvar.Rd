@@ -4,10 +4,8 @@
 \alias{bgvar}
 \title{Estimation of Bayesian GVAR}
 \usage{
-bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1, 
-      hyperpara=NULL, eigen=FALSE, variable.list=NULL, OE.weights=NULL, Wex.restr=NULL,
-      Ex=NULL, trend=FALSE, save.country.store=FALSE, applyfun=NULL, cores=NULL, 
-      verbose=TRUE)
+bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
+      hyperpara=NULL, eigen=FALSE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 }
 \arguments{
 \item{Data}{Either a \itemize{
@@ -27,7 +25,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1
 
 \item{SV}{If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.}
 
-\item{h}{Defines the hold-out sample. Default without hold-out sample, thus set to zero.}
+\item{hold.out}{Defines the hold-out sample. Default without hold-out sample, thus set to zero.}
 
 \item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.}
 
@@ -64,16 +62,6 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1
 
 \item{eigen}{Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).}
 
-\item{variable.list}{In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weight matrix. See the help file on \code{getweights} for details. Default is \code{NULL}.}
-
-\item{OE.weights}{Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
-\item{\code{weights}}{ a vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
-\item{\code{variables}}{ a vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
-\item{\code{exo}}{ a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
-}}
-
-\item{Wex.restr}{A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically. See function \code{getweights} for more details.}
-
 \item{Ex}{For including truly exogenous variables to the model. Either a \itemize{
 \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
@@ -81,11 +69,19 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, h=0, thin=1
 
 \item{trend}{If set to \code{TRUE} a deterministic trend is added to the country models.}
 
-\item{save.country.store}{If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
-
-\item{applyfun}{Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
-
-\item{cores}{Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.}
+\item{expert}{Experting settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+\item{\code{variable.list}}{ In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weight matrix. Default is \code{NULL}.}
+\item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
+\item{\code{weights}}{ Vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
+\item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
+\item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
+}}
+\item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
+\item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
+\item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
+\item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
+\item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
+}}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
@@ -140,22 +136,23 @@ print(model.ssvs)
 # use different weight matrices
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, draws=200, 
-                  burnin=100,prior="MN",SV=TRUE,thin=2,variable.list=variable.list)
+                  burnin=100,prior="MN",SV=TRUE,thin=2,expert=list(variable.list=variable.list))
 print(model.mn)
 
 data(monthlyData)
 EA.weights$variables <- c("EAstir","total.assets","M3","ciss","y","p")
 OC.weights$variables <- c("poil","qoil","y")
 OE.weights <- list(EB=EA.weights,OC=OC.weights)
-hyperpara<-list(c_tau = 0.01, d_tau = 0.01,e_lambda=1.5,d_lambda=1, 
-                prmean=0,a_i=0.01,b_i=0.01,a_start=.6,sample_A=FALSE)
+hyperpara<-list(d_lambda = 0.01, e_lambda = 0.01,e_lambda=1.5,d_lambda=1, 
+                prmean=0,a_1=0.01,b_1=0.01,tau_theta=.6,sample_tau=FALSE)
 model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
-                    hyperpara=hyperpara,eigen=TRUE,SV=TRUE,OE.weights=OE.weights)
+                    hyperpara=hyperpara,eigen=TRUE,SV=TRUE,expert=list(OE.weights=OE.weights))
 print(model.ssvs)
 }
 }
 \references{
 Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) Forecasting with Global Vector Autoregressive Models: A Bayesian Approach. \emph{Journal of Applied Econometrics}, Vol. 31(7), pp. 1371-1391.
+
 Doan, T. R., Litterman, B. R. and C. A. Sims (1984) Forecasting and Conditional Projection Using Realistic Prior Distributions. \emph{Econometric Reviews}, Vol. 3, pp. 1-100.
 
 Dovern, J., Feldkircher, M. and F. Huber (2016) Does joint modelling of the world economy pay off? Evaluating multivariate forecasts from a Bayesian GVAR. \emph{Journal of Economic Dynamics and Control}, Vol. 70, pp. 86-100.

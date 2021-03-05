@@ -1,15 +1,15 @@
 #' @export
-"fevd" <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
+"fevd" <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE){
   UseMethod("fevd", x)
 }
 
 #' @name fevd
 #' @title Forecast Error Variance Decomposition
 #' @description This function calculates the forecast error variance decomposition (FEVDs) for Cholesky and sign-identified shocks.
-#' @usage fevd(x, R=NULL, var.slct=NULL, verbose=TRUE)
+#' @usage fevd(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 #' @details Since the calculations are very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC sweep). In case the underlying shock has been identified via sign restrictions, the rotation matrix corresponds to the one that fulfills the sign restrictions at the posterior median of the estimated coefficients. More precisely, the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 #' @param x an object of class \code{bgvar.irf}.
-#' @param R If \code{NULL} and the \code{x} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
+#' @param rotation.matrix If \code{NULL} and the \code{x} has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param var.slct character vector that contains the variables for which forecast error variance decomposition should be performed. If \code{NULL} the FEVD is computed for the whole system, which is very time consuming.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @return Returns a list with two elements \itemize{
@@ -17,40 +17,36 @@
 #' \item{\code{xglobal}}{ used data of the model.}
 #' }
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @seealso \code{\link{irf}}
+#' @seealso \code{\link{bgvar}}, \code{\link{irf}}
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
 #' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=50,burnin=50,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
+#' model.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=50,burnin=50,plag=1,
+#'                  eigen=TRUE)
 #'                       
 #' # US monetary policy shock
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=48)
+#' shockinfo <- get_shockinfo("chol")
+#' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.chol.us.mp,var.slct=c("US.Dp","EA.y"))
 #' 
 #' # US monetary policy shock with sign restrictions
-#' sign.constr<-list()
-#' sign.constr$shock1$shock             <- c("US.stir")
-#' sign.constr$shock1$restrictions$res1 <- c("US.y")
-#' sign.constr$shock1$restrictions$res2 <- c("US.Dp")
-#' sign.constr$shock1$sign              <- c(">","<","<")
-#' sign.constr$shock1$rest.horz         <- c(1,1,1)
-#' sign.constr$shock1$constr            <- c(1,1,1)
-#' sign.constr$shock1$scal              <- +100 
-#' sign.constr$MaxTries<-200
-#' irf.sign.us.mp<-irf(model.ssvs.eer,sign.constr=sign.constr,n.ahead=24)
+#' shockinfo <- get_shockinfo("sign")
+#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", 
+#'                            restriction=c("US.y","US.Dp"), 
+#'                            sign=c("<","<"), horizon=c(1,1), 1, 100)
+#' irf.sign.us.mp<-irf(model.eer,n.ahead=24,ident="sign",shockinfo=shockinfo)
 #' 
 #' # calculates FEVD for variables US.Dp and EA.y
 #' fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))
 #' }
 #' @export
-fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
+fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE){
   start.fevd <- Sys.time()
-  if(verbose) cat("\nStart computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
+  if(verbose) cat("Start computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- x$model.obj$xglobal
   plag    <- x$model.obj$plag
@@ -72,10 +68,10 @@ fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
   N  <- length(cN)
   if(ident=="sign"){
     if(verbose) cat("Identification scheme: Sign-restrictions provided.\n")
-    shock.cN <- sapply(strsplit(unlist(lapply(sign.constr,function(l)l$shock)),".",fixed=TRUE),function(x)x[1])
+    shock.cN <- strsplit(unique(x$shockinfo$shock),".",fixed=TRUE)[[1]][1]
   }else if(ident=="chol"){
     if(verbose) cat("Identification scheme: Short-run restrictions via Cholesky decomposition.\n")
-    shock.cN <- shock$cN
+    shock.cN <- unique(x$shockinfo$shock)
   }
   #-------------------- some checks ------------------------------------------------------------------#
   if(!ident%in%c("sign","chol")){
@@ -94,12 +90,12 @@ fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
     if(length(var.slct)>1) for(kk in 2:length(var.slct)) var.print <- paste(var.print,", ",var.slct[kk],sep="")
     if(verbose) cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
   }
-  if(ident=="sign" && is.null(R)){
-    R <- x$struc.obj$Rmed
+  if(ident=="sign" && is.null(rotation.matrix)){
+    rotation.matrix <- x$struc.obj$Rmed
   }else if(ident=="chol"){
-    R<-diag(bigK)
+    rotation.matrix<-diag(bigK)
   }
-  rownames(R) <- colnames(R) <- varNames
+  rownames(rotation.matrix) <- colnames(rotation.matrix) <- varNames
   #----------------------------------------------------------------------------------------------------#
   P0G <- diag(bigK); colnames(P0G) <- rownames(P0G) <- varNames
   gcov <- Smat
@@ -141,9 +137,9 @@ fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
     N <- 1
     while (N<=horizon+1){
       for (l in 1:N){
-        acc1  <-  t((t(eslct)%*%R%*%PHI[,,l]%*%invGSigmau%*%vslct)^2)
+        acc1  <-  t((t(eslct)%*%rotation.matrix%*%PHI[,,l]%*%invGSigmau%*%vslct)^2)
         num[,N]  <-  num[,N] + acc1
-        acc2  <-  (t(eslct)%*%R%*%PHI[,,l]%*%invGSinvG%*%t(R%*%PHI[,,l])%*%eslct)
+        acc2  <-  (t(eslct)%*%rotation.matrix%*%PHI[,,l]%*%invGSinvG%*%t(rotation.matrix%*%PHI[,,l])%*%eslct)
         den[,N]  <-  den[,N] + matrix(1,bigK,1)*as.numeric(acc2)
       }
       FEVDres[,paste("Decomp. of",var.slct[zz]),N]  <-  (scale*num[,N])/den[,N]
@@ -153,7 +149,7 @@ fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
   #------------------------------------------------------------------------------------------------------
   out <- structure(list(FEVD=FEVDres,
                         xglobal=xglobal,
-                        R=R),
+                        rotation.matrix=rotation.matrix),
                    class="bgvar.fevd", type="fevd")
   if(verbose) cat(paste("\nSize of FEVD object: ", format(object.size(FEVDres),unit="MB")))
   end.fevd <- Sys.time()
@@ -192,10 +188,10 @@ fevd.bgvar.irf <- function(x, R=NULL, var.slct=NULL, verbose=TRUE){
 #' \dontshow{
 #' library(BGVAR)
 #' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
+#' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100,
+#'                  plag=1, prior="SSVS", eigen=TRUE)
 #'                       
-#' GFEVD<-gfevd(model.ssvs.eer,n.ahead=24,running=TRUE)
+#' GFEVD<-gfevd(model.eer, n.ahead=24)
 #' }
 #' @importFrom abind adrop
 gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose=TRUE){
@@ -231,7 +227,7 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
       }
     }
   }
-  if(is.null(cores)) {cores <- 1}
+  if(is.null(cores)) cores <- 1
   #-----------------------------------------------------------------------------------------------------#
   if(running){
     GFEVD_post <- array(0,dim=c(bigK,bigK,n.ahead)); dimnames(GFEVD_post)<-list(varNames, paste("Decomp. of",varNames),0:(n.ahead-1))
@@ -292,7 +288,7 @@ print.bgvar.fevd <- function(x, ...){
   cat("\n")
   if(attributes(x)$type=="fevd"){
     cat("Identification scheme: ")
-    if(is.null(x$R)){
+    if(is.null(x$rotation.matrix)){
       cat("Short-run restrictions via Cholesky decomposition.")
     }else{
       cat("Sign-restrictions.")

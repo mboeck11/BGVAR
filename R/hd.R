@@ -1,5 +1,5 @@
 #' @export
-"hd" <- function(x, R=NULL, verbose=TRUE){
+"hd" <- function(x, rotation.matrix=NULL, verbose=TRUE){
   UseMethod("hd", x)
 }
 
@@ -8,9 +8,9 @@
 #' @description A function that calculates historical decomposition (HD) of the time series and the structural error.
 #' @method hd bgvar.irf
 #' @export
-#' @usage hd(x, R=NULL, verbose=TRUE)
-#' @param x an item fitted by \code{IRF}.
-#' @param R If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
+#' @usage hd(x, rotation.matrix=NULL, verbose=TRUE)
+#' @param x an item fitted by \code{irf}.
+#' @param rotation.matrix If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
 #' @details To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 #' @return Returns a list with the following objects \itemize{
@@ -24,17 +24,22 @@
 #' \dontshow{
 #' library(BGVAR)
 #' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,
-#'                       prior="SSVS",thin=1,eigen=TRUE)
-#' shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-#' irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
+#' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
+#'                  plag=1, prior="SSVS", eigen=TRUE)
+#'                  
+#' # US monetary policy shock
+#' shockinfo <- get_shockinfo("chol")
+#' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+#' irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
+#' 
+#' # calculates historical decomposition
 #' HD <- hd(irf.chol.us.mp)
 #' }
 #' @references 
 #' Fry, R. and A. Pagan (2011) \emph{Sign restrictions in Structural Vector Autoregressions: A Critical Review}. Journal of Economic Literature, Vol. 49(4), pp. 938-960.
-hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
+hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   start.hd <- Sys.time()
-  if(verbose) cat("\nStart computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
+  if(verbose) cat("Start computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- x$model.obj$xglobal
   plag    <- x$model.obj$plag
@@ -49,16 +54,16 @@ hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   varNames<- colnames(xglobal)
   trend   <- FALSE
-  if(!is.null(R)){
-    R<-x$struc.obj$Rmed
+  if(!is.null(rotation.matrix)){
+    rotation.matrix<-x$struc.obj$Rmed
   }else{
-    R<-diag(bigK)
+    rotation.matrix<-diag(bigK)
   }
-  rownames(R) <- colnames(R) <- varNames
+  rownames(rotation.matrix) <- colnames(rotation.matrix) <- varNames
   #------------------------checks-------------------------------------------------------------------#
   if(ident=="girf"){
     message("Historical decomposition of the time series not implemented for GIRFs since cross-correlation is unequal to zero (and hence decompositions do not sum up to original time series).")
-    return(list(hd_array=NA,struc.shock=vv,xglobal=xglobal) )
+    return(list(hd_array=NA,struc.shock=vv,xglobal=xglobal))
   }
   #------ initialize objects -----------------------------------------------------------------------#
   if("trend"%in%dimnames(ALPHA)[[2]]) trend <- TRUE
@@ -70,7 +75,7 @@ hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
     dimnames(hd_array)<-list(rownames(x), NULL, c(paste("contribution of shock to", c(varNames)),"constant","initial cond.","residual"))
   }
   #------------------------------------------------------------------------------------------------#
-  Rinv       <- solve(R)
+  Rinv       <- solve(rotation.matrix)
   Sigchol_u  <- t(chol(Sigma_u))
   Sigcholinv <- solve(Sigchol_u)
   
@@ -102,8 +107,7 @@ hd.bgvar.irf<-function(x, R=NULL, verbose=TRUE){
     HDtrend     <- matrix(0,bigK,bigT)
   }
   
-  #NOTE FOR MARTIN: IF SIGN RESTRICTIONS: R = ROTATION ELSE R = diag(M)
-  solveA <- (Sigchol_u%*%R) #Depends on identification, if Cholesky then solveA = t(chol(SIGMA)), where SIGMA is the VC of the global model
+  solveA <- (Sigchol_u%*%rotation.matrix) #Depends on identification, if Cholesky then solveA = t(chol(SIGMA)), where SIGMA is the VC of the global model
   eps <- (YY-XX%*%t(ALPHA))%*%t(solve(solveA)) #Atilda is the matrix of autoregressive coefficients of the global model
   Fcomp <-  .get_companion(ALPHA[,1:(bigK*plag)],varndxv = c(bigK,0,plag))$MM#Fcomp is the companion matrix (used in the eigenvalue stuff without the constant)
   

@@ -5,12 +5,12 @@
 \alias{hd.bgvar.irf}
 \title{Historical Decomposition}
 \usage{
-hd(x, R=NULL, verbose=TRUE)
+hd(x, rotation.matrix=NULL, verbose=TRUE)
 }
 \arguments{
-\item{x}{an item fitted by \code{IRF}.}
+\item{x}{an item fitted by \code{irf}.}
 
-\item{R}{If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
+\item{rotation.matrix}{If \code{NULL} and the \code{irf.bgvar} object has been fitted via sign restrictions, the rotation matrix is used that minimizes the distance to the median impulse responses at the posterior median.}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
@@ -31,10 +31,15 @@ To save computational time as well as due to storage limits, both functions are 
 \dontshow{
 library(BGVAR)
 data(eerDatasmall)
-model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,
-                      prior="SSVS",thin=1,eigen=TRUE)
-shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-irf.chol.us.mp <- irf(model.ssvs.eer,shock=shocks,n.ahead=48)
+model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
+                 plag=1, prior="SSVS", eigen=TRUE)
+                 
+# US monetary policy shock
+shockinfo <- get_shockinfo("chol")
+shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+irf.chol.us.mp<-irf(model.eer,n.ahead=48,ident="chol",shockinfo=shockinfo)
+
+# calculates historical decomposition
 HD <- hd(irf.chol.us.mp)
 }
 }

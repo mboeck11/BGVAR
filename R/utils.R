@@ -54,8 +54,8 @@
   gW<-list()
   # exclusion specification 
   if(!is.null(Wex.restr)){
-    er.idx<-sapply(nn,function(x) Wex.restr %in% x)
-    er.idx<-which(!er.idx)
+    er.idx<-!sapply(nn,function(x) Wex.restr %in% x)
+    #er.idx<-which(!er.idx)
   }else{
     er.idx<-c()
   }
@@ -241,6 +241,16 @@
   return(x)
 }
 
+#' @name .get_nrc
+#' @noRd
+.get_nrc <- function(k){
+  if(k==1) return(c(1,1))
+  if(k==2) return(c(2,1))
+  if(k%in%c(3,4)) return(c(2,2))
+  if(k%in%c(5,6)) return(c(3,2))
+  if(k>6) return(c(3,3))
+}
+
 #' @name .atau_post
 #' @importFrom stats dgamma dexp
 #' @noRd
@@ -261,8 +271,8 @@
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
   class(Yraw) <- class(Wraw) <- "numeric"
   prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,3))
-  if(default_hyperpara[["a_log"]]){
-    default_hyperpara["a_start"] <- 1/log(ncol(Yraw))
+  if(default_hyperpara[["tau_log"]]){
+    default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
   }
   invisible(capture.output(bvar<-BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
                                              thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), type="message"))
@@ -459,10 +469,10 @@
   kappa1    <- hyperpara$kappa1
   q_ij      <- hyperpara$q_ij
   # prior == 3: NG
-  d_lambda  <- hyperpara$d_lambda
-  e_lambda  <- hyperpara$e_lambda
-  a_start   <- hyperpara$a_start
-  sample_A  <- hyperpara$sample_A
+  d_lambda    <- hyperpara$d_lambda
+  e_lambda    <- hyperpara$e_lambda
+  tau_theta   <- hyperpara$tau_theta
+  sample_tau  <- hyperpara$sample_tau
   #---------------------------------------------------------------------------------------------------------
   # OLS Quantitites
   #---------------------------------------------------------------------------------------------------------
@@ -537,7 +547,7 @@
   }
   # NG stuff
   lambda2_A    <- matrix(0.01,p+1,2)
-  A_tau        <- matrix(a_start,p+1,2)
+  A_tau        <- matrix(tau_theta,p+1,2)
   colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
   rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,p),sep="")
   A_tuning     <- matrix(.43,p+1,2)
@@ -559,7 +569,7 @@
   
   # NG
   lambda2_L <- 0.01
-  L_tau     <- a_start
+  L_tau     <- tau_theta
   L_accept  <- 0
   L_tuning  <- .43
   #------------------------------------
@@ -733,12 +743,12 @@
           L_prior[mm,ii] <- do_rgig1(lambda=L_tau-0.5, chi=(L_draw[mm,ii]-l_prior[mm,ii])^2, psi=L_tau*lambda2_L)
         }
       }
-      if(sample_A){
+      if(sample_tau){
         #Sample L_tau through a simple RWMH step
         L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
         post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
         post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-        post.diff    <- post_L_tau_prop-post_L_tau_old
+        post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
         post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
         if (post.diff > log(runif(1,0,1))){
           L_tau      <- L_tau_prop
@@ -772,12 +782,12 @@
         theta[slct.i,] <- theta.lag
         theta[theta<1e-7] <- 1e-7
         
-        if(sample_A){
+        if(sample_tau){
           #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
           A_tau_prop       <- exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
           post_A_tau_prop  <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
           post_A_tau_old   <- .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-          post.diff        <- post_A_tau_prop-post_A_tau_old
+          post.diff        <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau)
           post.diff        <- ifelse(is.nan(post.diff),-Inf,post.diff)
           if (post.diff > log(runif(1,0,1))){
             A_tau[ss+1,2]    <- A_tau_prop
@@ -812,12 +822,12 @@
         theta[slct.i,] <- theta.lag
         theta[theta<1e-8] <- 1e-8
         #TO BE MODIFIED
-        if (sample_A){
+        if (sample_tau){
           #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
           A_tau_prop <- exp(rnorm(1,0,A_tuning[ss+1,1]))*A_tau[ss+1,1]
           post_A_tau_prop <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
           post_A_tau_old  <- .atau_post(atau=A_tau[ss+1,1], thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
-          post.diff <- post_A_tau_prop-post_A_tau_old
+          post.diff <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau)
           post.diff <- ifelse(is.nan(post.diff),-Inf,post.diff)
           
           if (post.diff > log(runif(1,0,1))){
@@ -1033,7 +1043,7 @@
     }
     
     trim.info <- round((length(idx)/thindraws)*100,2)
-    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws",sep="")
+    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
   }
   
   results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
@@ -1192,377 +1202,212 @@
 #' @importFrom MASS Null
 #' @importFrom stats rnorm
 #' @noRd
-.irf.sign.zero <- function(x,plag,nhor,Ginv,Fmat,Smat,shock,sign.constr,Global,MaxTries,shock.nr,...){
-  bigT     <- nrow(x)
-  bigK     <- ncol(x)
-  varNames <- colnames(x)
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-  N        <- length(cN)
-  # shock details
-  shock.cN  <- unlist(lapply(sign.constr,function(x)unlist(strsplit(x$shock,".",fixed=TRUE))[1]))
-  restr.cN  <- unique(unlist(lapply(sign.constr,function(y)lapply(strsplit(y$restrictions,".",fixed=TRUE),function(x)x[1]))))
-  
+.irf.sign.zero <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,shocklist,...){
+  bigT          <- nrow(xdat)
+  bigK          <- ncol(xdat)
+  varNames      <- colnames(xdat)
+  shock.idx     <- shocklist$shock.idx
+  shock.cidx    <- shocklist$shock.cidx
+  MaxTries      <- shocklist$MaxTries
+  S.cube        <- shocklist$S.cube
+  P.cube        <- shocklist$P.cube
+  Z.cube        <- shocklist$Z.cube
+  shock.horz    <- shocklist$shock.horz
+  shock.order   <- shocklist$shock.order
+  H.restr       <- length(shock.horz)
+  N.restr       <- bigK*H.restr
+  N             <- length(shock.idx)
+  no.zero.restr <- shocklist$no.zero.restr
+  #-----------------------------------------------------------------------------
+  # create P0G
   P0G <- diag(bigK); colnames(P0G) <- rownames(P0G) <- varNames
-  #calculates cholesky factor for blocks of gcov where shock occurrs
-  pure.restr.cN <- restr.cN[!(restr.cN%in%shock.cN)]
-  P0l<-list();ii<-1
   for(cc in 1:N){
-    idx <- which(grepl(cN[cc],varNames))
-    if(cN[cc] %in% shock.cN){
-      P0             <- try(t(chol(Smat[idx,idx,drop=FALSE])),silent=TRUE)
-      if(is(P0,"try-error")) suppressWarnings(P0 <- t(chol(Smat[idx,idx,drop=FALSE],pivot=TRUE)))
-      P0l[[ii]]      <- P0
-      names(P0l)[ii] <- cN[cc]
-      P0G[idx,idx]   <- P0
-      Smat[idx,idx]  <- diag(ncol(P0)) 
-      ii<-ii+1
-    }else if(cN[cc] %in% pure.restr.cN){
-      P0l[[ii]]      <- Smat[idx,idx,drop=FALSE]
-      names(P0l)[ii] <- cN[cc]
-      ii<-ii+1
+    idx <- shock.idx[[cc]]
+    if(shock.cidx[cc]){
+      temp <- try(t(chol(Smat[idx,idx,drop=FALSE])),silent=TRUE) 
+      if(is(temp,"try-error")){
+        return(list(impl=NA,rot=NA,icounter=NA))
+      }
+      P0G[idx,idx] <- temp
+    }else{
+      P0G[idx,idx] <- Smat[idx,idx,drop=FALSE]
     }
   }
-  ccode <- names(P0l) # now it has right ordering
-  
   # create dynamic multiplier
-  PHIx <- array(0,c(bigK,bigK,plag+nhor+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx <- array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
   PHIx[,,plag+1]  <-  diag(bigK)
-  for (ihor in (plag+2):(plag+nhor+1)){
+  for (ihor in (plag+2):(plag+n.ahead+1)){
     acc = matrix(0,bigK,bigK)
     for (pp in 1:plag){
       acc  <-  acc + Fmat[,,pp]%*%PHIx[,,ihor-pp]
     }
     PHIx[,,ihor]  <-  acc
   }
-  PHI  <-  PHIx[,,(plag+1):(plag+nhor+1)]
+  PHI  <-  PHIx[,,(plag+1):(plag+n.ahead+1)]
   #-----------------------------------------------------------------------------
-  k              <- sum(unlist(lapply(P0l,ncol)))
-  sign.horizon   <- unique(unlist(lapply(sign.constr, function(l) l$rest.horz)))-1 # zero impact is coded as 1
-  sign.horizon   <- sort(sign.horizon, decreasing=FALSE)
-  sign.shockvars <- unlist(lapply(sign.constr, function(l) l$shock))
-  varnames       <- as.character(unlist(lapply(P0l,function(x) dimnames(x)[[1]])))
-  H.restr        <- length(sign.horizon)
-  N.restr        <- k*H.restr
-  S.cube         <- array(NA, c(N.restr, N.restr, k)) # sign restrictions
-  Z.cube         <- array(NA, c(N.restr, N.restr, k)) # zero restrictions
-  dimnames(S.cube)[[1]] <- dimnames(Z.cube)[[1]] <-
-    dimnames(S.cube)[[2]] <- dimnames(Z.cube)[[2]] <- paste(rep(varnames,H.restr),".",
-                                                            rep(sign.horizon,each=k),sep="")
-  dimnames(S.cube)[[3]] <- dimnames(Z.cube)[[3]] <- varnames
-  for(vv in 1:length(varnames)){
-    S.temp <- matrix(0, N.restr, N.restr)
-    Z.temp <- matrix(0, N.restr, N.restr)
-    if(varnames[vv]%in%sign.shockvars){
-      sign.shock <- sign.constr[[which(sign.shockvars == varnames[vv])]]$shock
-      sign.restr <- sign.constr[[which(sign.shockvars == varnames[vv])]]$restrictions
-      sign.signs <- sign.constr[[which(sign.shockvars == varnames[vv])]]$sign
-      sign.horiz <- sign.constr[[which(sign.shockvars == varnames[vv])]]$rest.horz-1
-      
-      sign.restr <- c(sign.shock,sign.restr) ## append positive shock on shock variable
-      
-      s.point <- which(sign.signs=="<"|sign.signs==">")
-      z.point <- seq(1,length(sign.signs))[-s.point]
-      
-      if(length(s.point)>0){
-        for(ss in 1:length(s.point)){
-          grp <- which(sign.horiz[s.point[ss]] == sign.horizon)
-          col <- seq(which(sign.restr[s.point[ss]]==varnames),k*grp,by=k)
-          for(ii in 1:length(col)){
-            S.temp[col[ii],col[ii]] <- ifelse(sign.signs[s.point[ss]]=="<",-1,1)
-          }
-        }
-      }
-      if(length(z.point)>0){
-        for(zz in 1:length(z.point)){
-          if(sign.signs[z.point[zz]]=="0"){
-            grp <- which(sign.horiz[z.point[zz]] == sign.horizon)
-            row <- (grp-1)*k+which(sign.restr[z.point[zz]]==varnames)
-            Z.temp[row,row] <- 1
-          }else{ # take row from above
-            grp <- which(sign.horiz[z.point[zz]] == sign.horizon)
-            col <- (grp-1)*k+which(sign.restr[z.point[zz]]==varnames)
-            Z.temp[row,col] <- as.numeric(sign.signs[z.point[zz]])
-          }
-        }
-      }
-    }
-    S.cube[,,vv] <- S.temp
-    Z.cube[,,vv] <- Z.temp
-  }
-  
-  no.zero.restr <- ifelse(base::sum(abs(Z.cube))>0,FALSE,TRUE)
-  shock.order   <- rep(NA, k)
-  search.Znum   <- apply(Z.cube, 3, function(x) base::sum(abs(x)))
-  search.Snum   <- apply(S.cube, 3, function(x) base::sum(abs(x)))
-  for(mm in 1:k){
-    if(!no.zero.restr){
-      max.Z <- which(search.Znum==max(search.Znum))
-      if(length(max.Z)==1){
-        shock.order[mm] <- max.Z
-      }else{
-        shock.order[mm] <- sample(max.Z,1)
-      }
-    } else {
-      shock.order[mm] <- mm
-    }
-    search.Znum[shock.order[mm]] <- -1
-    search.Snum[shock.order[mm]] <- -1
-  }
-  shock.order <- varnames[shock.order]
-  
-  get.cols  <- matrix(0,bigK,k); colnames(get.cols)<- varnames; rownames(get.cols)<- colnames(x)
-  vars_list <- lapply(P0l,function(x) dimnames(x)[[1]])
-  vars_len  <- lapply(vars_list, length)
-  start_col <- 1
-  for(kk in 1:length(vars_list)) {
-    position  <- which(colnames(x) %in% vars_list[[kk]])
-    end_col   <- start_col+length(vars_list[[kk]])-1
-    get.cols[position,start_col:end_col] <- diag(length(vars_list[[kk]]))
-    start_col <- start_col+length(vars_list[[kk]])
-  }
-  irf.restr         <- matrix(NA, N.restr, k)
-  invGSigma_u       <- Ginv%*%P0G%*%Smat
+  irf.restr         <- matrix(NA, N.restr, bigK)
+  invGSigma_u       <- Ginv%*%P0G
   for(hh in 1:H.restr){
     # ARRW: Definition 1
-    if(sign.horizon[hh]!=Inf) irf.hh<-t(get.cols)%*%PHI[,,sign.horizon[hh]+1]%*%invGSigma_u%*%get.cols
+    if(shock.horz[hh]!=Inf) irf.hh<-PHI[,,shock.horz[hh]]%*%invGSigma_u
     # ARRW: Definition 2
     #if(sign.horizon[hh]==Inf) irf.hh <- solve(A0-A0%*%Cm[1:M,]%*%do.call("rbind",rep(list(diag(M)),p)))
-    irf.restr[((hh-1)*k+1):(k*hh),1:k] <- irf.hh
+    irf.restr[((hh-1)*bigK+1):(bigK*hh),1:bigK] <- irf.hh
   }
-  colnames(irf.restr) <- varnames
-  rownames(irf.restr) <- paste(rep(varnames,H.restr),".",
-                              rep(sign.horizon,each=k),sep="")
-  
+  colnames(irf.restr) <- varNames
+  rownames(irf.restr) <- paste(rep(varNames,H.restr),".",
+                               rep(shock.horz,each=bigK),sep="")
+  #-----------------------------------------------------------------------------
+  # reorder - important!!
   Z.cube <- Z.cube[,,shock.order]
-  
   # draw rotation matrix here
   icounter <- 0
   condall <- 0
-  max.counter <- MaxTries
   impresp<-Q_bar<-NA
-  while(condall == 0 && icounter < max.counter){
-    signCheck <- matrix(NA, k, 1)
-    randMat <- matrix(rnorm(k*k,0,1),k,k)
-    Q <- matrix(0, k, k)
-    if(no.zero.restr){
-      Q <- qr(randMat)
-      Q <- qr.Q(Q)
-    }else{
-      for(mm in 1:k){
-        Z.temp <- Z.cube[,,mm]
-        Z.temp <- Z.temp[rowSums(abs(Z.temp))!=0,,drop=F]
-        if(nrow(Z.temp)==0){
-          Z.temp <- matrix(0, 1, N.restr)
-        }
-        if(all(Z.temp==0) && mm>1){
-          R <- c()
+  while(condall == 0 && icounter < MaxTries){
+    Q <- matrix(0,bigK,bigK)
+    for(cc in 1:N){
+      idx <- shock.idx[[cc]]
+      Kidx <- length(idx)
+      if(shock.cidx[cc]){
+        randMat <- matrix(rnorm(Kidx^2),Kidx,Kidx)
+        Qc <- matrix(0, Kidx, Kidx)
+        if(no.zero.restr[cc]){
+          QR <- qr(randMat)
+          Qc <- qr.Q(QR)
         }else{
-          R <- Z.temp%*%irf.restr
-        }
-        if(mm > 1){R <- rbind(R, t(Q[,(1:(mm-1)), drop=FALSE]))}
-        
-        NU  <- Null(t(R))
-        x_j <- randMat[,mm,drop =FALSE]
-        
-        q_j <- NU%*%(t(NU)%*%x_j/sqrt(as.numeric(crossprod(t(NU)%*%x_j))))
-        Q[,mm] <- q_j
-      }
-    }
-    
-    colnames(Q) <- shock.order; rownames(Q) <- varnames
-    Q <- Q[,varnames]
-    Q_bar <- Q%*%diag(((diag(Q)>0)-(diag(Q)<0)))
-    rotS <- diag(ncol(x));colnames(rotS) <- rownames(rotS) <- substr(colnames(x),1,2)
-    R_bar <- matrix(0,k,k)
-    startkkk<-1
-    for(cc in 1:length(ccode)){
-      endkkk <- startkkk+length(vars_list[[cc]])-1
-      rotS[rownames(rotS)==ccode[cc],rownames(rotS)==ccode[cc]] <- Q_bar[startkkk:endkkk,startkkk:endkkk]
-      R_bar[startkkk:endkkk,startkkk:endkkk] <- Q_bar[startkkk:endkkk,startkkk:endkkk]
-      startkkk <- startkkk+length(vars_list[[cc]])
-    }
-    
-    irf.check <- irf.restr%*%R_bar
-    colnames(irf.check) <- varnames
-    rownames(irf.check) <- paste(rep(varnames,H.restr),".",rep(sign.horizon,each=k),sep="")
-    
-    for(ss in 1:k){
-      STemp <- S.cube[,,ss]
-      if(Global){
-        var_global <- strsplit(dimnames(S.cube)[[3]][ss],".",fixed=TRUE)[[1]][2]
-        IrfCheckTemp <- irf.check[,grep(paste(var_global,"$",sep=""),colnames(irf.check)),drop=FALSE]
-        IrfCheckTemp <- matrix(rowSums(IrfCheckTemp),nrow=N.restr,1)
-      }else{
-        IrfCheckTemp <- irf.check[,ss,drop = FALSE]
-      }
-      signCheckVec <- matrix(NA, N.restr, 1)
-      rownames(signCheckVec) <- paste(rep(varnames,H.restr),".",rep(sign.horizon,each=k),sep="")
-      for(kk in 1:N.restr){
-        STempRow <- STemp[kk,]
-        emptyCheck <- sum(STempRow)
-        if(emptyCheck == 0){
-          signCheckVec[kk,1] <- 1;
-        }else{
-          signCheckVec[kk,1] <- as.numeric(STempRow%*%IrfCheckTemp)
-        }
-      }
-      if(sum(abs(STemp))>0){
-        shocknr <- which(unlist(lapply(sign.constr,function(l){
-          l$shock==dimnames(S.cube)[3][[1]][ss]})))
-        constraints <- sign.constr[[shocknr]]$constr
-        if(any(constraints!=1)){
-          restrictions <- c(sign.constr[[shocknr]]$shock,sign.constr[[shocknr]]$restrictions)
-          cntr <- unlist(lapply(strsplit(restrictions,".",fixed=TRUE),function(l) l[1]))
-          vars_constr <- unlist(lapply(strsplit(restrictions,".",fixed=TRUE),function(l) l[2]))
-          vars_unique <- unique(vars_constr)
-          for(kk in 1:length(vars_unique)){
-            pointer <- vars_constr%in%vars_unique[kk]
-            if(length(pointer)!=1 & any(constraints[pointer]<1)){
-              constrainttt  <- unique(constraints[vars_constr%in%vars_unique[kk]])
-              cntr_unique <- unique(cntr[pointer])
-              restrictionss <- paste(restrictions[pointer],".",
-                                    rep(sign.horizon,length(cntr_unique)),sep="")
-              v    <- signCheckVec[rownames(signCheckVec)%in%restrictionss,]
-              perz <- sum(sign(v)==1)/length(v)
-              if(perz>=constrainttt){
-                signCheckVec[rownames(signCheckVec)%in%restrictionss,] <- 1
-              }
+          for(kk in 1:Kidx){
+            Z.temp <- Z.cube[,,idx[kk]]
+            Z.temp <- Z.temp[rowSums(abs(Z.temp))!=0,,drop=F]
+            if(nrow(Z.temp)==0){
+              Z.temp <- matrix(0, 1, N.restr)
             }
+            if(all(Z.temp==0) && kk>1){
+              R <- c()
+            }else{
+              R <- Z.temp%*%irf.restr[,idx]
+            }
+            if(kk > 1){R <- rbind(R, t(Qc[,(1:(kk-1)), drop=FALSE]))}
+            
+            NU  <- Null(t(R))
+            x_j <- randMat[,kk,drop=FALSE]
+            
+            q_j <- NU%*%(t(NU)%*%x_j/sqrt(as.numeric(crossprod(t(NU)%*%x_j))))
+            Qc[,kk] <- q_j
           }
         }
+        Q[idx,idx] <- Qc
+      }else{
+        Q[idx,idx] <- diag(Kidx)
       }
-      signCheck[ss,] <- prod((signCheckVec > 0)*(signCheckVec > 0))
+    }
+    colnames(Q) <- varNames[shock.order]; rownames(Q) <- varNames
+    Q <- Q[,varNames]
+    Q_bar <- Q%*%diag(((diag(Q)>0)-(diag(Q)<0)))
+    # check irf
+    irf.check <- irf.restr%*%Q_bar
+    colnames(irf.check) <- varNames
+    rownames(irf.check) <- paste(rep(varNames,H.restr),".",rep(shock.horz,each=bigK),sep="")
+    signCheck <- matrix(NA,bigK,1)
+    for(ss in 1:bigK){
+      STemp <- S.cube[,ss,drop=FALSE]
+      if(sum(abs(STemp))==0){
+        signCheck[ss,] <- TRUE
+        next
+      }
+      PDiag <- diag(N.restr); diag(PDiag) <- sign(P.cube[,ss,drop=TRUE]>runif(N.restr))
+      IrfCheckTemp <- sign(irf.check[,ss,drop = FALSE])
+      signCheck[ss,] <- t(IrfCheckTemp)%*%PDiag%*%STemp==sum(abs(PDiag%*%STemp))
     }
     condall <- prod(signCheck)
     icounter <- icounter + 1
   }
-  
-  st_impulses <- array(NA,c(bigK,bigK,nhor+1));dimnames(st_impulses)[[1]] <- dimnames(st_impulses)[[2]] <- colnames(x)
-  Cmhat <- invGSigma_u%*%rotS
-  for (ii in 1:(nhor+1)){
-    st_impulses[,,ii]  <-   as.matrix((PHI[,,ii]%*%Cmhat))
-  }
-  
-  shock_slct <- sapply(sign.constr, function(l) l$shock)
-  if(Global){ # GLOBAL SHOCK
-    if(shock.nr>1){
-      st_impulses2<-NULL
-      for(i in 1:shock.nr){
-        st_impulses2<-abind(st_impulses2,apply(st_impulses[,shock_slct[[i]],],c(1,3),sum),along=3)
-      }
-      #st_impulses <- aperm(st_impulses2,c(1,3,2))
-      st_impulses<-st_impulses2
-    }else{
-      st_impulses <- apply(st_impulses[,shock_slct,],c(1,3),sum)
-    }
-  }else{
-    st_impulses<-st_impulses[,shock_slct,,drop=FALSE]
-    st_impulses<-aperm(st_impulses,c(1,3,2)) # re-indicize
+  # compute impulses
+  st_impulses <- array(NA,c(bigK,bigK,n.ahead+1));dimnames(st_impulses)[[1]] <- dimnames(st_impulses)[[2]] <- varNames
+  Cmhat <- invGSigma_u%*%Q_bar
+  for(ihor in 1:(n.ahead+1)){
+    st_impulses[,,ihor] <- as.matrix((PHI[,,ihor]%*%Cmhat))
   }
   
   if(icounter==MaxTries){
-    st_impulses <- R_bar <- rotS <- NA
+    st_impulses <- Q_bar <- NA
   }
   # end rotation matrix loop ----------------------------------------------------------------------------
-  return(list(impl=st_impulses,rot=rotS,icounter=icounter,gcov=NA))
+  return(list(impl=st_impulses,rot=Q_bar,icounter=icounter))
 }
 
 #' @name .irf.chol
 #' @noRd
-.irf.chol <- function(x,plag,nhor,Ginv,Fmat,Smat,shock,...){
-  bigT     <- nrow(x)
-  bigK     <- ncol(x)
-  varNames <- colnames(x)
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-  N        <- length(cN)
-  # shock details
-  shock.var <- shock[["var"]]
-  shock.cN  <- shock[["cN"]]
-  
+.irf.chol <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,shocklist,...){
+  bigT       <- nrow(xdat)
+  bigK       <- ncol(xdat)
+  varNames   <- colnames(xdat)
+  shock.idx  <- shocklist$shock.idx
+  shock.cidx <- shocklist$shock.cidx
+  N          <- length(shock.idx)
+  # create P0G
   P0G <- diag(bigK); colnames(P0G) <- rownames(P0G) <- varNames
   for(cc in 1:N){
-    if(cN[cc] %in% shock.cN){
-      idx           <- grep(cN[cc],varNames)
-      P0G[idx,idx]  <- t(chol(Smat[idx,idx,drop=FALSE])) # calculate local cholesky factor of gcov
-      Smat[idx,idx] <- diag(length(idx)) #set vcv matrix to identity for coutnry where shock occurs
+    idx <- shock.idx[[cc]]
+    if(shock.cidx[cc]){
+      P0G[idx,idx] <- t(chol(Smat[idx,idx,drop=FALSE])) # calculate local cholesky factor of gcov
+    }else{
+      P0G[idx,idx] <- Smat[idx,idx,drop=FALSE]
     }
   }
-  
   # create dynamic multiplier
-  PHIx <- array(0,c(bigK,bigK,plag+nhor+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
-  PHIx[,,plag+1]  <-  diag(bigK)
-  for (ihor in (plag+2):(plag+nhor+1)){
+  PHIx <- array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx[,,plag+1] <- diag(bigK)
+  for (ihor in (plag+2):(plag+n.ahead+1)){
     acc = matrix(0,bigK,bigK)
     for (pp in 1:plag){
       acc  <-  acc + Fmat[,,pp]%*%PHIx[,,ihor-pp]
     }
     PHIx[,,ihor]  <-  acc
   }
-  PHI  <-  PHIx[,,(plag+1):(plag+nhor+1)]
-  
-  # create selection matrix
-  eslct <- matrix(0,bigK,1);rownames(eslct) <- varNames
-  select_shocks <- paste(shock.cN,shock.var,sep=".")
-  eslct[select_shocks,] <- 1
-  
+  PHI  <-  PHIx[,,(plag+1):(plag+n.ahead+1)]
   # compute shock
-  invGSigma_u  <-  Ginv%*%P0G%*%Smat
-  cons<-as.numeric(1/sqrt(t(eslct)%*%Smat%*%eslct))
-  
+  invGSigma_u  <- Ginv%*%P0G
   # computing impulse response function
-  irfa  <- array(0,c(bigK,nhor+1)); dimnames(irfa)[[1]]  <- varNames
-  for (ihor in 1:(nhor+1)){
-    irfa[,ihor]  <-   as.matrix((PHI[,,ihor]%*%invGSigma_u%*%eslct))*cons
+  irfa  <- array(0,c(bigK,bigK,n.ahead+1)); dimnames(irfa)[[2]] <- varNames
+  for (ihor in 1:(n.ahead+1)){
+    irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
   }
-  
+  # define output
   out <- list(impl=irfa,rot=NULL)
   return(out)
 }
 
 #' @name .irf.girf
 #' @noRd
-.irf.girf <- function(x,plag,nhor,Ginv,Fmat,Smat,shock, ...){
-  bigT     <- nrow(x)
-  bigK     <- ncol(x)
-  varNames <- colnames(x)
-  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-  N        <- length(cN)
-  # shock details
-  shock.var <- shock$var
-  shock.cN  <- shock$cN
-  
+.irf.girf <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat, ...){
+  bigT     <- nrow(xdat)
+  bigK     <- ncol(xdat)
+  varNames <- colnames(xdat)
   # create dynamic multiplier
-  PHIx <- array(0,c(bigK,bigK,plag+nhor+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx <- array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
   PHIx[,,plag+1]  <-  diag(bigK)
-  for (ihor in (plag+2):(plag+nhor+1)){
+  for (ihor in (plag+2):(plag+n.ahead+1)){
     acc = matrix(0,bigK,bigK)
     for (pp in 1:plag){
       acc  <-  acc + Fmat[,,pp]%*%PHIx[,,ihor-pp]
     }
     PHIx[,,ihor]  <-  acc
   }
-  PHI  <-  PHIx[,,(plag+1):(plag+nhor+1)]
-  
-  # create selection matrix
-  eslct <- matrix(0,bigK,1);rownames(eslct) <- varNames
-  select_shocks <- paste(shock.cN,shock.var,sep=".")
-  eslct[select_shocks,] <- 1
-  
-  invGSigma_u  <-  Ginv%*%Smat
-  cons<-as.numeric(1/sqrt(t(eslct)%*%Smat%*%eslct))
+  PHI  <-  PHIx[,,(plag+1):(plag+n.ahead+1)]
+  # create shock
+  invGSigma_u <- Ginv%*%Smat
   # computing impulse response function
-  irfa  <- array(0,c(bigK,nhor+1)); dimnames(irfa)[[1]]  <- varNames
-  for (ihor in 1:(nhor+1)){
-    irfa[,ihor]  <-   as.matrix((PHI[,,ihor]%*%invGSigma_u%*%eslct))*cons
+  irfa  <- array(0,c(bigK,bigK,n.ahead+1)); dimnames(irfa)[[1]]  <- varNames
+  for (ihor in 1:(n.ahead+1)){
+    irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
   }
-  
-  return(list(impl=irfa,rot=NULL))
+  # define output
+  out <- list(impl=irfa,rot=NULL)
+  return(out)
 }
 
-#' @name .irf.gir.sims
+#' @name .irf.girf.sims
 #' @noRd
 .irf.girf.sims <- function(invG,lF,gcov,x,horizon=40,...){
   cN <- unique(substr(colnames(x),1,2))
@@ -1596,64 +1441,4 @@
     fevda[,,ih]=fevda[,,ih]/denm
   }
   return(fevda)
-}
-
-#' @name .impulsdtrf
-#' @noRd
-.impulsdtrf <- function(B,smat,nstep)
-  ### By:             As emerges from rfvar, neqn x nvar x lags array of rf VAR coefficients.
-  ### smat:           nshock x nvar matrix of initial shock vectors.  To produce "orthogonalized
-  ###                 impulse responses" it should have the property that crossprod(t(smat))=sigma,
-  ###                 where sigma is the Var(u(t)) matrix and u(t) is the rf residual vector.  One
-  ###                 way to get such a smat is to set smat=t(chol(sigma)).  To get the smat
-  ###                 corresponding to a different ordering, use
-  ###                 smat = t(chol(P %*% Sigma %*% t(P)) %*% P), where P is a permutation matrix.
-  ###                 To get impulse responses for a structural VAR in the form A(L)y=eps, with
-  ###                 Var(eps)=I, use B(L)=-A_0^(-1)A_+(L) (where A_+ is the coefficients on strictly
-  ###                 positive powers of L in A), smat=A_0^(-1).
-  ###                 In general, though, it is not required that smat be invertible.
-### response:       nvar x nshocks x nstep array of impulse responses.
-###
-### Code written by Christopher Sims,mat based on 6/03 matlab code.  This version 3/27/04.
-### Added dimension labeling, 8/02/04.
-{
-  
-  neq <- dim(B)[1]
-  nvar <- dim(B)[2]
-  lags <- dim(B)[3]
-  dimnB <- dimnames(B)
-  if(dim(smat)[2] != dim(B)[2]) stop("B and smat conflict on # of variables")
-  response <- array(0,dim=c(neq,nvar,nstep+lags-1));
-  response[ , , lags] <- smat
-  response <- aperm(response, c(1,3,2))
-  irhs <- 1:(lags*nvar)
-  ilhs <- lags * nvar + (1:nvar)
-  response <- matrix(response, ncol=neq)
-  B <- B[, , seq(from=lags, to=1, by=-1)]  #reverse time index to allow matrix mult instead of loop
-  B <- matrix(B,nrow=nvar)
-  for (it in 1:(nstep-1)) {
-    response[ilhs, ] <- B %*% response[irhs, ]
-    irhs <- irhs + nvar
-    ilhs <- ilhs + nvar
-  }
-  dim(response) <- c(nvar, nstep + lags - 1, nvar)
-  #drop the zero initial conditions; array in usual format
-  if(lags>1){
-    response<-response[,-(1:(lags-1)),]
-  }
-  response <- aperm(response, c(1, 3, 2))
-  dimnames(response) <- list(dimnB[[1]], dimnames(smat)[[2]], NULL)
-  ## dimnames(response)[2] <- dimnames(smat)[1]
-  ## dimnames(response)[1] <- dimnames(B)[2]
-  return(response)
-}
-
-#' @name .divisors
-#' @noRd
-.divisors <- function (n,div) {
-  div <- round(div)
-  for(dd in div:1){
-    if(n%%div==0) break else div<-div-1
-  }
-  return(div)
 }
