@@ -65,10 +65,10 @@
   W      <- lapply(W,function(x) x[cnames,cnames])
   
   xglobal <- c()
-  for(jj in 1:length(usData)){
-    pretemp <- usData[[1]];class(pretemp) <- "numeric"
+  for(jj in 1:length(Data)){
+    pretemp <- Data[[jj]];class(pretemp) <- "numeric"
     temp <- as.matrix(pretemp[,colSums(is.na(pretemp))<nrow(pretemp)])
-    colnames(temp) <- paste(names(usData)[1],colnames(pretemp),sep=".")
+    colnames(temp) <- paste(cnames[jj],colnames(pretemp),sep=".")
     xglobal <- cbind(xglobal,temp)
   }
   
