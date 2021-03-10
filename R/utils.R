@@ -66,9 +66,9 @@
   
   xglobal <- c()
   for(jj in 1:length(Data)){
-    temp <- Data[[jj]];class(temp) <- "numeric"
-    temp <- temp[,colSums(is.na(temp))<nrow(temp)]
-    colnames(temp) <- paste(cnames[jj],colnames(temp),sep=".")
+    pretemp <- Data[[jj]];class(pretemp) <- "numeric"
+    temp <- as.matrix(pretemp[,colSums(is.na(pretemp))<nrow(pretemp)])
+    colnames(temp) <- paste(cnames[jj],colnames(pretemp),sep=".")
     xglobal <- cbind(xglobal,temp)
   }
   
