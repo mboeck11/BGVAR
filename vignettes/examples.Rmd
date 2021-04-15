@@ -180,8 +180,7 @@ the adjusted `W.trade0012` weight matrix:
                 thin=1,
                 trend=TRUE,
                 h=0,
-                save.country.store=FALSE,
-                eigen=1.05
+                eigen=1
                 )
 
 ```
@@ -291,8 +290,7 @@ We can estimate the model with two further priors on the unit models, the SSVS p
                      thin=1,
                      trend=TRUE,
                      h=0,
-                     save.country.store=FALSE,
-                     eigen=1.05
+                     eigen=1
                      )
 
 ```
@@ -348,14 +346,9 @@ model.ssvs.2<-bgvar(Data=eerData2,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=1,
-                    hyperpara=NULL, 
-                    eigen=TRUE,
-                    variable.list=variable.list,
-                    OE.weights=NULL, 
-                    Wex.restr=NULL,
-                    trend=TRUE,
-                    save.country.store=FALSE
+                    eigen=1,
+                    expert=list(variable.list=variable.list),
+                    trend=TRUE
                     )
 ```
 
@@ -373,14 +366,9 @@ model.ssvs.3<-bgvar(Data=eerData,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=1,
-                    hyperpara=NULL, 
-                    eigen=TRUE,
-                    variable.list=NULL,
-                    OE.weights=NULL, 
-                    Wex.restr="ltir",
+                    eigen=1,
+                    expert=list(Wex.restr="ltir"),
                     trend=TRUE,
-                    save.country.store=FALSE
                     )
 ```
 
@@ -443,12 +431,8 @@ model.ssvs.4<-bgvar(Data=eerData2,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    thin=1,
-                    hyperpara=NULL, 
-                    variable.list=NULL,
-                    OE.weights=OE.weights, 
-                    trend=TRUE,
-                    save.country.store=FALSE
+                    expert=list(OE.weights=OE.weights),
+                    trend=TRUE
                     )
 ```
 
@@ -486,9 +470,11 @@ We have to set up a list `shock` that contains information about which variable 
  If the argument `cores` is set to to a number, computation is sped up by using multiple CPU cores. The package attempts to detect the number of cores on the computer, which it uses then for parallel computing. Default is set to `FALSE` to not slow down the computer.
 </p>
 ```{r "us.mp", results="hide"}
-  # US monetary policy shock
- shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
- irf.chol.us.mp<-irf(model.ssvs.1,shock=shocks,n.ahead=24,save.store=TRUE)
+# US monetary policy shock
+shockinfo<-get_shockinfo("chol")
+shockinfo$shock<-"US.stir"
+shockinfo$scale<--100
+irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo, expert=list(save.store=TRUE))
 ```
 
 The results are stored in `irf.chol.us.mp`.
@@ -504,7 +490,7 @@ names(irf.chol.us.mp)
 We can plot the complete responses of a particular country by typing:
 
 ```{r "us.mp4", fig.margin=TRUE,out.width="80%",fig.cap="Responses of US country model"}
-plot(irf.chol.us.mp,resp="US")
+plot(irf.chol.us.mp, resp="US", shock="US.stir")
 ```
 
 The plot shows the posterior median response (solid, black line) along 50\% (dark grey) and 68\% (light grey) credible intervals.
@@ -513,20 +499,21 @@ We can also compare the Cholesky responses with GIRFs.
 For that purpose, let us look at a GDP shock. 
 
 ```{r, "us.gdp", results="hide"}
+shockinfo<-get_shockinfo("chol", nr_rows = 2)
+shockinfo$shock<-c("US.stir","US.y")
+shockinfo$scale<-c(1,1)
 # Recursive US GDP
-shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-1
-irf.chol.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
+irf.chol.us.y<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo)
 # GIRF US GDP
-shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="girf";shocks$scal=-1
-irf.girf.us.y<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
+irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
 ```
 
 ```{r, "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%",}
-plot(irf.chol.us.y,resp="US.y")
-plot(irf.girf.us.y,resp="US.y")
+plot(irf.chol.us.y, resp="US.y", shock="US.y")
+plot(irf.girf.us.y, resp="US.y", shock="US.y")
 
-plot(irf.chol.us.y,resp="US.rer")
-plot(irf.girf.us.y,resp="US.rer")
+plot(irf.chol.us.y,resp="US.rer", shock="US.y")
+plot(irf.girf.us.y,resp="US.rer", shock="US.y")
 ```
 
 <p align="justify">
@@ -537,8 +524,11 @@ Last, we could also look at a *joint or global shock*. For example, we could be 
 
 
 ```{r, "global.gdp",results="hide"}
-shocks<-list();shocks$var="y";shocks$cN<-c("EA", "US", "RU");shocks$ident="girf";shocks$scal=-1
-irf.chol.ssvs<-irf(model.ssvs.1,shock=shocks,n.ahead=24)
+shockinfo<-get_shockinfo("girf", nr_rows = 3)
+shockinfo$shock<-c("EA.y","US.y","RU.y")
+shockinfo$global<-TRUE
+irf.global<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
+plot(irf.global, resp=c("US.y","EA.y","RU.y"), shock="Global.y")
 ```
 
 
@@ -564,9 +554,7 @@ model.ssvs.eer<-bgvar(Data=eerDataspf,
                       draws=100,
                       burnin=100,
                       prior="SSVS",
-                      SV=TRUE,
-                      thin=1
-                      )
+                      SV=TRUE)
 ```
 <p align="justify">
 For now, we start with an identification of two standard shocks in economics in the US model, namely an aggregate demand and aggregate supply shock. 
@@ -575,21 +563,11 @@ We specify the sign restrictions by setting up a list that has to contain the in
 
 
 ```{r, "us.spf.sign.spec"}
- sign.constr.eer<-list()
- sign.constr.eer$shock1$shock<-"US.y" # Positive AD Shock, gdp goes up,
- sign.constr.eer$shock1$restrictions$res1<-"US.Dp" #inflation up and interest rates as well
- sign.constr.eer$shock1$sign<-c(">",">")
- sign.constr.eer$shock1$rest.horz<-c(1,1)
- sign.constr.eer$shock1$constr<-c(1,1)# no cross-country restrictions, set constr. to 1
- sign.constr.eer$shock1$scal<-1 #+1% increase
- sign.constr.eer$shock2$shock<-"US.Dp" # Negative AS shock, inflation up
- sign.constr.eer$shock2$restrictions$res1<-"US.y"
- sign.constr.eer$shock2$sign<-c(">","<")
- sign.constr.eer$shock2$rest.horz<-c(1,1)
- sign.constr.eer$shock2$constr<-c(1,1) # no cross-country restrictions, set constr. to 1
- sign.constr.eer$shock2$scal<-1 #+1% increase
- names(sign.constr.eer)<-c("AD","AS")
- sign.constr.eer$MaxTries<-10000 # maximum number of rotations per draw
+shockinfo<-get_shockinfo("sign")
+shockinfo<-add_shockinfo(shockinfo, shock="US.y", 
+                         restriction="US.Dp", sign=">", horizon=1, prob=1, scale=1)
+shockinfo<-add_shockinfo(shockinfo, shock="US.Dp",
+                         restriction="US.y", sign="<", horizon=1, prob=1, scale=1)
 ```
 
 
@@ -598,7 +576,8 @@ We then invoke the `irf()` command to compute the impulse responses. The functio
 </p>
 
 ```{r, "us.spf.sign",message=FALSE, results="hide"}
-irf.sign<-irf(model.ssvs.eer,n.ahead=24,sign.constr=sign.constr.eer,save.store=TRUE)
+irf.sign<-irf(model.ssvs.eer, n.ahead=24, ident="sign", shockinfo=shockinfo, 
+              expert=list(MaxTries=100, save.store=TRUE))
 ```
 
 We can infer the number of successful rotation matrices by looking at 
@@ -607,14 +586,11 @@ irf.sign$rot.nr
 ```
 
 ```{r,"us.spf.plots",fig.cap="Responses to AS (left) and AD (right) shock.",fig.show="hold",out.width="25%"}
-plot(irf.sign,resp="US.y",shock.nr=1)
-plot(irf.sign,resp="US.y",shock.nr=2)
+plot(irf.sign, resp="US.y", shock="US.y")
+plot(irf.sign, resp="US.y", shock="US.Dp")
 
-plot(irf.sign,resp="US.Dp",shock.nr=1)
-plot(irf.sign,resp="US.Dp",shock.nr=2)
-
-plot(irf.sign,resp="US.rer",shock.nr=1)
-plot(irf.sign,resp="US.rer",shock.nr=2)
+plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.y")
+plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.Dp")
 ```
 
 
@@ -623,28 +599,14 @@ Several recent papers advocate the inclusion of survey data in a VAR. @Castelnuo
 </p>
 
 ```{r, "us.spf.sign3",results="hide"}
-sign.constr<-list()
-# shock to 4-step ahead expectation of US.stir
-sign.constr$shock1$shock<-"US.stir_t+4"
-sign.constr$shock1$restrictions$res1<-"US.Dp_t+4"
-# zero restriction on US.stir
-sign.constr$shock1$restrictions$res2<-"US.stir"
-sign.constr$shock1$restrictions$res3<-"US.y_t+4"
-# rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
-# US.stir between horizon 1 and 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res4<-"US.stir_t+4" 
-# rationality condition: US.Dp_t+4 on impact is equal to H-step ahead IRF 
-# of US.Dp in horizon 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res5<-"US.Dp_t+4" 
-# rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
-# of US.y in horizon 4 (defined with rest.horz, but as period 5!)
-sign.constr$shock1$restrictions$res6<-"US.y_t+4"
-sign.constr$shock1$sign<-c(">","<","0","<","ratio.avg","ratio.H","ratio.H")
-sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
-sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
-sign.constr$shock1$scal=1
-sign.constr$MaxTries<-200
-irf.sign.zero<-irf(model.ssvs.eer,n.ahead=20,sign.constr=sign.constr,save.store=TRUE)
+shockinfo<-get_shockinfo("sign")
+shockinfo<-add_shockinfo(shockinfo, shock="US.stir_t+4",
+                         restriction=c("US.Dp_t+4","US.stir","US.y_t+4","US.stir_t+4","US.Dp_t+4","US.y_t+4"),
+                         sign=c("<","0","<","ratio.avg","ratio.H","ratio.H"),
+                         horizon=c(1,1,1,5,5,5),
+                         prob=1, scale=1)
+irf.sign.zero<-irf(model.ssvs.eer, n.ahead=20, ident="sign", shockinfo=shockinfo, 
+                   expert=list(MaxTries=100, save.store=TRUE))
 ```
 <p align="justify">
 The figure below shows the results for short term interest rates (`stir`) and output (`y`). 
@@ -653,20 +615,20 @@ The figure below shows the results for short term interest rates (`stir`) and ou
 ```{r, "eer.spf.plots",fig.cap="Rationality conditions I.",out.width="50%",fig.show="hold"}
 # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
 # US.stir between horizon 2 and 5
-matplot(cbind(irf.sign$posterior["US.stir_t+4",,1,"median"],
-              irf.sign$posterior["US.stir",,1,"median"]),
+matplot(cbind(irf.sign.zero$IRF_store[1,"US.stir_t+4",1,],
+              irf.sign.zero$IRF_store[1,"US.stir",1,]),
         type="l",ylab="",main="stir",lwd=2); legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-abline(h=mean(irf.sign$posterior["US.stir",2:5,1,"median"]),lwd=2)
-abline(v=c(2,5),lty=3,col="grey",lwd=2)
+abline(h=mean(irf.sign.zero$IRF_store[1,"US.stir_t+4",1,1:4]),lwd=2)
+abline(v=c(1,4),lty=3,col="grey",lwd=2)
 
 # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
 # of US.y in horizon 5
-matplot(cbind(irf.sign$posterior["US.y_t+4",,1,"median"],
-              irf.sign$posterior["US.y",,1,"median"]),
+matplot(cbind(irf.sign$IRF_store[1,"US.y_t+4",1,],
+              irf.sign$IRF_store[1,"US.y",1,]),
         type="l",ylab="",main="y",lwd=2)
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-abline(h=irf.sign$posterior["US.y_t+4",1,1,"median"],lwd=2)
-abline(v=5,lty=3,col="grey",lwd=2)
+abline(h=irf.sign$IRF_store[1,"US.y_t+4",1,1],lwd=2)
+abline(v=c(1,4),lty=3,col="grey",lwd=2)
 ```
 
 
@@ -712,9 +674,8 @@ model.ssvs<-bgvar(Data=monthlyData,
                   burnin=100,
                   plag=1,
                   prior="SSVS",
-                  thin=1,
                   eigen=1.05,
-                  OE.weights=OE.weights)
+                  expert=list(OE.weights=OE.weights))
 ```
 
 We can now impose a global shock and sign restrictions on the cross section by setting up a list object:
@@ -723,34 +684,20 @@ We can now impose a global shock and sign restrictions on the cross section by s
 ```{r,"ea.sign"}
 # imposes sign restrictions on the cross-section and for a global shock
 # (long-term interest rates)
-sign.constr<-list()
-# the variable to shock, can be imposed for more than one country
-# but should be the same variable for all of them
-sign.constr$shock1$shock = c(paste0(EA_countries[-c(3,12)],".ltir")) 
-# restrictions (industrial production should decrease for selected countries)                         
-sign.constr$shock1$restrictions$res1<-paste0(EA_countries,".y")
-# another set of restrictions (inflation  should decrease for selected countries)
-sign.constr$shock1$restrictions$res2<-paste0(EA_countries,".p") 
-# first entry is for the shock, following entries for the restrictions 
-# (ltir should go up, y and p go down)
-sign.constr$shock1$sign<-c(">","<","<") 
-# nr. of time periods restrictions are imposed, first entry is for the shock, 
-# following entries for the restrictions
-sign.constr$shock1$rest.horz<-c(1,1,1)
-# are constraints binding for all (1) countries specified or for at least 50% of 
-# the countries (0.5), or 75% (0.75)
-sign.constr$shock1$constr<-c(1,0.5,0.5) 
-# a minus 100 bp shock to long-term interest rates (on average)
-sign.constr$shock1$scal=-100
-# rotation specification
-sign.constr$MaxTries<-200
+shockinfo<-get_shockinfo("sign")
+for(cc in c("AT","BE","ES","FI","FR")){
+  shockinfo<-add_shockinfo(shockinfo, shock=paste0(cc,".ltir"),
+                           restriction=paste0(cc,c(".y",".p")),
+                           sign=c("<","<"), horizon=c(1,1), 
+                           prob=c(0.5,0.5), scale=c(-100,-100),
+                           global=TRUE)
+}
 ```
 
 The slot `sign.constr$shock1$shock` contains the countries and variables to shock and `sign.constr$shock1$restrictions` the restrictions on the cross-section.
 
 ```{r,"global.restrictions"}
-sign.constr$shock1$shock
-sign.constr$shock1$restrictions
+shockinfo
 ```
 <p align="justify">
 The restrictions on the cross-section can be specified to hold only for a percentage of countries
@@ -759,28 +706,20 @@ We have used the following specification: `sign.constr$shock1$constr<-c(1,0.5,0.
 
 We can now compute the impulse responses using the same function as before.
 ```{r,"global.shock.irf",echo=TRUE,results="hide"}
-irf.sign.ssvs<-irf(model.ssvs,             # gvar object
-                   shock=NULL,             # shockc is not needed 
-                   n.ahead=24,             # impulse response horizon
-                   sign.constr=sign.constr # list with sign-restrictions
-                   )
+irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo)
 ```
 
 To verify the sign restrictions, type:
 
 ```{r,"ea.sign.verify"}
-irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"median"]
-irf.sign.ssvs$posterior[paste0(EA_countries,".y"),1,1,"median"]
-irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"median"]
+irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
+irf.sign.ssvs$posterior[paste0(EA_countries,".y"),1,1,"Q50"]
+irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 ```
 
 The following plots the output responses for selected euro area countries.
 ```{r, "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."}
-plot(irf.sign.ssvs,resp="AT.y")
-plot(irf.sign.ssvs,resp="BE.y")
-
-plot(irf.sign.ssvs,resp="DE.y")
-plot(irf.sign.ssvs,resp="ES.y")
+plot(irf.sign.ssvs, resp=c("AT.y","BE.y","DE.y","ES.y"), shock="Global.ltir")
 ```
   
 
@@ -837,14 +776,14 @@ Historical decompositions allow to examine the relative importance of structural
 </p>
 
 ```{r,"hd"}
- HD<-hd(irf.chol.us.mp)
- # summing them up should get you back the original time series
- org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
+HD<-hd(irf.chol.us.mp)
+# summing them up should get you back the original time series
+org.ts<-apply(HD$hd_array,c(1,2),sum) # this sums up the contributions of all shocks + constant, initial conditions and residual component (last three entries in the third dimension of the array)
 ```  
 
 ```{r, "hd.plot",fig.cap="Historical decomposition of euro area GDP.",out.width="50%"}  
-  matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
-  legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
+matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
+legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 ```
 
 
@@ -864,14 +803,22 @@ Since the GVAR framework was developed to capture cross-country dependencies, it
 To compute forecasts with the `BGVAR` package, we use the command `predict`. To be able to evaluate the forecast, we have to specify the size of the hold-out sample when estimating the model. Here, we choose a hold-out-sample of 8 observations by setting `h=8` (the default values is `h=0`):   
 </p>
 ```{r,"fcast.est", results="hide"}
-model.ssvs.h8<-bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,prior="SSVS",
-                    SV=TRUE,thin=1,eigen=1.05,trend=TRUE,h=8)
+model.ssvs.h8<-bgvar(Data=eerData,
+                     W=W.trade0012,
+                     plag=1,
+                     draws=100,
+                     burnin=100,
+                     prior="SSVS",
+                     SV=TRUE
+                     ,eigen=1.05,
+                     trend=TRUE,
+                     hold.out=8)
 ```
 <p align="justify">
 The forecasts can then be calculated using the `predict` function. We calculate forecasts up to 8 periods ahead by setting `n.ahead=8`-step
 </p>
 ```{r,"fcast.predict", results="hide"}
-fcast <- predict(model.ssvs.h8, n.ahead=8,save.store=TRUE)
+fcast <- predict(model.ssvs.h8, n.ahead=8, save.store=TRUE)
 ```
 <p align="justify">
 The forecasts are stored in `fcast$fcast` which contains also the credible intervals of the predictive posterior distribution. We can evaluate the forecasts with the retained observations looking at the root mean squared errors (RMSEs) or log-predictive scores (LPS).
@@ -887,7 +834,7 @@ The objects `lps.h8` and `rmse.h8` then each contain a $8 \times k$ matrix with 
 
 Last, we can visualize the forecasts by typing
 ```{r, "fcast.plot",fig.cap="Forecast plot.",out.width="50%"}  
-plot(fcast, resp="US.Dp", Cut=8)
+plot(fcast, resp="US.Dp", cut=8)
 ```
 with `Cut` denoting the number of realized data points that should be shown in the plot prior the forecasts start. 
 
@@ -907,7 +854,7 @@ colnames(constr) <- colnames(model.ssvs.h8$xglobal)
 # set "US.Dp" for five periods on its last value
 constr[1:5,"US.Dp"] <-model.ssvs.h8$xglobal[nrow(model.ssvs.h8$xglobal),"US.Dp"]
 # compute conditional forecast (hard restriction)
-cond_fcast <- cond.predict(constr=constr, bgvar.obj=model.ssvs.h8, pred.obj=fcast, constr_sd=NULL)
+cond_fcast <- predict(model.ssvs.h8, n.ahead=8, constr=constr, constr_sd=NULL)
 ```
 <p align="justify">
 We could impose the same restrictions as "soft conditions" accounting for uncertainty by drawing from a Gaussian distribution with the conditional forecast in `constr` as mean and standard deviations in the matrix `constr_sd` of same size as `constr`. 
@@ -919,15 +866,15 @@ colnames(constr_sd) <- colnames(model.ssvs.h8$xglobal)
 constr_sd[1:5,"US.Dp"] <- 0.001
 
 # compute conditional forecast with soft restrictions
-cond_fcast2 <- cond.predict(constr=constr, bgvar.obj=model.ssvs.h8, pred.obj=fcast, constr_sd=constr_sd)
+cond_fcast2 <- predict(model.ssvs.h8, n.ahead=8, constr=constr, constr_sd=constr_sd)
 ```
 
 We can then compare the results
 
 
 ```{r, "cond.plot.1",out.width="50%",fig.show="hold",fig.cap="Conditional forecast of US Inflation, top panel without uncertainty during the conditioning, bottom panel with uncertainty."}  
-plot(cond_fcast, resp="US.Dp", Cut=10)
-plot(cond_fcast2, resp="US.Dp", Cut=10)
+plot(cond_fcast, resp="US.Dp", cut=10)
+plot(cond_fcast2, resp="US.Dp", cut=10)
 ```
 
 with `Cut` denoting the number of realized data points that should be shown in the plot prior the conditioning starts. 
@@ -955,7 +902,7 @@ Main arguments and description of the function `bgvar`.
 
 * `SV`: If set to `"TRUE"`, models are fitted with stochastic volatility using the `stochvol` and `GIGrvg` packages. Due to storage issues, not the whole history of the $T$ variance covariance matrices are kept. Consequently, the BGVAR package shows only one set of impulse responses (with variance covariance matrix based on the median volatilities over the sample period) instead of $T$ sets. Specify `SV=FALSE` to turn SV off.
 
-* `h`: Defines the hold-out sample. Default without hold-out sample, thus set to zero.
+* `hold.out`: Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 
 * `thin`: Is a thinning interval which grabs every 'thin'th draw from the posterior output. For example, `thin=10` saves every tenth draw from the posterior. Default set to `thin=1`.
 
@@ -984,31 +931,28 @@ Main arguments and description of the function `bgvar`.
     + `"NG"`
         + `e_lambda` Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is `e_lambda=1.5`.
         + `d_lambda` Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is `d_lambda=1`.
-        + `a_start` Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of `a_start=1` would lead to the Bayesian LASSO. Default value differs per entity and set to `a_start=1/log(M)`, where `M` is the number of endogenous variables per entity.
-        + `sample_A` If set to `TRUE` `a_start` is sampled.
+        + `tau_theta` Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of `tau_theta=1` would lead to the Bayesian LASSO. Default value differs per entity and set to `tau_theta=1/log(M)`, where `M` is the number of endogenous variables per entity.
+        + `sample_tau` If set to `TRUE` `tau_theta` is sampled.
 
 * `eigen` Set to `TRUE` if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If `eigen` is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to $1.05$ (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than $1.05$ in modulus).
-
-* `variable.list` In case `W` is a list of weight matrices, specify here which set of variables should be weighted by which weight matrix. See the help file on getweights for details. Default is `NULL`.
-
-* `OE.weights`: Default value is `NULL`. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model [@Mohaddes2019] or a model for the joint euro area monetary policy [@Georgiadis2015; @Feldkircher2020]. The data for these additional country models has to be contained in `Data`. The number of additional country models is unlimited. Each list entry of `OE.weights` has to be named similar to the name of the additional country model contained in `Data`. Each slot of `OE.weights` has to contain the following information:
-  + `weights` a vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.
-  + `variables` a vector of variable names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with `weights`).
-  + `exo` a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.
-
-* `Wex.restr`	A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is `NULL` in which case all weakly exogenous variables are treated symmetrically. See function getweights for more details.
 
 * `Ex` For including truly exogenous variables to the model. Either a 
         + `list object` of maximum length `N` that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in `Data`. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The `T` rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot `.` (i.e., a dot) since this is our naming convention.
         + `matrix object` of dimension `T` times number of truly exogenous variables. The column names should consist of two parts, separated by a `.` (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a `.` (i.e., a dot).
-
+        
 * `trend`	If set to `TRUE` a deterministic trend is added to the country models.
 
-* `save.country.store` If set to `TRUE` then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to `FALSE`.
-
-* `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
-
-* `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
+* `expert` Expert settings, must be provided as list. Default is set to `NULL`.
+        + `variable.list` In case `W` is a list of weight matrices, specify here which set of variables should be weighted by which weighting matrix. Default is set to `NULL`.
+        + `OE.weights`: Default value is `NULL`. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model [@Mohaddes2019] or a model for the joint euro area monetary policy [@Georgiadis2015; @Feldkircher2020]. The data for these additional country models has to be contained in `Data`. The number of additional country models is unlimited. Each list entry of `OE.weights` has to be named similar to the name of the additional country model contained in `Data`. Each slot of `OE.weights` has to contain the following information:
+            + `weights` a vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.
+            + `variables` a vector of variable names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with `weights`).
+            + `exo` a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.
+        + `Wex.restr`	A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is `NULL` in which case all weakly exogenous variables are treated symmetrically. See function getweights for more details.
+        + `save.country.store` If set to `TRUE` then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to `FALSE`.
+        + `use_R` Boolean whether estimation should fall back on `R` version, otherwise `Rcpp` version is used (default).
+        + `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
+        + `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
 
 * `verbose` If set to `FALSE` it suppresses printing messages to the console.
 
@@ -1026,8 +970,8 @@ variable.list      <- list()
 variable.list$real <- c("y","Dp","tb")
 variable.list$fin  <- c("stir","ltir","rer")
 Hyperparm.MN <- list(a_i = 0.01, # prior for the shape parameter of the IG
-                       b_i = 0.01  # prior for the scale parameter of the IG
-                       )
+                     b_i = 0.01  # prior for the scale parameter of the IG
+                     )
 model.MN<-bgvar(Data=eerData,
                   W=W.list[c("tradeW.0012","finW0711")],
                   draws=200,
@@ -1038,7 +982,7 @@ model.MN<-bgvar(Data=eerData,
                   thin=1,
                   eigen=TRUE,
                   SV=TRUE,
-                  variable.list=variable.list)
+                  expert=list(variable.list=variable.list))
 
 # SSVS prior
 Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spike
@@ -1049,8 +993,8 @@ Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spi
                                       # (kappa0 << kappa1)
                        kappa1 = 7,    # covariances: prior variance for the slab 
                                       # (kappa0 << kappa1)
-                       a_i    = 0.01, # prior for the shape parameter of the IG
-                       b_i    = 0.01, # prior for the scale parameter of the IG
+                       a_1    = 0.01, # prior for the shape parameter of the IG
+                       b_1    = 0.01, # prior for the scale parameter of the IG
                        p_i    = 0.5,  # prior inclusion probability of coefficients
                        q_ij   = 0.5   # prior inclusion probability of covariances
                        )
@@ -1067,15 +1011,13 @@ model.ssvs<-bgvar(Data=eerData,
 # Normal Gamma prior
 data(monthlyData)
 monthlyData$OC<-NULL
-Hyperparm.ng<-list(c_tau    = 0.01, # covariances: prior hyperparameter for the NG-prior
-                   d_tau    = 0.01, # covariances: prior hyperparameter for the NG-prior
-                   e_lambda = 1.5,  # coefficients: prior hyperparameter for the NG-prior
-                   d_lambda = 1,    # coefficients: prior hyperparameter for the NG-prior
-                   prmean   = 0,    # prior mean for the first lag of the AR coefficients
-                   a_i      = 0.01, # prior for the shape parameter of the IG
-                   b_i      = 0.01, # prior for the scale parameter of the IG
-                   a_start  = .6,   # (hyper-)parameter for the NG
-                   sample_A = FALSE # estimate a?
+Hyperparm.ng<-list(d_lambda   = 1.5,  # coefficients: prior hyperparameter for the NG-prior
+                   e_lambda   = 1,    # coefficients: prior hyperparameter for the NG-prior
+                   prmean     = 0,    # prior mean for the first lag of the AR coefficients
+                   a_1        = 0.01, # prior for the shape parameter of the IG
+                   b_1        = 0.01, # prior for the scale parameter of the IG
+                   tau_theta  = .6,   # (hyper-)parameter for the NG
+                   sample_tau = FALSE # estimate a?
                    ) 
 model.ng<-bgvar(Data=monthlyData,
                 W=W,
@@ -1087,7 +1029,7 @@ model.ng<-bgvar(Data=monthlyData,
                 thin=2,
                 eigen=TRUE,
                 SV=TRUE,
-                OE.weights=list(EB=EA.weights))
+                expert=list(OE.weights=list(EB=EA.weights)))
 ```
 
 
@@ -1098,30 +1040,18 @@ model.ng<-bgvar(Data=monthlyData,
 
 * `n.ahead`: Forecasting horizon.
 
-* `shock`: This is a list object. It should contain the following entries:
-  + `var`: Character that contains the name of the variable to be shocked. 
-  + `cN`: Character (or character vector) of the country (countries) in which the variable should be shocked. 
-  + `ident`: Character to specify either `chol` if the shock is based on a Cholesky identification or `girf` if generalized impulse responses should be calculated. 
-  + `scal`: Optional entry in case impulses should be normalized (e.g., a +100bp increase in the interest rate).
+* `ident`: Character defining type of identification scheme. Default `chol` refers to zero restrictions via the Cholesky decomposition while `sign` refers to sign-restrictions and `girf` to generalized impulse responses.
 
-* `sign.constr`: The user should submit a list containing the following entries:
-    + `shock1` Is a list object that defines sign restrictions for a particular shock.
-        + `shock`: Character vector containing the country and variable to shock separated by a dot. Example, `AT.ltir` (long-term interest rates in Austria).
-        + `restrictions`: This is a list containing the variables to restrict. Can have several sub-list restrictions, e.g., `sign.constr$shock1$restrictions$rest1=c("DE.y","AT.y")`, 
-        `sign.constr$shock1$restricionts$rest2=c("NL.p","AT.p")`, putting restrictions on GDP in Germany and Austria and a second set of restrictions on prices in the Netherlands and Austria.
-        + `sign`: Character vector of length of set of restrictions + 1, specifying the signs to impose. Use either $>$, $<$ or $0$. The latter implements zero restrictions according to @Arias2018. First entry is for the shock, say `AT.ltir` should go up, the following entries refer to the restrictions. `sign.constr$shock1$sign=c(">", "<", "<")` would impose `AT.ltir` to increase, and variables specified in `sign.constr$shock1$restricionts$rest1 and sign.constr$shock1$restrictions$rest2` to decrease.
-        + `rest.horz`: Is a vector with same length as slot sign above and specifies the length of periods the restrictions are imposed. If `rest.horz` is 1, only impact restrictions are considered.
-        + `constr`: Is a vector with same length as slot `sign` above with elements lying between 0 and 1. It specifies the percentage of countries for which cross-country restrictions have to hold. If no cross-country restrictions are supplied, set all elements of `constr` to 1.
-        + `scal`: Optional numeric. If specified then the shock will be calibrated to match `scal` on impact.
-        + `MaxTries`: Optional numeric corresponding to the maximum tries to search for a rotation matrix that fulfills the user-specified restrictions. Default is set to `7500`. After `MaxTries` unsuccessful tries the algorithm sets the impulse response for that specific posterior draw to `NA`.
-    + `shock2` Define a second list with the same entries as above to identity a second shock. Can be used iteratively to identify multiple shocks.
+* `shockinfo` Dataframe with additional information about the nature of shocks. Depending on the `ident` argument, the dataframe has to be specified differently. In order to get a dummy version for each identification scheme use `get_shockinfo`.
 
-* `save.store`: If `TRUE` the full posterior is returned. Default is `FALSE` in order to save storage.
+* `quantiles` Numeric vector with posterior quantiles. Default is set to compute median along with 68%/80%/90% confidence intervals.
 
-* `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
-
-* `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.
-
+* `expert` Expert settings, must be provided as list. Default is set to `NULL`.
+    + `MaxTries` Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computation times.
+    + `save.store` If set to `TRUE` the full posterior of both, impulse response and rotation matrices, are returned. Default is `FALSE` in order to save storage.
+    + `use_R` Boolean whtether IRF computation should fall back on `R` version, otherwise `Rcpp` version is used (default).
+    + `applyfun` In case `use_R=TRUE`, this allows for user-specific apply function, which has to have the same interface than `lapply`. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
+    + `cores` Numeric specifying the number of cores which should be used, also `all` and `half` is possible. By default only one core is used.
 * `verbose` If set to `FALSE` it suppresses printing messages to the console.
 
 
@@ -1133,131 +1063,54 @@ Below, find some further examples.
   # First example, a US monetary policy shock, quarterly data
   library(BGVAR)
   data(eerData)
-  model.ssvs.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
-  # US monetary policy shock
-  shocks<-list();shocks$var="stir";shocks$cN<-"US";shocks$ident="chol";shocks$scal=-100
-  irf.chol.us.mp<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
+  model.eer<-bgvar(Data=eerData,W=W.trade0012,draws=500,burnin=500,plag=1,prior="SSVS",thin=10,eigen=TRUE,trend=TRUE)
   
-  # plots an impulse response function
-  plot(irf.chol.us.mp,resp="US.y")
+  shockinfo<-get_shockinfo("chol")
+  shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+  
+  # generalized impulse responses
+  irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
+  
+  # cholesky identification
+  irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
 
- # calculates generalized impulse response functions for the same shock as above
-  shocks$ident="girf"
-  irf.girf.ssvs<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-  plot(irf.girf.ssvs,resp="US.y")
-
-# Shock to first ordered variable yields same responses of cholesky and GIRF
-  shocks<-list();shocks$var="y";shocks$cN<-"US";shocks$ident="chol";shocks$scal=+1
-  irf.chol<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-  shocks$ident<-"girf"
-  irf.girf<-irf(model.ssvs.eer,shock=shocks,n.ahead=24)
-  matplot(cbind(irf.chol$posterior["US.y",,1,"median"],irf.girf$posterior["US.y",,1,"median"]),type="l",ylab="")
-  matplot(cbind(irf.chol$posterior["US.Dp",,1,"median"],irf.girf$posterior["US.Dp",,1,"median"]),type="l",ylab="")
-  matplot(cbind(irf.chol$posterior["EA.y",,1,"median"],irf.girf$posterior["EA.y",,1,"median"]),type="l",ylab="")
-
-
-
-  # second example, cross-country restrictions, multiple shocks and ECB country model
-  library(BGVAR)
-  data(monthlyData);monthlyData$OC<-NULL
-  OE.weights = list(EB=EA.weights)
-  # estimates the model
-  model.ssvs<-bgvar(Data=monthlyData,W=W,draws=500,burnin=500,plag=1,prior="SSVS",thin=10 ,eigen=TRUE,OE.weights=OE.weights)
-
-  EA_countries <- c("AT", "BE", "DE","ES", "FI","FR", "IE", "IT", "NL", "PT","GR","SK") #,"MT","CY","EE","LT","LV")
-
-  # A simultaneous Cholesky shock to long-term interest rates in the euro area countries, scaled to amount to -100 basis points (on average over the EA countries).
-  # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
-  # the model (by bgvar)
-  shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
-
-  # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
-  sign.constr<-list()
-  sign.constr$shock1$shock<-c(paste0(EA_countries[-c(3,12)],".ltir")) # the variable to shock, can be imposed for more than one country
-                                                                      #but should be the same variable   for all of them
-  sign.constr$shock1$restrictions$res1<-paste0(EA_countries,".y") # restrictions (industrial production should decrease for selected countries)
-  sign.constr$shock1$restrictions$res2<-paste0(EA_countries,".p") # another set of restrictions (inflation  should decrease for selected countries)
-  sign.constr$shock1$sign<-c(">","<","<") # first entry is for the shock, following entries for the restrictions (ltir should go up, y and p go down)
-  sign.constr$shock1$rest.horz<-c(1,1,1) # nr. of time periods restrictions are imposed, first entry is for the shock, following entries for the restrictions
-  sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
-  sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
-  sign.constr$MaxTries<-200
-  irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
-
-
- # Same example but using a local (German) shock and cross-country restrictions.
-  # Note that the ordering of the variables influences the response, the ordering is exactly as in the country models, to use a different order you have re-estimate
-  # the model (by bgvar)
-  shocks<-list();shocks$var="ltir";shocks$cN<-EA_countries;shocks$ident="chol";shocks$scal=-100
-  irf.chol.ssvs<-irf(model.ssvs,shock=shocks,n.ahead=24)
-
-  # imposes sign restrictions on the cross-section and for a global shock (long-term interest rates)
-  sign.constr<-list()
-  sign.constr$shock1$shock<-c("DE.ltir") # the variable to shock, can be imposed for more than one country
-                                                                      #but should be the same variable   for all of them
-  sign.constr$shock1$restrictions$res1<-paste0(EA_countries,".y") # restrictions (industrial production should decrease for selected countries)
-  sign.constr$shock1$restrictions$res2<-paste0(EA_countries,".p") # another set of restrictions (inflation  should decrease for selected countries)
-  sign.constr$shock1$sign<-c(">","<","<") # first entry is for the shock, following entries for the restrictions (ltir should go up, y and p go down)
-  sign.constr$shock1$rest.horz<-c(2,2,1) # nr. of time periods restrictions are imposed, first entry is for the shock, following entries for the restrictions
-  sign.constr$shock1$constr<-c(1,0.5,0.5) # are constraints binding for all (1) countries specified or for at least 50% of the countries (0.5), or 75% (0.75)
-  sign.constr$shock1$scal=-100 # a minus 100 bp shock to long-term interest rates (on average)
-  sign.constr$MaxTries<-200
-  irf.sign.ssvs<-irf(model.ssvs,shock=NULL,n.ahead=24,sign.constr=sign.constr)
-
- # Example with zero restriction (Arias et al., 2018) and rationality conditions (D'Amico and King, 2017).
+  # sign restrictions
+  shockinfo <- get_shockinfo("sign")
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
+                             sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
+  irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+ 
+  # sign restrictions with relaxed cross-country restrictions
+  shockinfo <- get_shockinfo("sign")
+  # restriction for other countries holds to 75\%
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"), 
+                             sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
+                             sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
+  irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+  
+  # Example with zero restriction (Arias et al., 2018) and 
+  # rationality conditions (D'Amico and King, 2017).
   data("eerDataspf")
-  model.ssvs.eer<-bgvar(Data=eerDataspf,
-                    W=W.trade0012.spf,
-                    plag=1,
-                    draws=500,
-                    burnin=500,
-                    prior="SSVS",
-                    SV=TRUE,
-                    thin=10)
-  
-  sign.constr<-list()
-  # shock to 4-step ahead expectation of US.stir
-  sign.constr$shock1$shock<-"US.stir_t+4"
-  sign.constr$shock1$restrictions$res1<-"US.Dp_t+4"
-  # zero restriction on US.stir
-  sign.constr$shock1$restrictions$res2<-"US.stir"
-  sign.constr$shock1$restrictions$res3<-"US.y_t+4"
-  # rationality condition: US.stir_t+4 on impact is equal to average of IRF of 
-  # US.stir between horizon 1 and 4 (defined with rest.horz, but as period 5!)
-  sign.constr$shock1$restrictions$res4<-"US.stir_t+4" 
-  # rationality condition: US.Dp_t+4 on impact is equal to H-step ahead IRF 
-  # of US.Dp in horizon 4 (defined with rest.horz, but as period 5!)
-  sign.constr$shock1$restrictions$res5<-"US.Dp_t+4" 
-  # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
-  # of US.y in horizon 4 (defined with rest.horz, but as period 5!)
-  sign.constr$shock1$restrictions$res6<-"US.y_t+4"
-  sign.constr$shock1$sign<-c(">","<","0","<","ratio.avg","ratio.H","ratio.H")
-  sign.constr$shock1$rest.horz<-c(1,1,1,1,5,5,5)
-  sign.constr$shock1$constr<-c(1,1,1,1,1,1,1)
-  sign.constr$shock1$scal=1
-  sign.constr$MaxTries<-200
-  irf.sign<-irf(model.ssvs.eer,
-                n.ahead=20,
-                sign.constr=sign.constr,
-                save.store=TRUE)
-  par(mfrow=c(4,1))
- # rationality condition: US.stir_t+4 on impact is equal to average of IRF of   US.stir between horizon 1 and 4
- matplot(cbind(irf.sign$posterior["US.stir_t+4",,1,"median"],irf.sign$posterior["US.stir",,1,"median"]),type="l",ylab="",main="stir")
-  abline(h=mean(irf.sign$posterior["US.stir",2:5,1,"median"]));abline(v=c(1,5),lty=3,col="grey")
-
- # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF of US.y in horizon 4
-  matplot(cbind(irf.sign$posterior["US.y_t+4",,1,"median"],irf.sign$posterior["US.y",,1,"median"]),type="l",ylab="",main="y")
-  abline(h=irf.sign$posterior["US.y_t+4",1,1,"median"]);abline(v=5,lty=3,col="grey")
-
- # rationality condition: US.Dp_t+4 on impact is equal to H-step ahead IRF of US.Dp in horizon 4
-  matplot(cbind(irf.sign$posterior["US.Dp_t+4",,1,"median"],irf.sign$posterior["US.Dp",,1,"median"]),type="l",ylab="",main="Dp")
-  abline(h=irf.sign$posterior["US.Dp_t+4",1,1,"median"]);abline(v=5,lty=3,col="grey")
-  par(mar=rep(0,4))
-  plot("1",type="n",axes=FALSE)
-  legend("center",c("expectation","actual"),lty=1:2,col=c("black","red"),bty="n",ncol=2)
-
- par(mar=c(5.1, 4.1, 4.1, 2.1))
+  model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
+                   plag=1, prior="SSVS", eigen=TRUE)
+  shockinfo <- get_shockinfo("sign")
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", 
+                             restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
+                             sign=c("<","0","<"), horizon=1, prob=1, scale=1)
+  # rationality condition: US.stir_t+4 on impact is equal to average of 
+  # IRF of US.stir between horizon 1 to 4
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
+                             sign="ratio.avg", horizon=5, prob=1, scale=1)
+  # rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
+                             sign="ratio.H", horizon=5, prob=1, scale=1)
+  # rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
+  shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
+                             sign="ratio.H", horizon=5, prob=1, scale=1)
+  # regulate maximum number of tries with expert settings
+  irf.ratio <- irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo,
+                   expert=list(MaxTries=10))
 ```
 ```{r, hide=TRUE}
 par(oldpar)

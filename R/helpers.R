@@ -366,7 +366,7 @@ matrix_to_list <- function(datamat){
   }
   datalist <- list()
   for(cc in 1:N){
-    datalist[[cN[cc]]] <- datamat[,grepl(cN[cc],colnames(datamat))]
+    datalist[[cN[cc]]] <- datamat[,grepl(cN[cc],colnames(datamat)),drop=FALSE]
     colnames(datalist[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(datalist[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
   }
   return(datalist)

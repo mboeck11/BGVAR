@@ -4,10 +4,12 @@
 \alias{get_shockinfo}
 \title{Create \code{shockinfo} argument}
 \usage{
-get_shockinfo(ident="chol")
+get_shockinfo(ident="chol", nr_rows=1)
 }
 \arguments{
-\item{ident}{Definition of identification scheme, either \code{chol} or \code{sign}.}
+\item{ident}{Definition of identification scheme, either \code{chol}, \code{girf} or \code{sign}.}
+
+\item{nr_rows}{Number of rows in the created dataframe.}
 }
 \description{
 Creates dummy \code{shockinfo} argument for appropriate use in  \code{irf} function.

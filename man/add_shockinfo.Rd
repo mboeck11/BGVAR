@@ -5,7 +5,7 @@
 \title{Adding shocks to 'shockinfo' argument}
 \usage{
 add_shockinfo(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NULL, horizon=NULL, 
-prob=NULL, scale=NULL, horizon.fillup=TRUE)
+prob=NULL, scale=NULL, global=NULL, horizon.fillup=TRUE)
 }
 \arguments{
 \item{shockinfo}{Dataframe to append shocks. If \code{shockinfo=NULL} appropriate dataframe for sign-restrictions will be created.}
@@ -21,6 +21,8 @@ prob=NULL, scale=NULL, horizon.fillup=TRUE)
 \item{prob}{Number between zero and one determining the probability with which restriction is supposed to hold.}
 
 \item{scale}{Scaling parameter.}
+
+\item{global}{If set to \code{TRUE}, shock is defined as global shock.}
 
 \item{horizon.fillup}{Default set to \code{TRUE}, horizon specified up to given horizon. Otherwise just one specific horizon is restricted.}
 }

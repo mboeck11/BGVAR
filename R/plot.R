@@ -358,8 +358,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
 }
 
 #' @name plot
-#' @param resp specify a variable to plot predictions.
-#' @param shock.nr specify shock to be plotted.
+#' @param resp Specify either a specific variable, a specific country or a specific variable in a specific country which should be plotted. If set to \code{NULL} all countries is plotted.
+#' @param shock Specify the shock which should be plotted.
 #' @param cumulative whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.
 #' @examples
 #' \donttest{
@@ -370,11 +370,11 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
 #' plot(irf.chol, resp="US")
 #' }
 #' @export
-plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.84,.90), cumulative=FALSE){
+plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,.90), cumulative=FALSE){
   # restore user par settings on exit
   oldpar <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  if(length(shock.nr)!=1){
+  if(length(shock)!=1){
     stop("Please select only one shock.")
   }
   posterior <- x$posterior
@@ -393,13 +393,14 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      vars.cc <- sapply(strsplit(varNames[grep(cN[cc],varNames)],".",fixed=TRUE),function(x) x[2])
       for(kk in 1:Ki[cc]){
-        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
-        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        idx <- which(paste0(cN[cc],".",vars.cc[kk])==varNames)
+        x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
-                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
         for(qq in 1:floor(Q/2)){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
@@ -418,13 +419,14 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
+      vars.cc <- sapply(strsplit(varNames[grep(cN[cc],varNames)],".",fixed=TRUE),function(x) x[2])
       for(kk in 1:Ki[cc]){
-        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
-        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        idx <- which(paste0(cN[cc],".",vars.cc[kk])==varNames)
+        x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
-                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
         for(qq in 1:floor(Q/2)){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
@@ -446,11 +448,11 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.
       for(kk in 1:Ki[vv]){
         idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
         if(length(idx)==0) next
-        x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+        x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
-                lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+                lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
         for(qq in 1:floor(Q/2)){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
@@ -470,11 +472,11 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock.nr=1, quantiles=c(.10,.16,.50,.
     par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
     for(kk in 1:Ki){
       idx <- ridx[kk]
-      x<-posterior[idx,,shock.nr,paste0("Q",quantiles*100),drop=TRUE] 
+      x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
       if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
       b <- range(x);b1<-b[1];b2<-rev(b)[1]
       plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
-              lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
+              lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
               cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
       for(qq in 1:floor(Q/2)){
         polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
@@ -539,9 +541,9 @@ plot.bgvar.fevd<-function(x, ..., resp, k.max=10){
       idx <- grep(varNames[[kk]][kkk],varAll)
       x<-fevd[idx,resp0,]
       b<-range(x); b1<-b[1]; b2<-b[2]
-      plot.ts(x,col=bgvar.env$plot$col.50,xaxt="n",yaxt="n",lwd=bgvar.env$plot.lwd.line,ylab="",
+      plot.ts(x,col=bgvar.env$plot$col.50,xaxt="n",yaxt="n",lwd=bgvar.env$plot.lwd.line,ylab="",xlab="",
               main=varAll[idx],cex.main=bgvar.env$plot.cex.main,cex.axis=bgvar.env$plot$cex.axis,
-              cex.lab=bgvar.env$plot$cex.lab,lty=1,ylim=c(b1,b2),xlab="")
+              cex.lab=bgvar.env$plot$cex.lab,lty=1,ylim=c(b1,b2))
       
       axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=2,nsmall=1),cex.axis=1.2,las=1)
       axisindex<-seq(1,length(x),by=4)

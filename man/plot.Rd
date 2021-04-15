@@ -19,7 +19,7 @@
   x,
   ...,
   resp = NULL,
-  shock.nr = 1,
+  shock = 1,
   quantiles = c(0.1, 0.16, 0.5, 0.84, 0.9),
   cumulative = FALSE
 )
@@ -31,7 +31,7 @@
 
 \item{...}{Additional arguments.}
 
-\item{resp}{specify a variable to plot predictions.}
+\item{resp}{Specify either a specific variable, a specific country or a specific variable in a specific country which should be plotted. If set to \code{NULL} all countries is plotted.}
 
 \item{global}{if \code{TRUE} global residuals are plotted, otherwise country residuals.}
 
@@ -39,7 +39,7 @@
 
 \item{quantiles}{Numeric vector with posterior quantiles. Default is set to plot median along with 68\%/80\% confidence intervals.}
 
-\item{shock.nr}{specify shock to be plotted.}
+\item{shock}{Specify the shock which should be plotted.}
 
 \item{cumulative}{whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.}
 

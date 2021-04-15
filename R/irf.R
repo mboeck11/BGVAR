@@ -9,14 +9,14 @@
 #' @export
 #' @usage irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL, 
 #'     expert=NULL, verbose=TRUE)
-#' @param x an object of class \code{bgvar}.
-#' @param n.ahead forecasting horizon.
+#' @param x Object of class \code{bgvar}.
+#' @param n.ahead Forecasting horizon.
 #' @param ident Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.
-#' @param shockinfo Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be differently specified. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.
+#' @param shockinfo Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be specified differently. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.
 #' @param quantiles Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.
-#' @param expert Experting settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+#' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
 #' \item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times.}
-#' \item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both impulses responses and rotation matrices are returned. Default is set to \code{FALSE} in order to save storage.}
+#' \item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both, impulses responses and rotation matrices, are returned. Default is set to \code{FALSE} in order to save storage.}
 #' \item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
 #' \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
 #' \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
@@ -56,12 +56,14 @@
 #' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #' 
-#' # generalized impulse responses
-#' irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf")
-#' 
-#' # cholesky identification
+#' # define shock
 #' shockinfo <- get_shockinfo("chol")
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+#' 
+#' # generalized impulse responses
+#' irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
+#' 
+#' # cholesky identification
 #' irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
 #' 
 #' # sign restrictions
@@ -103,7 +105,7 @@
 #'                  expert=list(MaxTries=10))
 #' }
 #' @seealso \code{\link{bgvar}}, \code{\link{get_shockinfo}}, \code{\link{add_shockinfo}}
-#' @importFrom abind adrop
+#' @importFrom abind adrop abind
 #' @importFrom stochvol sv_normal sv_beta sv_gamma
 #' @importFrom RcppParallel RcppParallelLibs setThreadOptions defaultNumThreads
 irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,expert=NULL,verbose=TRUE){
@@ -139,6 +141,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   F.eigen     <- x$stacked.results$F.eigen
   thindraws   <- length(F.eigen) ### prior: draws
   Global      <- FALSE
+  if(!is.null(shockinfo)) Global <- ifelse(any(shockinfo$global),TRUE,FALSE)
   Rmed        <- NULL
   rot.nr      <- NULL
   xdat        <- xglobal[(plag+1):Traw,,drop=FALSE]
@@ -176,14 +179,38 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     irf.fun  <- .irf.chol
     shock.nr <- nrow(shockinfo)
     # shock details
-    shocks <- unique(shockinfo$shock)
-    select_shocks <- which(shocks==varNames)
+    shocks <- shocknames <- unique(shockinfo$shock)
+    select_shocks <- NULL
+    for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
+    scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
     shock.cN  <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[1])
+    shock.var <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[2])
     shock.idx <- list()
     for(cc in 1:N) shock.idx[[cc]] <- grep(cN[cc],varNames)
     shock.cidx <- cN%in%shock.cN
+    if(Global){
+      if(length(unique(shock.var[shockinfo$global])) != 1){
+        stop("Please indicate global shock for same variables. Respecify.")
+      }
+      shock.nr <- shock.nr-(sum(shockinfo$global)-1)
+      scale.new <- rep(1,shock.nr)
+      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shocks[!shockinfo$global])
+      shock.global <- list()
+      tt <- 1
+      for(ss in 1:shock.nr){
+        if(shockinfo$global[tt] == TRUE){
+          shock.global[[shocknames[ss]]] <- varNames%in%shocks[shockinfo$global]
+          scale.new[ss] <- scale[shockinfo$global][1]
+          tt<-max(which(shockinfo$global))+1
+        }else{
+          shock.global[[shocknames[ss]]] <- varNames%in%shocks[tt]
+          scale.new[ss] <- scale[tt]
+          tt<-tt+1
+        }
+      }
+      scale <- scale.new
+    }
     shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag)
-    scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
   }else if(ident=="girf")
   {
     if(verbose){
@@ -191,17 +218,41 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     }
     irf.fun  <- .irf.girf
     if(!is.null(shockinfo)){
-      shocks <- unique(shockinfo$shock)
+      shocks <- shocknames <- unique(shockinfo$shock)
       scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
     }else{
-      shocks <- varNames
+      shocks <- shocknames <- varNames
       scale <- rep(1,length(shocks))
     }
     shock.nr <- length(shocks)
-    select_shocks <- which(shocks==varNames)
+    select_shocks <- NULL
+    for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
     shock.idx <- list()
     for(cc in 1:N) shock.idx[[cc]] <- grep(cN[cc],varNames)
     shock.cidx <- rep(FALSE,N)
+    if(Global){
+      shock.var <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[2])
+      if(length(unique(shock.var[shockinfo$global])) != 1){
+        stop("Please indicate global shock for same variables. Respecify.")
+      }
+      shock.nr <- shock.nr-(sum(shockinfo$global)-1)
+      scale.new <- rep(1,shock.nr)
+      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shocks[!shockinfo$global])
+      shock.global <- list()
+      tt <- 1
+      for(ss in 1:shock.nr){
+        if(shockinfo$global[tt] == TRUE){
+          shock.global[[shocknames[ss]]] <- varNames%in%shocks[shockinfo$global]
+          scale.new[ss] <- scale[shockinfo$global][1]
+          tt<-max(which(shockinfo$global))+1
+        }else{
+          shock.global[[shocknames[ss]]] <- varNames%in%shocks[tt]
+          scale.new[ss] <- scale[tt]
+          tt<-tt+1
+        }
+      }
+      scale <- scale.new
+    }
     shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag)
   }else if(ident=="sign")
   {
@@ -219,19 +270,43 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       cat("Identification scheme: identification via sign-restriction.\n")
     }
     irf.fun<-.irf.sign.zero
-    shocks   <- unique(shockinfo$shock)
+    shocks <- shocknames <- unique(shockinfo$shock)
     shock.nr <- length(shocks)
-    select_shocks <- which(shocks==varNames)
+    select_shocks <- NULL
+    for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
     shock.cN  <- unique(sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[1]))
+    shock.var <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[2])
     shock.idx <- list()
     for(cc in 1:N) shock.idx[[cc]] <- grep(cN[cc],varNames)
     shock.cidx <- cN%in%shock.cN
     scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
+    if(Global){
+      if(length(unique(shock.var[shockinfo$global])) != 1){
+        stop("Please indicate global shock for same variables. Respecify.")
+      }
+      shock.nr <- shock.nr-(sum(shockinfo$global[!duplicated(shockinfo$shock)])-1)
+      scale.new <- rep(1,shock.nr)
+      shocknames <- c(paste0("Global.",unique(shock.var[shockinfo$global])), shockinfo$shock[!shockinfo$global])
+      shock.global <- list()
+      tt <- 1
+      for(ss in 1:shock.nr){
+        if(shockinfo$global[tt] == TRUE){
+          shock.global[[shocknames[ss]]] <- varNames%in%shocks[shockinfo$global[!duplicated(shockinfo$shock)]]
+          scale.new[ss] <- scale[shockinfo$global][1]
+          tt<-max(which(shockinfo$global))+1
+        }else{
+          shock.global[[shocknames[ss]]] <- varNames%in%shockinfo$shock[tt]
+          scale.new[ss] <- scale[tt]
+          tt<-tt+1
+        }
+      }
+      scale <- scale.new
+    }
     # check zero/rationality
     if(any(shockinfo$sign%in%c("0","ratio.H","ratio.avg"))){
       for(ss in 1:length(shocks)){
         idx <- shockinfo$sign[grep(shocks[ss],shockinfo$shock)]%in%c("0","ratio.H","ratio.avg")
-        if(!all(sapply(strsplit(shockinfo$restriction[idx],".",fixed=TRUE),function(x)x[1])==shock.cN[ss])){
+        if(!all(sapply(strsplit(shockinfo$restriction[grep(shocks[ss],shockinfo$shock)[idx]],".",fixed=TRUE),function(x)x[1])==shock.cN[ss])){
           stop("Please provide zero and rationality conditions only in same country as the origin of the shock.")
         }
       }
@@ -335,7 +410,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   R_store       <- array(NA, dim=c(thindraws,bigK,bigK), dimnames=list(NULL,colnames(xglobal),colnames(xglobal)))
   IRF_store     <- array(NA, dim=c(thindraws,bigK,bigK,n.ahead+1), dimnames=list(NULL,colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead)))
   imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
-  dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocks,paste0("Q",quantiles*100))
+  dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
   start.comp <- Sys.time()
   if(verbose) cat(paste("Start impulse response analysis on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
@@ -431,16 +506,31 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     thindraws <- length(idx)
   }
   # Subset to shocks under consideration
-  IRF_store <- IRF_store[,,select_shocks,,drop=FALSE]
-  # Normalization
-  for(z in 1:shock.nr)
-  {
-    Mean<-IRF_store[,select_shocks,1,z]
-    for(irep in 1:thindraws){
-      IRF_store[irep,,z,]<-(IRF_store[irep,,z,]/Mean[irep])*scale[z]
+  if(Global){
+    impulse <- NULL
+    for(ss in 1:shock.nr){
+      temp <- apply(IRF_store[,,shock.global[[ss]],,drop=FALSE],c(1,2,4),sum)
+      Mean <- temp[,which(shock.global[[ss]])[1],1]
+      for(irep in 1:thindraws){
+        temp[irep,,]<-(temp[irep,,]/Mean[irep])*scale[ss]
+      }
+      impulse <- abind(impulse,temp,along=4)
     }
+    IRF_store <- aperm(impulse,c(1,2,4,3))
+    dimnames(IRF_store)[[3]] <- names(shock.global)
+  }else{
+    IRF_store <- IRF_store[,,select_shocks,,drop=FALSE]
+    for(ss in 1:shock.nr){
+      Mean<-IRF_store[,select_shocks[ss],ss,1]
+      for(irep in 1:thindraws){
+        IRF_store[irep,,ss,]<-(IRF_store[irep,,ss,]/Mean[irep])*scale[ss]
+      }
+    }
+  }
+  # Normalization
+  for(ss in 1:shock.nr){
     for(qq in 1:Q){
-      imp_posterior[,,z,qq] <- apply(IRF_store[,,z,],c(2,3),quantile,quantiles[qq],na.rm=TRUE)
+      imp_posterior[,,ss,qq] <- apply(IRF_store[,,ss,],c(2,3),quantile,quantiles[qq],na.rm=TRUE)
     }
   }
   # calculate objects needed for HD and struc shock functions later---------------------------------------------
@@ -511,23 +601,25 @@ print.bgvar.irf <- function(x, ...){
 #' @name get_shockinfo
 #' @title Create \code{shockinfo} argument 
 #' @description Creates dummy \code{shockinfo} argument for appropriate use in  \code{irf} function.
-#' @param ident Definition of identification scheme, either \code{chol} or \code{sign}.
+#' @param ident Definition of identification scheme, either \code{chol}, \code{girf} or \code{sign}.
+#' @param nr_rows Number of rows in the created dataframe.
 #' @details Depending on the identification scheme a different \code{shockinfo} argument in the \code{irf} function is needed. To handle this convenient, an appropriate data.frame with is created with this function.
-#' @usage get_shockinfo(ident="chol")
+#' @usage get_shockinfo(ident="chol", nr_rows=1)
 #' @seealso \code{\link{irf}}
 #' @export
-get_shockinfo <- function(ident="chol"){
-  if(ident=="chol")
-    return(data.frame(shock=NA,scale=NA))
+get_shockinfo <- function(ident="chol", nr_rows=1){
+  if(ident=="chol" || ident=="girf")
+    return(data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows)))
   if(ident=="sign")
-  return(data.frame(shock=NA,restriction=NA,sign=NA,horizon=NA,scale=NA,prob=NA,info=NA))
+  return(data.frame(shock=rep(NA,nr_rows),restriction=rep(NA,nr_rows),sign=rep(NA,nr_rows),
+                    horizon=rep(NA,nr_rows),scale=rep(NA,nr_rows),prob=rep(NA,nr_rows),global=rep(NA,nr_rows)))
 }
 
 #' @name add_shockinfo
 #' @title Adding shocks to 'shockinfo' argument
 #' @description Adds automatically rows to 'shockinfo' data.frame for appropriate use in \code{irf}.
 #' @usage add_shockinfo(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NULL, horizon=NULL, 
-#' prob=NULL, scale=NULL, horizon.fillup=TRUE)
+#' prob=NULL, scale=NULL, global=NULL, horizon.fillup=TRUE)
 #' @param shockinfo Dataframe to append shocks. If \code{shockinfo=NULL} appropriate dataframe for sign-restrictions will be created.
 #' @param shock String element. Variable of interest for structural shock. Only possible to add restrictions to one structural shock at a time.
 #' @param restriction Character vector with variables that are supposed to be sign restricted.
@@ -535,11 +627,12 @@ get_shockinfo <- function(ident="chol"){
 #' @param horizon Numeric vector with horizons to which restriction should hold. Set \code{horizon.fillup} to \code{FALSE} to just restrict one specific horizon.
 #' @param prob Number between zero and one determining the probability with which restriction is supposed to hold.
 #' @param scale Scaling parameter.
+#' @param global If set to \code{TRUE}, shock is defined as global shock.
 #' @param horizon.fillup Default set to \code{TRUE}, horizon specified up to given horizon. Otherwise just one specific horizon is restricted.
 #' @details This is only possible for sign restriction, hence if \code{ident="sign"} in \code{get_shockinfo()}.
 #' @seealso \code{\link{irf}}
 #' @export
-add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NULL, horizon=NULL, prob=NULL, scale=NULL, horizon.fillup=TRUE){
+add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NULL, horizon=NULL, prob=NULL, scale=NULL, global=NULL, horizon.fillup=TRUE){
   if(is.null(shockinfo)){
     shockinfo <- get_shockinfo(ident="sign")
   }
@@ -577,6 +670,11 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
     warning("Restriction proabilities not specified, set to one.")
     prob <- rep(1,nr)
   }
+  if(is.null(global)){
+    global <- rep(FALSE,nr)
+  }else{
+    global <- rep(global,nr)
+  }
   if(length(prob)==1) prob <- rep(prob,nr)
   if(length(prob)!=nr || length(scale)!=nr){
     stop("Please specify 'prob' or 'scale' with unit length for all restrictions or equal length than restriction.")
@@ -595,8 +693,8 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
     prob <- rep(prob, repetition)
     scale <- rep(scale, repetition)
     horizon <- c(unlist(sapply(horizon[idx_nr],seq)),horizon[idx_r])
+    global <- rep(global, repetition)
   }
-  nr <- length(sign)
   # add to shockinfo
   nt<-ifelse(all(is.na(shockinfo)),0,nrow(shockinfo))
   for(nn in 1:nr){
@@ -607,6 +705,7 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
     shockinfo$horizon[nt+nn] <- horizon[nn]
     shockinfo$prob[nt+nn] <- prob[nn]
     shockinfo$scale[nt+nn] <- scale[nn]
+    shockinfo$global[nt+nn] <- global[nn]
   }
   # delete duplicate lines
   shockinfo<-shockinfo[!duplicated(shockinfo),]
