@@ -9,19 +9,19 @@ irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL,
     expert=NULL, verbose=TRUE)
 }
 \arguments{
-\item{x}{an object of class \code{bgvar}.}
+\item{x}{Object of class \code{bgvar}.}
 
-\item{n.ahead}{forecasting horizon.}
+\item{n.ahead}{Forecasting horizon.}
 
 \item{ident}{Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.}
 
-\item{shockinfo}{Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be differently specified. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.}
+\item{shockinfo}{Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be specified differently. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.}
 
 \item{quantiles}{Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.}
 
-\item{expert}{Experting settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+\item{expert}{Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
 \item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times.}
-\item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both impulses responses and rotation matrices are returned. Default is set to \code{FALSE} in order to save storage.}
+\item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both, impulses responses and rotation matrices, are returned. Default is set to \code{FALSE} in order to save storage.}
 \item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
 \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
 \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
@@ -61,12 +61,14 @@ data(eerDatasmall)
 model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
                  plag=1, prior="SSVS", eigen=TRUE)
 
-# generalized impulse responses
-irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf")
-
-# cholesky identification
+# define shock
 shockinfo <- get_shockinfo("chol")
 shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
+
+# generalized impulse responses
+irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
+
+# cholesky identification
 irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
 
 # sign restrictions

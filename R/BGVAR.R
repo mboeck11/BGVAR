@@ -161,7 +161,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
                 eigen=FALSE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
   start.bgvar <- Sys.time()
   #--------------------------------- checks  ------------------------------------------------------#
-  if(!is.list(Data) & !is.matrix(Data)){
+  if(!is.list(Data) & !is.matrix(Data) & is.data.frame(Data)){
     stop("Please provide the argument 'Data' either as 'list' or as 'matrix' object.")
   }
   if(!is.list(W) & !is.matrix(W)){
@@ -258,27 +258,18 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     if(length(Traw)>1){
       stop("Please provide same sample size for all countries.")
     }
+    Data_new <- list()
+    timeindex  <- seq(1, Traw)
+    if(isTS || isXTS) timeindex <- as.character(time(Data[[1]]))
     for(cc in 1:N){
       if(isTS || isXTS){
-        temp       <- as.character(time(Data[[cc]]))
-        years      <- unique(regmatches(temp,regexpr("^[0-9]{4}",temp)))
-        months     <- temp
-        for(kk in 1:length(years)) months <- gsub(paste(years[kk],"(\\.)?",sep=""),"",months)
-        freq       <- length(unique(months))
-        months     <- strtrim(months,3)
-        startmonth <- ifelse(months[1]=="","01",ifelse(months[1]=="083","02",ifelse(months[1]=="166","03",ifelse(months[1]=="25","04",
-                      ifelse(months[1]=="333","05",ifelse(months[1]=="416","06",ifelse(months[1]=="5","07",ifelse(months[1]=="583","08",
-                      ifelse(months[1]=="666","09",ifelse(months[1]=="75","10",ifelse(months[1]=="833","11","12")))))))))))
-        timeindex  <- seq.Date(from=as.Date(paste(years[1],"-",startmonth,"-01",sep=""), format="%Y-%m-%d"), 
-                               by=ifelse(freq==12,"months","quarter"), length.out = Traw)
-        Data[[cc]] <- ts(coredata(Data[[cc]]), start=c(as.numeric(years[1]),as.numeric(startmonth)),
-                        frequency=freq)
+        Data_new[[cc]] <- coredata(Data[[cc]])
       }else{
-        timeindex  <- seq.Date(from=as.Date("1830-08-01", format="%Y-%m-%d"), by="month", length.out = Traw)
-        temp       <- coredata(Data[[cc]])
-        Data[[cc]] <- ts(temp, start=c(1830,8), frequency=12)
+        Data_new[[cc]] <-  Data[[cc]]
       }
     }
+    names(Data_new) <- cN
+    Data      <- Data_new
     args$time <- timeindex
     args$Traw <- length(timeindex)
   }
