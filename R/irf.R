@@ -114,7 +114,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   if(!ident%in%c("chol","girf","sign")){
     stop("Please choose available identification scheme!")
   }
-  if(is.null(shockinfo) && ident!="girf"){
+  if(is.null(shockinfo) && ident=="sign"){
     stop("Please provide 'shockinfo' argument.")
   }
   if(is.null(quantiles)){
@@ -170,6 +170,10 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     if(verbose){
       cat("Identification scheme: Short-run identification via Cholesky decomposition.\n")
     }
+    if(is.null(shockinfo)){
+      shockinfo <- get_shockinfo("chol", nr_rows = length(varNames))
+      shockinfo$shock <- varNames
+    }
     if(!all(c("shock","scale")%in%colnames(shockinfo))){
       stop("Please provide appropriate dataframe for argument 'shockinfo'. Respecify.")
     }
@@ -216,7 +220,16 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     if(verbose){
       cat("Identification scheme: Generalized impulse responses.\n")
     }
-    irf.fun  <- .irf.girf
+    if(is.null(shockinfo)){
+      shockinfo <- get_shockinfo("girf", nr_rows = length(varNames))
+      shockinfo$shock <- varNames
+    }
+    if(!all(c("shock","scale")%in%colnames(shockinfo))){
+      stop("Please provide appropriate dataframe for argument 'shockinfo'. Respecify.")
+    }
+    if(!all(shockinfo$shock%in%varNames)){
+      stop("Please provide shock of 'shockinfo' only to variables available in the dataset used for estimation. Respecify.")
+    }
     if(!is.null(shockinfo)){
       shocks <- shocknames <- unique(shockinfo$shock)
       scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
@@ -224,6 +237,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
       shocks <- shocknames <- varNames
       scale <- rep(1,length(shocks))
     }
+    irf.fun  <- .irf.girf
     shock.nr <- length(shocks)
     select_shocks <- NULL
     for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))

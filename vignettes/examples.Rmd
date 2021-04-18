@@ -112,7 +112,8 @@ colnames(bigX)[1:10]
 ```
 
 <p align=justify>
-In both cases, submitting data as list or as big matrix, the underlying data can be either of `matrix` class or time series classes such as `ts` or `xts`.   
+with the first part of each columname indicating the country (e.g., `EA`) and the second the variable (e.g., `y`), separated by a `.`
+Regardless whether the data are submitted as list or as big matrix, the underlying data can be either of `matrix` class or time series classes such as `ts` or `xts`.   
 </p>
 
 
@@ -182,18 +183,17 @@ the adjusted `W.trade0012` weight matrix:
                 h=0,
                 eigen=1
                 )
-
 ```
 <p align=justify>
 The default prior specification in `bgvar` is to use the NG prior with stochastic volatility and one lag for both the endogenous and weakly exogenous variables (`plag=1`). In general, due to its high cross-sectional dimension, the GVAR can allow for very complex univariate dynamics and it might thus not be necessary to increase the lag length considerably as in a standard VAR [@Burriel2018].
 </p>
 
 <p align=justify>
-The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `draws` and `burnin` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `draws=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term.  To speed up computation, it is possible to set `cores` to the number of CPU cores to use.. The package then detects the used platform and either invokes `parLapply` (Windows platform) or `mclapply` (non-Windows platform). If `cores=NULL` then `lapply` is used. In case the user wants to specify its own apply function, this is also possible by passing it to the argument `applyfun`. Ideally the number of cores is equal to the number of units $N$. In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE` allows to save the whole posterior distribution of the single country models, in the case we would like to inspect them. Due to storage reasons, the default is set to `FALSE` and only the posterior medians of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the \textit{global model} is reported.
+The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `draws` and `burnin` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `draws=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term.  To speed up computation, it is possible to set `cores` to the number of CPU cores to use. The package then detects the used platform and either invokes `parLapply` (Windows platform) or `mclapply` (non-Windows platform). If `cores=NULL` then `lapply` is used. In case the user wants to specify its own apply function, this is also possible by passing it to the argument `applyfun`. Ideally the number of cores is equal to the number of units $N$. In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE`, which allows to save the whole posterior distribution of the each unit / country model. Due to storage reasons, the default is set to `FALSE` and only the \textit{posterior medians} of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the \textit{global model} is reported.
 </p>
 
 <p align=justify>
-With have estimated the above model with stochastic volatility (`SV=TRUE`). There are several reasons why one may want to let the residual variances change over time. First and foremost, most time periods used in macroeconometrics are nowadays rather volatile including severe recessions. Hence accounting for time variation might improve the fit of the model [@primiceri2005time; @sims2006were; @Dovern2016; @Huber2016].  Second, the specification implemented in the toolbox nests the homoskedastic case. It is thus a good choice to start with the more general case when first confronting the model with the data. For structural analysis such as the calculation of impulse responses, we take the variance covariance matrix with the median volatilities (over the sample period) on its diagonal.\footnote{Alternatively, one would have $T$ variance covariance matrices and hence $T$ impulse responses for each variable. Since the size of the shock (i.e., the residual variance) varies over time, the resulting impulses would be typically either up- or down-scaled, whereas the shapes of the IRFs are not affected.} If we want to look at the volatilities of the first equation (`y`) in the euro area country model, we can type:
+We estimated the above model with stochastic volatility (`SV=TRUE`). There are several reasons why one may want to let the residual variances change over time. First and foremost, most time periods used in macroeconometrics are nowadays rather volatile including severe recessions. Hence accounting for time variation might improve the fit of the model [@primiceri2005time; @sims2006were; @Dovern2016; @Huber2016].  Second, the specification implemented in the toolbox nests the homoskedastic case. It is thus a good choice to start with the more general case when first confronting the model with the data. For structural analysis such as the calculation of impulse responses, we take the variance covariance matrix with the median volatilities (over the sample period) on its diagonal.\footnote{Alternatively, one would have $T$ variance covariance matrices and hence $T$ impulse responses for each variable. Since the size of the shock (i.e., the residual variance) varies over time, the resulting impulses would be typically either up- or down-scaled, whereas the shapes of the IRFs are not affected.} If we want to look at the volatilities of the first equation (`y`) in the euro area country model, we can type:
 </p>
 
 ```{r "SV",results="hide"}
@@ -202,7 +202,7 @@ model.1$cc.results$sig$EA[,"EA.y","EA.y"]
 
 
 <p align=justify>
-To discard explosive draws, we can compute the eigenvalues of the reduced form of the global model, written in its companion form. Unfortunately, this can only be done once the single models have been estimated and stacked together (and hence not directly built into the MCMC algorithm for the country models). To discard draws that lead to higher eigenvalues than 1.05 set `eigen=1.05`.  We can look at the 10 largest eigenvalues by typing: 
+To discard explosive draws, we can compute the eigenvalues of the reduced form of the global model, written in its companion form. Unfortunately, this can only be done once the single models have been estimated and stacked together (and hence not directly built into the MCMC algorithm for the country models). To discard draws that lead to higher eigenvalues than 1.05, set `eigen=1.05`.  We can look at the 10 largest eigenvalues by typing: 
 </p>
 
 ```{r "ng.eigen",echo=TRUE}
@@ -214,7 +214,7 @@ Last, we have used the default option `h=0`, which implies that we use the full 
 \subsection{Model output and diagnostic checks}
 ## Model output and diagnostic checks
 <p align="justify">
-Having estimated the model, we can have summarize the outcome in various ways.
+Having estimated the model, we can summarize the outcome in various ways.
 
 First, we can use the `print` method 
 </p>
@@ -227,7 +227,7 @@ This just prints the submitted arguments of the `bgvar` object along with the mo
 </p>
 
 <p align="justify">
-The `summary` method is a more enhanced way to analyze the output. It computes descriptive statistics like convergence properties of the MCMC chain, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-unit residuals. 
+The `summary` method is a more enhanced way to analyze output. It computes descriptive statistics like convergence properties of the MCMC chain, serial autocorrelation in the errors and the average pairwise autocorrelation of cross-unit residuals. 
 </p>
 
 ```{r "summary.model"}
@@ -236,11 +236,11 @@ The `summary` method is a more enhanced way to analyze the output. It computes d
 
 
 <p align="justify">
-We can now have a closer look at the information provided by `summary`. The header contains some basic information about the prior used to estimate the model, how many lags, posterior draws and countries. The next line shows Geweke's CD statistic, which is calculated  using the `coda` package. Geweke's CD  assesses practical convergence of the MCMC algorithm. In a nutshell, the  diagnostic is based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10% and the last 50%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. 
+We can now have a closer look at the output provided by `summary`. The header contains some basic information about the prior used to estimate the model, how many lags, posterior draws and countries. The next line shows Geweke's CD statistic, which is calculated  using the `coda` package. Geweke's CD  assesses practical convergence of the MCMC algorithm. In a nutshell, the  diagnostic is based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10% and the last 50%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. 
 </p>
 
 <p align="justify">
-The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation. The test statistic shows that only a small fraction of all coefficients did not convergence. Increasing the number of burn ins can help decreasing this number further. The statistic can also be calculated by typing `conv.diag(model.1)`.
+The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation. The test statistic shows that only a small fraction of all coefficients did not convergence. Increasing the number of burn-ins can help decreasing this fraction further. The statistic can also be calculated by typing `conv.diag(model.1)`.
 </p>
 
 
@@ -292,7 +292,6 @@ We can estimate the model with two further priors on the unit models, the SSVS p
                      h=0,
                      eigen=1
                      )
-
 ```
 
 <p align="justify">
@@ -353,7 +352,7 @@ model.ssvs.2<-bgvar(Data=eerData2,
 ```
 
 <p align="justify">
-Another specification would be to include a foreign variable only when its domestic counterpart is missing. For example, when working with nominal bilateral exchange rates we probably do not want to include also its weighted average (which corresponds to something like an effective exchange rate). Using the previous model we could place a restriction on long-term interest rates, since those are not contained in all country models.
+Another specification would be to include a foreign variable only when its domestic counterpart is missing. For example, when working with nominal bilateral exchange rates we probably do not want to include also its weighted average (which corresponds to something like an effective exchange rate). Using the previous model we could place an exclusion restriction on foreign long-term interest rates. The following includes foreign long-term rates only in those country models where no domestic long-term rates are available:
 </p>
 
 
@@ -407,7 +406,7 @@ OC.weights$exo<-"poil"
 ```
 
 <p align="justify">
-The first slot, `weights`, should be a vector of weights that sum up to unity. In the example above, we simply use $1/N$, other weights could include purchasing power parities (PPP). The weights are used to aggregate specific variables that in turn enter the oil model as weakly exogenous. The second slot, `variables`, should specify the names of the endogenous and weakly exogenous variables that are used in the model. In the oil price example, we include the oil price (`poil`) as endogenous variable (not contained in any other country model);  a weighted average using `weights` of output (`y`) to proxy world demand is included as weakly exogenous variable. Last, we specify via `exo` which one of the endogenous variables of the oil price model are fed back into the other country models. In this example we specify `poil`. Last, we include `OC.weights` in a further list called `OE.weights` (other entity weights):
+The first slot, `weights`, should be a vector of weights that sum up to unity. In the example above, we simply use $1/N$, other weights could include purchasing power parities (PPP). The weights are used to aggregate specific variables that in turn enter the oil model as weakly exogenous. The second slot, `variables`, should specify the names of the endogenous and weakly exogenous variables that are used in the model. In the oil price example, we include the oil price (`poil`) as endogenous variable (not contained in any other country model);  a weighted average using `weights` of output (`y`) to proxy world demand is included as weakly exogenous variable. Next, we specify via `exo` which one of the endogenous variables of the oil price model are fed back into the other country models. In this example we specify `poil`. Last, we include `OC.weights` in a further list called `OE.weights` (other entity weights):
 </p>
 
 ```{r "OC.weights2"}
@@ -420,7 +419,7 @@ where the list entry has to has the same name as the oil country model, in our e
 
 
 <p align="justify">
-Now we can re-estimate the model by specifying `OE.weights`, which is a list with its entries labelled exactly like the additional country models. The structure is designed to also allow for more than one other entity (henceforth labelled OE).
+Now we can re-estimate the model by specifying `OE.weights`, which is a list with its entries labelled exactly like the additional country models. 
 </p>
 
 ```{r "estimate.OC",results="hide"}
@@ -466,9 +465,9 @@ Structural analysis can be performed by invoking the `irf()` function. This func
 ## Recursive identification and GIRFs
 <p align="justify">
 Let us start by looking at a monetary policy shock in the US country model. 
-We have to set up a list `shock` that contains information about which variable we want to shock `shocks$var`, in which country `shocks$cN` and whether we want a recursive identification or GIRFs `shocks$ident`. We can also scale the shock using `shocks$scal`.
- If the argument `cores` is set to to a number, computation is sped up by using multiple CPU cores. The package attempts to detect the number of cores on the computer, which it uses then for parallel computing. Default is set to `FALSE` to not slow down the computer.
-</p>
+For that purpose, we have to set up an object, which that contains information about which variable we want to shock (`shock`), the size of the shock (`scale`) and whether it is a shock applied in a single country or in multiple countries (`global`). We can use the helper function `get_shockinfo` to set up a such a dummy object which we can subsequentially modify according to our needs. The following lines of code are used for a negative 100 bp shock applied to US short term interest rates:
+
+ </p>
 ```{r "us.mp", results="hide"}
 # US monetary policy shock
 shockinfo<-get_shockinfo("chol")
@@ -511,7 +510,6 @@ irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
 ```{r, "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%",}
 plot(irf.chol.us.y, resp="US.y", shock="US.y")
 plot(irf.girf.us.y, resp="US.y", shock="US.y")
-
 plot(irf.chol.us.y,resp="US.rer", shock="US.y")
 plot(irf.girf.us.y,resp="US.rer", shock="US.y")
 ```
@@ -523,7 +521,7 @@ Last, we could also look at a *joint or global shock*. For example, we could be 
 </p>
 
 
-```{r, "global.gdp",results="hide"}
+```{r, "global.gdp",results="hide",out.width="50%"}
 shockinfo<-get_shockinfo("girf", nr_rows = 3)
 shockinfo$shock<-c("EA.y","US.y","RU.y")
 shockinfo$global<-TRUE
@@ -588,14 +586,13 @@ irf.sign$rot.nr
 ```{r,"us.spf.plots",fig.cap="Responses to AS (left) and AD (right) shock.",fig.show="hold",out.width="25%"}
 plot(irf.sign, resp="US.y", shock="US.y")
 plot(irf.sign, resp="US.y", shock="US.Dp")
-
 plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.y")
 plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.Dp")
 ```
 
 
 <p align="justify">
-Several recent papers advocate the inclusion of survey data in a VAR. @Castelnuovo2010 show that including inflation expectations mitigates the price puzzle (i.e., the counter intuitive positive movement of inflation in response to a monetary tightening). @Damico2015 go one step further and argue that expectations should always be included in a VAR model since they contain information that is not contained in standard macroeconomic data. They also show how to make inference with survey data in a VAR framework and propose so-called rationality conditions. In a nutshell, these conditions put restrictions on actual data to match the expectations either on average over (`ratio.average`) or at the end of (`ratio.H`) the forecast horizon. Let us look at a concrete example.
+Several recent papers advocate the inclusion of survey data in a VAR. @Castelnuovo2010 show that including inflation expectations mitigates the price puzzle (i.e., the counter intuitive positive movement of inflation in response to a monetary tightening). @Damico2015 go one step further and argue that expectations should always be included in a VAR model since they contain information that is not contained in standard macroeconomic data. They also show how to make inference with survey data in a VAR framework and propose so-called rationality conditions. For an application in a GVAR context, see @Boeck2021a. In a nutshell, these conditions put restrictions on actual data to match the expectations either on average over (`ratio.average`) or at the end of (`ratio.H`) the forecast horizon. Let us look at a concrete example.
 </p>
 
 ```{r, "us.spf.sign3",results="hide"}
@@ -617,23 +614,29 @@ The figure below shows the results for short term interest rates (`stir`) and ou
 # US.stir between horizon 2 and 5
 matplot(cbind(irf.sign.zero$IRF_store[1,"US.stir_t+4",1,],
               irf.sign.zero$IRF_store[1,"US.stir",1,]),
-        type="l",ylab="",main="stir",lwd=2); legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-abline(h=mean(irf.sign.zero$IRF_store[1,"US.stir_t+4",1,1:4]),lwd=2)
-abline(v=c(1,4),lty=3,col="grey",lwd=2)
-
+        type="l",ylab="",main="stir",lwd=2,xaxt="n");
+axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
+legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
+segments(x0=2,y0=1,x1=5,y1=1,lwd=2,lty=3,col="grey")
+points(1,1,col="grey",pch=19,lwd=4)
+abline(v=c(2,5),lty=3,col="grey",lwd=2)
 # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
 # of US.y in horizon 5
 matplot(cbind(irf.sign$IRF_store[1,"US.y_t+4",1,],
               irf.sign$IRF_store[1,"US.y",1,]),
-        type="l",ylab="",main="y",lwd=2)
+        type="l",ylab="",main="y",lwd=2,xaxt="n")
+axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-abline(h=irf.sign$IRF_store[1,"US.y_t+4",1,1],lwd=2)
-abline(v=c(1,4),lty=3,col="grey",lwd=2)
+yy<-irf.sign$IRF_store[1,"US.y_t+4",1,1]
+segments(x0=1,y0=yy,x1=5,y1=yy,lwd=2,lty=3,col="grey");abline(v=c(1,5),col="grey",lty=3)
+points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 ```
 
 
 <p align="justify">
-Impulse responses that refer to observed data are in red (dashed), and the ones referring to expected data in black. The condition we have imposed on short-term interest rates (top panel) was that observed rates should equal the shock to expected rates *on average over the forecast horizon* (one year, i.e., on impact plus 4 quarters). The respective period is marked by the two vertical, grey lines. On output, shown in the bottom panel, by contrast, we have imposed a condition that has to hold exactly at the forecast horizon. The red line, the impulse response of observed output has to meet the *impact response* of expected output at $h=5$. 
+Impulse responses that refer to observed data are in red (dashed), and the ones referring to expected data in black. The condition we have imposed on short-term interest rates (top panel) was that observed rates should equal the shock to expected rates *on average over the forecast horizon* (one year, i.e., on impact plus 4 quarters). The respective period is marked by the two vertical, grey lines. Put differently, the average of the red-dashed line over the forecast horizon has to equal the expectation shock on impact (grey dot).
+
+On output, shown in the bottom panel, by contrast, we have imposed a condition that has to hold exactly at the forecast horizon. The red line, the impulse response of observed output has to meet the *impact response* of expected output at $h=5$. In the figure, these two points are indicated by the two grey dots. 
 </p>
 
 <p align="justify">
@@ -736,7 +739,6 @@ One way of fixing this is to use generalized forecast error variance decompositi
 ```{r, "fevd"}
 #calculates the LN GFEVD 
 gfevd.us.mp=gfevd(model.ssvs.eer,n.ahead=24,running=TRUE,cores=4)$FEVD
-
 # get position of EA 
 idx<-which(grepl("EA.",dimnames(gfevd.us.mp)[[2]]))
 own<-colSums(gfevd.us.mp["EA.y",idx,])
@@ -762,7 +764,6 @@ In case we want to focus on a single country, which we have fully identified eit
 # calculates FEVD for variables US.y
 fevd.us.y=fevd(irf.sign,var.slct=c("US.y"))$FEVD
 idx<-which(grepl("US.",rownames(fevd.us.y)))
-
 ```
 
 ```{r, "fevd.struc.plot",fig.cap="FEVD of US GDP.",out.width="50%"}  
@@ -864,7 +865,6 @@ We could impose the same restrictions as "soft conditions" accounting for uncert
 constr_sd <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.h8$xglobal))
 colnames(constr_sd) <- colnames(model.ssvs.h8$xglobal)
 constr_sd[1:5,"US.Dp"] <- 0.001
-
 # compute conditional forecast with soft restrictions
 cond_fcast2 <- predict(model.ssvs.h8, n.ahead=8, constr=constr, constr_sd=constr_sd)
 ```
@@ -963,7 +963,6 @@ Below, find some example code for all three priors.
 ```{r, eval=FALSE}
 # load dataset
 data(eerData)
-
 # Minnesota prior and two different weight matrices and no SV
 # weights for first variable set tradeW.0012, for second finW0711
 variable.list      <- list()
@@ -983,7 +982,6 @@ model.MN<-bgvar(Data=eerData,
                   eigen=TRUE,
                   SV=TRUE,
                   expert=list(variable.list=variable.list))
-
 # SSVS prior
 Hyperparm.ssvs <- list(tau0   = 0.1,  # coefficients: prior variance for the spike
                                       # (tau0 << tau1)
@@ -1007,7 +1005,6 @@ model.ssvs<-bgvar(Data=eerData,
                   prior="SSVS",
                   thin=1,
                   eigen=TRUE)
-
 # Normal Gamma prior
 data(monthlyData)
 monthlyData$OC<-NULL
@@ -1073,7 +1070,6 @@ Below, find some further examples.
   
   # cholesky identification
   irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
-
   # sign restrictions
   shockinfo <- get_shockinfo("sign")
   shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
@@ -1116,4 +1112,3 @@ Below, find some further examples.
 par(oldpar)
 ```
 # References
-
