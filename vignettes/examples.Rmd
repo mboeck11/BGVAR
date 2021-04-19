@@ -36,15 +36,12 @@ This vignette describes the BGVAR package that allows to estimate Bayesian globa
 In a nutshell, the GVAR consists of two stages. In the first, $N$ vector autoregressive (VAR) models are estimated, one per unit. Each equation in a unit model is augmented with foreign variables, that control for global factors and allow to link the unit-specific models later. Typically, these foreign variables are constructed using exogenous, bilateral weights, stored in an $N \times N$ weight matrix. The classical framework of @Pesaran2004 and @Dees2007a  proposes estimating these country models in vector error correction form, while in this package we take a Bayesian stance and estimation is carried out using VARs. The user can transform the data prior estimation into stationary form or estimate the model in levels. The `BGVAR` package also allows to include a trend to get trend-stationary data. In the second step, the single country models are combined using the assumption that single models are linked via the exogenous weights, to yield a global representation of the model. This representation of the model is then used to carry out impulse response analysis and forecasting.
 </p>
 
-
-
 <p align=justify>
 This vignette consists of four blocks: getting started and data handling, estimation, structural analysis and forecasting. In the next part, we discuss which data formats the `bgvar` library can handle. We then proceed by showing examples of how to estimate a model using different Bayesian shrinkage priors -- for references see @CrespoCuaresma2016 and @Feldkircher2016a. We also discuss how to run diagnostic and convergence checks and examine the main properties of the model. In the third section, we turn to structural analysis, either using recursive (Cholesky) identification or sign restrictions. We will also discuss structural and generalized forecast error variance decompositions and historical decompositions. In the last section, we show how to compute unconditional and conditional forecasts with the package.
 </p>
 
-
-\section{Getting started}
-# Getting started
+\section{Getting Started}
+# Getting Started
 
 We start by installing the package from CRAN and attaching it with 
 
@@ -211,8 +208,8 @@ model.1$stacked.results$F.eigen[1:10]
 Last, we have used the default option `h=0`, which implies that we use the full sample period to estimate the GVAR. For the purpose of forecast evaluation, `h` could be specified to a positive number, which then would imply that the last `h` observations are reserved as a hold-out sample and not used to estimate the model.
 
 
-\subsection{Model output and diagnostic checks}
-## Model output and diagnostic checks
+\subsection{Model Output and Diagnostic Checks}
+## Model Output and Diagnostic Checks
 <p align="justify">
 Having estimated the model, we can summarize the outcome in various ways.
 
@@ -314,8 +311,8 @@ model.ssvs.1$cc.results$PIP$PIP.avg
 
 This shows that the same determinants for the real exchange rate appear also as important regressors in other country models.
 
-\subsection{Different specifications of the model}
-## Different specifications of the model
+\subsection{Different Specifications of the Model}
+## Different Specifications of the Model
 
 <p align="justify">
 In this section we explore different specifications of the structure of the GVAR model. Other, specification choices that relate more to the time series properties of the data, such as specifying different lags and priors are left for the reader to explore. We will use the SSVS prior and judge the different specifications by examining the posterior inclusion probabilities. 
@@ -454,29 +451,44 @@ heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 We could also compare the models based on their fit, the likelihood, information criteria such as the DIC, residual properties or their forecasting performance. 
 </p>
 
-\section{Structural analysis}
-# Structural analysis
+\section{Structural Analysis}
+# Structural Analysis
 <p align="justify">
 Structural analysis can be performed by invoking the `irf()` function. This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 </p>
 
 
-\subsection{Recursive identification and GIRFs}
-## Recursive identification and GIRFs
+\subsection{Recursive Identification and GIRFs}
+## Recursive Identification and GIRFs
 <p align="justify">
 Let us start by looking at a monetary policy shock in the US country model. 
-For that purpose, we have to set up an object, which that contains information about which variable we want to shock (`shock`), the size of the shock (`scale`) and whether it is a shock applied in a single country or in multiple countries (`global`). We can use the helper function `get_shockinfo` to set up a such a dummy object which we can subsequentially modify according to our needs. The following lines of code are used for a negative 100 bp shock applied to US short term interest rates:
+For that purpose, we have to set up an `shockinfo` object, which contains information about which variable we want to shock (`shock`), the size of the shock (`scale`) and whether it is a shock applied in a single country or in multiple countries (`global`). We can use the helper function `get_shockinfo()` to set up a such a dummy object which we can subsequently modify according to our needs. The `irf()` command needs as input an estimated model object, the impulse response horizon (`n.ahead`), the preferred identificaiton scheme (`ident`) and the `shockinfo` dataframe. For the recursive identification and GIRFs the shockinfo argument is actually optional. In case this object is not provided, the model retrieves all shocks with unit scaling. The following lines of code are used for a negative 100 bp shock applied to US short term interest rates:
 
  </p>
 ```{r "us.mp", results="hide"}
-# US monetary policy shock
-shockinfo<-get_shockinfo("chol")
-shockinfo$shock<-"US.stir"
-shockinfo$scale<--100
-irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo, expert=list(save.store=TRUE))
+# US monetary policy shock - Cholesky
+shockinfo_chol<-get_shockinfo("chol")
+shockinfo_chol$shock<-"US.stir"
+shockinfo_chol$scale<--100
+# US monetary policy shock - GIRF
+shockinfo_girf<-get_shockinfo("girf")
+shockinfo_girf$shock<-"US.stir"
+shockinfo_girf$scale<--100
 ```
 
-The results are stored in `irf.chol.us.mp`.
+The `shockinfo` argument for the arguments `chol` and `girf` look exactly the same. If we compare them, we notice that both have three columns defining the shock, the scale and whether it is defined as global shock.
+
+```{r, "shockinfo"}
+shockinfo_chol
+shockinfo_girf
+```
+
+Now, we identify a monetary policy shock with recursive identification:
+
+```{r, "us.mp.chol", results="hide"}
+irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo_chol, expert=list(save.store=TRUE))
+```
+The results are stored in `irf.chol.us.mp`. In order to save the complete store one can activate the `save.store` argument by setting to `TRUE` within the expert settings (Attention: this may need a lot of memory).
 
 
 ```{r, "us.mp2"}
@@ -494,8 +506,7 @@ plot(irf.chol.us.mp, resp="US", shock="US.stir")
 
 The plot shows the posterior median response (solid, black line) along 50\% (dark grey) and 68\% (light grey) credible intervals.
 
-We can also compare the Cholesky responses with GIRFs.
-For that purpose, let us look at a GDP shock. 
+We can also compare the Cholesky responses with GIRFs. For that purpose, let us look at a GDP shock. 
 
 ```{r, "us.gdp", results="hide"}
 shockinfo<-get_shockinfo("chol", nr_rows = 2)
@@ -510,8 +521,8 @@ irf.girf.us.y<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
 ```{r, "us.gdp.plots",fig.cap="Comparison of responses Cholesky (left) and GIRF (right) to a negative GDP shock.",fig.show="hold",out.width="25%",}
 plot(irf.chol.us.y, resp="US.y", shock="US.y")
 plot(irf.girf.us.y, resp="US.y", shock="US.y")
-plot(irf.chol.us.y,resp="US.rer", shock="US.y")
-plot(irf.girf.us.y,resp="US.rer", shock="US.y")
+plot(irf.chol.us.y, resp="US.rer", shock="US.y")
+plot(irf.girf.us.y, resp="US.rer", shock="US.y")
 ```
 
 <p align="justify">
@@ -525,16 +536,17 @@ Last, we could also look at a *joint or global shock*. For example, we could be 
 shockinfo<-get_shockinfo("girf", nr_rows = 3)
 shockinfo$shock<-c("EA.y","US.y","RU.y")
 shockinfo$global<-TRUE
+shockinfo$scale<--1
 irf.global<-irf(model.ssvs.1, n.ahead=24, ident="girf", shockinfo=shockinfo)
 plot(irf.global, resp=c("US.y","EA.y","RU.y"), shock="Global.y")
 ```
 
 
 
-\subsection{Identification with zero and sign restrictions}
-## Identification with sign restrictions
+\subsection{Identification with Zero- and Sign-Restrictions}
+## Identification with Zero- and Sign-Restrictions
 <p align="justify">
-In this section, we identify the shocks applying sign restrictions. For that purpose, we need to load another example data set and estimate a GVAR. This data set contains one-year ahead GDP, inflation and short-term interest rate forecasts for the USA, which we are going to need when imposing rationality conditions. The forecasts are from the  
+In this section, we identify the shocks applying sign-restrictions. For that purpose, we need to load another example data set and estimate a GVAR. This data set contains one-year ahead GDP, inflation and short-term interest rate forecasts for the USA, which we are going to need when imposing rationality conditions. The forecasts are from the  
 [survey of professional forecasters (SPF)](https://www.philadelphiafed.org/research-and-data/real-time-center/survey-of-professional-forecasters) data base.
 </p>
 
@@ -556,7 +568,7 @@ model.ssvs.eer<-bgvar(Data=eerDataspf,
 ```
 <p align="justify">
 For now, we start with an identification of two standard shocks in economics in the US model, namely an aggregate demand and aggregate supply shock. 
-We specify the sign restrictions by setting up a list that has to contain the information of which variable to shock, on which IRFs to put the sign restrictions, the restrictions and the horizon how long these restrictions should hold. Increasing the number of restrictions (on the variables or the horizon) will lead to preciser inference; however, finding a suitable rotation matrix will become substantially harder. 
+We specify the sign restrictions by specfying again a `shockinfo` argument for the `irf()` command. For the case of sign-restrictions, the user has to specify a `shockinfo` argument otherwise no signs are provided for the computation of the impulse responses. Hence, we create an object with `get_shockinfo("sign")` now and with the help of another function `add_shockinof()`, we can add sign restrictions. In particular, we can specify single signs or a set of signs for one particular structural shock at a time. Information is needed which variable to shock, on which IRFs to put the sign restrictions, the restrictions and the horizon how long these restrictions should hold. Increasing the number of restrictions (on the variables or the horizon) will lead to preciser inference; however, finding a suitable rotation matrix will become substantially harder. 
 </p>
 
 
@@ -575,7 +587,7 @@ We then invoke the `irf()` command to compute the impulse responses. The functio
 
 ```{r, "us.spf.sign",message=FALSE, results="hide"}
 irf.sign<-irf(model.ssvs.eer, n.ahead=24, ident="sign", shockinfo=shockinfo, 
-              expert=list(MaxTries=100, save.store=TRUE))
+              expert=list(MaxTries=100, save.store=FALSE, cores=NULL))
 ```
 
 We can infer the number of successful rotation matrices by looking at 
@@ -585,7 +597,7 @@ irf.sign$rot.nr
 
 ```{r,"us.spf.plots",fig.cap="Responses to AS (left) and AD (right) shock.",fig.show="hold",out.width="25%"}
 plot(irf.sign, resp="US.y", shock="US.y")
-plot(irf.sign, resp="US.y", shock="US.Dp")
+plot(irf.sign, resp="US.Dp", shock="US.Dp")
 plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.y")
 plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.Dp")
 ```
@@ -622,12 +634,12 @@ points(1,1,col="grey",pch=19,lwd=4)
 abline(v=c(2,5),lty=3,col="grey",lwd=2)
 # rationality condition: US.y_t+4 on impact is equal to H-step ahead IRF 
 # of US.y in horizon 5
-matplot(cbind(irf.sign$IRF_store[1,"US.y_t+4",1,],
-              irf.sign$IRF_store[1,"US.y",1,]),
+matplot(cbind(irf.sign.zero$IRF_store[1,"US.y_t+4",1,],
+              irf.sign.zero$IRF_store[1,"US.y",1,]),
         type="l",ylab="",main="y",lwd=2,xaxt="n")
 axis(side=1,at=c(1:5,9,13,17,21,25),label=c(0:4,8,12,16,20,24))
 legend("topright",lty=c(1,2),c("expected","actual"),lwd=2,bty="n",col=c("black","red"))
-yy<-irf.sign$IRF_store[1,"US.y_t+4",1,1]
+yy<-irf.sign.zero$IRF_store[1,"US.y_t+4",1,1]
 segments(x0=1,y0=yy,x1=5,y1=yy,lwd=2,lty=3,col="grey");abline(v=c(1,5),col="grey",lty=3)
 points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 ```
@@ -722,12 +734,15 @@ irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 
 The following plots the output responses for selected euro area countries.
 ```{r, "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."}
-plot(irf.sign.ssvs, resp=c("AT.y","BE.y","DE.y","ES.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("AT.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("BE.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("DE.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("ES.y"), shock="Global.ltir")
 ```
   
 
-\subsection{Generalized forecast error variance decomposition (GFEVD)}
-## Forecast error variance decomposition (FEVD)
+\subsection{Generalized Forecast Error Variance Decomposition (GFEVD)}
+## Forecast Error Variance Decomposition (FEVD)
 <p align="justify">
 Forecast error variance decompositions indicate the amount of information each variable contributes to the other variables in the autoregression. It is calculated by examining how much of the forecast error variance of each of the variables can be explained by exogenous shocks to the other variables. In a system with fully orthogonalized errors, the shares of FEVD sum up to 1. In the GVAR context, however, since we identify a shock only locally in particular country model and we still have a certain degree of residual correlation, shares typically exceed unity. By contrast, a fully orthogonalized system obtained for example by means of a Cholesky decomposition would yield shares that sum up to unity but inherits assumptions that are probably hard to defend. In the case of the Cholesky decomposition, this would imply timing restrictions, i.e., which variables in which units are immediately affected or affected only with a lag.  
 </p>
@@ -770,8 +785,8 @@ idx<-which(grepl("US.",rownames(fevd.us.y)))
 barplot(fevd.us.y[idx,,])
 ```
 
-\subsection{Historical decomposition}
-## Historical decomposition
+\subsection{Historical Decomposition}
+## Historical Decomposition
 <p align="justify">
 Historical decompositions allow to examine the relative importance of structural shocks in explaining deviations of a time series from its unconditional mean. This can be used to assess the hypothetical question of how data would have looked like if it was driven only by a particular structural shock (e.g., monetary policy shock) or a combination of structural shocks. It can be calculated using the function `hd()`. The function also allows to compute the structural error of the model. To save computational time as well as due to storage limits, we use the point estimate of the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected. If not specified otherwise (via `R`), the rotation matrix based on the posterior median of the reduced form coefficients (`irf.obj$struc.obj$Rmed`) will be used.
 </p>
@@ -789,13 +804,13 @@ legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),b
 
 
 
-\section{Unconditional and conditional forecasts}
-# Unconditional and conditional forecasts
+\section{Unconditional and Conditional Forecasts}
+# Unconditional and Conditional Forecasts
 <p align="justify">
 In this section, we demonstrate how the package can be used for forecasting. We distinguish between unconditional and conditional forecasting. Typical applications of unconditional forecasting are to select a model from a range of candidate models or for out-of-sample forecasting. Conditional forecasts can be used for scenario analysis by comparing a forecast with a fixed future path of a variable of interest to its unconditional forecast. 
 </p>
-\subsection{Unconditional forecasts}
-## Unconditional forecasts
+\subsection{Unconditional Forecasts}
+## Unconditional Forecasts
 <p align="justify">
 Since the GVAR framework was developed to capture cross-country dependencies, it can handle a rich set of dynamics and interdependencies. This can also be useful for forecasting either global components (e.g., global output) or country-specific variables controlling for global factors. @Pesaran2009 show that the GVAR yields competitive forecasts for a range of macroeconomic and financial variables. @CrespoCuaresma2016 demonstrate that Bayesian shrinkage priors can help improving GVAR forecasts and  @Dovern2016 and @Huber2016 yield evidence for further gains in forecast performance by using GVARs with stochastic volatility.
 </p>
@@ -841,8 +856,8 @@ with `Cut` denoting the number of realized data points that should be shown in t
 
 
 
-\subsection{Conditional forecasts}
-## Conditional forecasts
+\subsection{Conditional Forecasts}
+## Conditional Forecasts
 
 <p align="justify">
 Similar to structural analysis, it is possible to use conditional forecasts, identified in a country model. For that purpose, we use the methodology outlined in @Waggoner1999 and applied in @Feldkircher2015 in the GVAR context. The following lines set up a conditional forecast holding inflation in the US country model fixed for five periods to its last observed value in the sample. Make sure that the inputs to `cond.predict` `bgvar.obj` and `pred.obj` belong to the same model. 
@@ -882,8 +897,8 @@ with `Cut` denoting the number of realized data points that should be shown in t
 
 \section{Appendix}
 # Appendix
-\subsection{Main function bgvar}
-## Function arguments `bgvar`
+\subsection{Main Function bgvar}
+## Function Arguments `bgvar`
 Main arguments and description of the function `bgvar`.
 
 * `Data`: Either a
@@ -1030,8 +1045,8 @@ model.ng<-bgvar(Data=monthlyData,
 ```
 
 
-\subsection{irf() function}
-## Function arguments `irf()` 
+\subsection{irf() Function}
+## Function Arguments `irf()` 
 
 * `x`: An objected fitted by function `bgvar`.
 
