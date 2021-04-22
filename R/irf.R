@@ -151,7 +151,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   N           <- length(cN)
   Q           <- length(quantiles)
   # expert settings
-  expert.list <- list(MaxTries=7500, save.store=FALSE, use_R=TRUE, applyfun=NULL, cores=NULL)
+  expert.list <- list(MaxTries=7500, save.store=FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
     if(!(is.null(expert$cores) || is.numeric(expert$cores) || expert$cores%in%c("all","half"))){
       stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
@@ -384,6 +384,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
         
         # own shock: default is positive and for one period
         S.cube[paste(varNames[vv],".1",sep=""),varNames[vv]] <- 1
+        P.cube[paste(varNames[vv],".1",sep=""),varNames[vv]] <- 1
         if(length(s.point)>0){
           for(ss in 1:length(s.point)){
             S.cube[paste(sign.restr[s.point[ss]],sign.horiz[s.point[ss]],sep="."),varNames[vv]] <- ifelse(sign.signs[s.point[ss]]=="<",-1,1)
@@ -419,6 +420,22 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     shocklist <- list(shock.idx=shock.idx,shock.cidx=shock.cidx,MaxTries=MaxTries,S.cube=S.cube,Z.cube=Z.cube,P.cube=P.cube,
                       shock.order=shock.order,shock.horz=sign.horizon,plag=plag,no.zero.restr=no.zero.restr)
   }
+  #------------------------------ prepare applyfun --------------------------------------------------------#
+  if(is.null(applyfun)) {
+    applyfun <- if(is.null(cores)) {
+      lapply
+    } else {
+      if(.Platform$OS.type == "windows") {
+        cl_cores <- parallel::makeCluster(cores)
+        on.exit(parallel::stopCluster(cl_cores))
+        function(X, FUN, ...) parallel::parLapply(cl = cl_cores, X, FUN, ...)
+      } else {
+        function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores =
+                                                   cores)
+      }
+    }
+  }
+  if(is.null(cores)) cores <- 1
   #------------------------------ container -------------------------------------------------------#
   # initialize objects to save IRFs, HDs, etc.
   R_store       <- array(NA, dim=c(thindraws,bigK,bigK), dimnames=list(NULL,colnames(xglobal),colnames(xglobal)))
@@ -430,24 +447,9 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   if(verbose) cat(paste("Start impulse response analysis on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
   if(use_R)
   {
-    #------------------------------ prepare applyfun --------------------------------------------------------#
-    if(is.null(applyfun)) {
-      applyfun <- if(is.null(cores)) {
-        lapply
-      } else {
-        if(.Platform$OS.type == "windows") {
-          cl_cores <- parallel::makeCluster(cores)
-          on.exit(parallel::stopCluster(cl_cores))
-          function(X, FUN, ...) parallel::parLapply(cl = cl_cores, X, FUN, ...)
-        } else {
-          function(X, FUN, ...) parallel::mclapply(X, FUN, ..., mc.cores =
-                                                     cores)
-        }
-      }
-    }
-    if(is.null(cores)) cores <- 1
     #--------------------------------------------------------------
     # r-version
+    counter <- numeric(length=thindraws)
     imp.obj <- applyfun(1:thindraws,function(irep){
       Ginv <- Ginv_large[irep,,]
       Fmat <- adrop(F_large[irep,,,,drop=FALSE],drop=1)
@@ -462,12 +464,13 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
           }
         }
       }
-      return(list(impl=imp.obj$impl,rot=imp.obj$rot))
+      return(list(impl=imp.obj$impl,rot=imp.obj$rot,icounter=imp.obj$icounter))
     })
     for(irep in 1:thindraws){
       IRF_store[irep,,,] <- imp.obj[[irep]]$impl
       if(ident=="sign"){
         R_store[irep,,] <- imp.obj[[irep]]$rot
+        counter[irep]   <- imp.obj[[irep]]$icounter
       }
     }
   }else
@@ -489,6 +492,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
     # compute impulse responses
     temp = compute_irf_parallel(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
+    # temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
     for(irep in 1:thindraws){
       for(ihor in 1:(n.ahead+1)){
         IRF_store[irep,,,ihor] = temp$irf[((ihor-1)*bigK+1):(bigK*ihor),,irep]

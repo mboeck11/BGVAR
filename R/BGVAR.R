@@ -232,6 +232,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       colnames(temp[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
     }
     Data <- temp
+    if(any(unlist(lapply(Data,ncol))==1)){
+      stop("Please provide for each country more than one variable.")
+    }
   }else if(is.list(Data)){
     if(any(unlist(lapply(Data,is.na)))){
       stop("The data you have submitted contains NAs. Please check the data.")
@@ -272,6 +275,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     Data      <- Data_new
     args$time <- timeindex
     args$Traw <- length(timeindex)
+    if(any(unlist(lapply(Data,ncol))==1)){
+      stop("Please provide for each country more than one variable.")
+    }
   }
   args$Data <- Data
   # check Weight matrix if matrix
@@ -370,8 +376,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   # check thinning factor
   if(thin<1){
-    thin_mess <- paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep="")
+    if(verbose) cat(paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
     thin <- round(1/thin,2)
+    args$thin <- thin
   }
   if(draws%%thin!=0){
     thin_mess <- paste("Thinning factor of ",thin," no divisor of ",draws," (number of draws to save for posterior analysis).\n",sep="")

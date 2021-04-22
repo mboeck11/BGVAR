@@ -7,7 +7,7 @@
 \alias{tA}
 \title{pesaranData}
 \format{
-The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:
+The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. Global variables, namely oil prices, the price of metal and agricultural raw materials, are included in the US country model as e.g., in Dees et al. (2007) for oil prices. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:
 \describe{
   \item{\code{W.1316}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
   \item{\code{tA}}{\code{N} times \code{N} times \code{T}  array that contains the yearly, bilateral trade flows, which were used to construct \code{W.1316}.}
@@ -15,6 +15,7 @@ The data loads three objects \code{pesaranData}, which is a list object of lengt
   \item{\code{y}}{ Real GDP.}
   \item{\code{Dp}}{ Consumer price inflation.}
   \item{\code{eq}}{ Equity prices.}
+  \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}
   \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
   \item{\code{ltir}}{ Long-term interest rates, typically 10-year government bond yields.}
   \item{\code{poil}}{ Price of oil.}
@@ -27,6 +28,6 @@ The data loads three objects \code{pesaranData}, which is a list object of lengt
 pesaranData
 }
 \description{
-This data set contains 151 quarterly observations by country, spanning the period from 1979Q2 to 2016Q4. It can be downloaded from \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}. The country coverage is 33 countries.
+This data set contains  quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 33 countries.
 }
 \keyword{datasets}

@@ -15,7 +15,7 @@ tags:
 - GVAR
 abstract: |
   <p align=justify>
-  This document describes the `BGVAR` library to estimate Bayesian Global vector autoregressions (GVAR) with different prior specifications and stochastic volatility. The library offers a fully fledged toolkit to conduct impulse response functions, forecast error variance and historical error variance decompositions. To identify structural shocks in a given country model or joint regional shocks, the library offers simple Cholesky decompositions, generalized impulse response functions and zero and sign restrictions -- the latter which can also be put on the cross-section. We also allow for different structures of the GVAR like including different weights for different variables or setting up additional country models that determine global variables such as oil prices. Last, we provide functions to conduct and evaluate out-of-sample forecasts as well as conditional forecasts that allow to set a future path for a particular variable of interest. The toolbox requires `R>=3.5`. </p>
+  This document describes the `BGVAR` library to estimate Bayesian Global vector autoregressions (GVAR) with different prior specifications and stochastic volatility. The library offers a fully fledged toolkit to conduct impulse response functions, forecast error variance and historical error variance decompositions. To identify structural shocks in a given country model or joint regional shocks, the library offers simple Cholesky decompositions, generalized impulse response functions and zero and sign restrictions -- the latter of which can also be put on the cross-section. We also allow for different structures of the GVAR like including different weights for different variables or setting up additional country models that determine global variables such as oil prices. Last, we provide functions to conduct and evaluate out-of-sample forecasts as well as conditional forecasts that allow for the setting of a future path for a particular variable of interest. The toolbox requires `R>=3.5`. </p>
 ---
 
 
@@ -29,11 +29,11 @@ knitr::opts_chunk$set(error = TRUE)
 \section{Introduction}
 # Introduction
 <p align=justify>
-This vignette describes the BGVAR package that allows to estimate Bayesian global vector autoregressions (GVARs). The focus of the vignette is to provide a range of examples that demonstrate the full functionality of the library. It is accompanied by a more technical description of the GVAR framework. Here, it suffices to briefly summarize the main idea of a GVAR, which is a large system of equations designed to analyze or control for interactions across units. Most often, these units refer to countries and the interactions between them arise through economic and financial interdependencies. Also in this document, the examples we provide contain cross-country data. In principle, however, the GVAR framework can be applied to other units, such as regions, firms, etc. The following examples show how the GVAR can be used to either estimate spillover effects from one country to another, or alternatively, to look at the effects of a domestic shock controlling for global factors.  
+This vignette describes the BGVAR package that allows for the estimation of Bayesian global vector autoregressions (GVARs). The focus of the vignette is to provide a range of examples that demonstrate the full functionality of the library. It is accompanied by a more technical description of the GVAR framework. Here, it suffices to briefly summarize the main idea of a GVAR, which is a large system of equations designed to analyze or control for interactions across units. Most often, these units refer to countries and the interactions between them arise through economic and financial interdependencies. Also in this document, the examples we provide contain cross-country data. In principle, however, the GVAR framework can be applied to other units, such as regions, firms, etc. The following examples show how the GVAR can be used to either estimate spillover effects from one country to another, or alternatively, to look at the effects of a domestic shock controlling for global factors.  
 </p>
 
 <p align=justify>
-In a nutshell, the GVAR consists of two stages. In the first, $N$ vector autoregressive (VAR) models are estimated, one per unit. Each equation in a unit model is augmented with foreign variables, that control for global factors and allow to link the unit-specific models later. Typically, these foreign variables are constructed using exogenous, bilateral weights, stored in an $N \times N$ weight matrix. The classical framework of @Pesaran2004 and @Dees2007a  proposes estimating these country models in vector error correction form, while in this package we take a Bayesian stance and estimation is carried out using VARs. The user can transform the data prior estimation into stationary form or estimate the model in levels. The `BGVAR` package also allows to include a trend to get trend-stationary data. In the second step, the single country models are combined using the assumption that single models are linked via the exogenous weights, to yield a global representation of the model. This representation of the model is then used to carry out impulse response analysis and forecasting.
+In a nutshell, the GVAR consists of two stages. In the first, $N$ vector autoregressive (VAR) models are estimated, one per unit. Each equation in a unit model is augmented with foreign variables, that control for global factors and link the unit-specific models later. Typically, these foreign variables are constructed using exogenous, bilateral weights, stored in an $N \times N$ weight matrix. The classical framework of @Pesaran2004 and @Dees2007a  proposes estimating these country models in vector error correction form, while in this package we take a Bayesian stance and estimation is carried out using VARs. The user can transform the data prior estimation into stationary form or estimate the model in levels. The `BGVAR` package also allows us to include a trend to get trend-stationary data. In the second step, the single country models are combined using the assumption that single models are linked via the exogenous weights, to yield a global representation of the model. This representation of the model is then used to carry out impulse response analysis and forecasting.
 </p>
 
 <p align=justify>
@@ -51,10 +51,10 @@ set.seed(1)
 library(BGVAR)
 ```
 <p align=justify>
-To ensure reproducibility of the examples that follow, we have set a particular seed (for `R`s random number generator). As every `R` library, the `BGVAR` package provides built-in help files which can be accessed by typing `?` followed by the function / command of interest. It also comes along with four example data sets, two of them correspond to data the quarterly data set used in @Feldkircher2016a (`eerData`, `eerDataspf`), one is on monthly frequency (`monthlyData`). For convenience we also include the data that come along with the Matlab GVAR toolbox of @matlabToolbox, `pesaranData`. We include the 2016 vintage [@Mohaddes2018]. </p>
+To ensure reproducibility of the examples that follow, we have set a particular seed (for `R`s random number generator). As every `R` library, the `BGVAR` package provides built-in help files which can be accessed by typing `?` followed by the function / command of interest. It also comes along with four example data sets, two of them correspond to data the quarterly data set used in @Feldkircher2016a (`eerData`, `eerDataspf`), one is on monthly frequency (`monthlyData`). For convenience we also include the data that come along with the Matlab GVAR toolbox of @matlabToolbox, `pesaranData`. We include the 2019 vintage [@Mohaddes2020]. </p>
 
 <p align=justify>
-We start illustrating the functionality of the `BGVAR` package by using the `eerData` data set from @Feldkircher2016a. It contains 76 quarterly observations for 43 countries and the period from 1995Q1 to 2013Q4. The euro area (EA) is included as a regional aggregate. 
+We start illustrating the functionality of the `BGVAR` package by using the `eerData` data set from @Feldkircher2016a. It contains 76 quarterly observations for 43 countries over the period from 1995Q1 to 2013Q4. The euro area (EA) is included as a regional aggregate. 
 </p>
 
 We can load the data by typing
@@ -87,7 +87,7 @@ Here, we see that the global variable, oil prices (`poil`) is attached to the US
 
 
 <p align=justify>
-The GVAR toolbox relies on one important *naming convention*, though: It is assumed that neither the country names nor the variable names contain a `.` The reason is that the program internally has to collect and separate the data more than once and in doing that, it uses the `.` to separate countries / entities from variables. To give a concrete example, the slot in the `eerData` list referring to the USA should not be labelled `U.S.A.`, nor should any of the variable names contain a `.`
+The GVAR toolbox relies on one important *naming convention*, though: It is assumed that neither the country names nor the variable names contain a `.` [dot]. The reason is that the program internally has to collect and separate the data more than once and in doing that, it uses the `.` to separate countries / entities from variables. To give a concrete example, the slot in the `eerData` list referring to the USA should not be labelled `U.S.A.`, nor should any of the variable names contain a `.`
 </p>
 
 <p align=justify>
@@ -115,7 +115,7 @@ Regardless whether the data are submitted as list or as big matrix, the underlyi
 
 
 <p align=justify>
-Finally, we look at the second important ingredient to build our GVAR model, the weight matrix. Here, we use annual bilateral trade flows (including services), averaged over the period from 2000 to 2012. This implies that The $ij^{th}$ element of $W$ contains trade flows from unit $i$ to unit $j$. These weights can also be made symmetric by calculating $\frac{(W_{ij}+W_{ji})}{2}$. Using trade weights to establish the links in the GVAR goes back to the early GVAR literature [@Pesaran2004] but is still used in the bulk of GVAR studies. Other weights, such as financial flows, have been proposed in @Eickmeier2015 and examined in @Feldkircher2016a. Another approach is to use estimated weights as in @Feldkircher2019b. The weight matrix should have `rownames` and `colnames` that correspond to the $N$ country names contained in `Data`.  
+Finally, we look at the second important ingredient to build our GVAR model, the weight matrix. Here, we use annual bilateral trade flows (including services), averaged over the period from 2000 to 2012. This implies that the $ij^{th}$ element of $W$ contains trade flows from unit $i$ to unit $j$. These weights can also be made symmetric by calculating $\frac{(W_{ij}+W_{ji})}{2}$. Using trade weights to establish the links in the GVAR goes back to the early GVAR literature [@Pesaran2004] but is still used in the bulk of GVAR studies. Other weights, such as financial flows, have been proposed in @Eickmeier2015 and examined in @Feldkircher2016a. Another approach is to use estimated weights as in @Feldkircher2019b. The weight matrix should have `rownames` and `colnames` that correspond to the $N$ country names contained in `Data`.  
 </p>
 
 ```{r "tradeW",echo=TRUE}
@@ -186,7 +186,7 @@ The default prior specification in `bgvar` is to use the NG prior with stochasti
 </p>
 
 <p align=justify>
-The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `draws` and `burnin` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `draws=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term.  To speed up computation, it is possible to set `cores` to the number of CPU cores to use. The package then detects the used platform and either invokes `parLapply` (Windows platform) or `mclapply` (non-Windows platform). If `cores=NULL` then `lapply` is used. In case the user wants to specify its own apply function, this is also possible by passing it to the argument `applyfun`. Ideally the number of cores is equal to the number of units $N$. In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE`, which allows to save the whole posterior distribution of the each unit / country model. Due to storage reasons, the default is set to `FALSE` and only the \textit{posterior medians} of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the \textit{global model} is reported.
+The setting `hyperpara=NULL` implies that we use the standard hyperparameter specification for the NG prior; see the helpfiles for more details. The slots `draws` and `burnin` denote the posterior draws and the burn-in draws (i.e., the draws that are discarded). To ensure that the MCMC estimation has converged, a high-number of burn-ins is recommended (say 15,000 to 30,000). Saving the full set of posterior draws can eat up a lot of storage. To reduce this, we can use a thinning interval which stores only a thin$^{th}$ draw of the global posterior output. For example, with `thin=10` and `draws=5000` posterior draws, the amount of MCMC draws stored is 500. `TREND=TRUE` implies that the model is estimated using a trend. Note that regardless of the trend specification, each equation always automatically includes an intercept term.  To speed up computation, it is possible to invoke parallel computing in `R`. The number of available cpu cores can be specified via `cores`. Ideally this number is equal to the number of units $N$ (`cpu=N`).  Based on the user's operating system, the package then either uses `parLapply` (Windows platform) or `mclapply` (non-Windows platform) to invoke parallel computing. If `cores=NULL`, the unit models are estimated subsequently in a loop (via `R`'s `lapply` function). To use other / own apply functions, pass them on via the argument `applyfun`.  In addition to storing the global posterior, we could also be interested in inspecting the output of the $N$ country models in more detail. To do so, we could set `save.country.store=TRUE`, which allows to save the whole posterior distribution of each unit / country model. Due to storage reasons, the default is set to `FALSE` and only the *posterior medians* of the single country models are reported. Note that even in case `save.country.store=FALSE`, the whole posterior distribution of the *global model* is always stored.
 </p>
 
 <p align=justify>
@@ -205,8 +205,9 @@ To discard explosive draws, we can compute the eigenvalues of the reduced form o
 ```{r "ng.eigen",echo=TRUE}
 model.1$stacked.results$F.eigen[1:10]
 ```
+<p align=justify>
 Last, we have used the default option `h=0`, which implies that we use the full sample period to estimate the GVAR. For the purpose of forecast evaluation, `h` could be specified to a positive number, which then would imply that the last `h` observations are reserved as a hold-out sample and not used to estimate the model.
-
+</p>
 
 \subsection{Model Output and Diagnostic Checks}
 ## Model Output and Diagnostic Checks
@@ -292,15 +293,15 @@ We can estimate the model with two further priors on the unit models, the SSVS p
 ```
 
 <p align="justify">
-One feature of the SSVS prior is that it allows to look at the posterior inclusion probabilities to gauge the importance of particular variables. For example, we can have a look at the PIPs of the euro area model by typing:
+One feature of the SSVS prior is that it allows us to look at the posterior inclusion probabilities to gauge the importance of particular variables. For example, we can have a look at the PIPs of the euro area model by typing:
 </p>
 
 ```{r "Pips"}
 model.ssvs.1$cc.results$PIP$PIP.cc$EA
 ```
-
-This prints in the columns, the equations in the EA country model and in the rows the included variables. 
-The example shows that besides other variables, the trade balance (`tb`) is an important determinant of the real exchange rate (`rer`). 
+<p align="justify">
+The equations in the EA country model can be read column-wise with the rows representing the associated explanatory variables. The example shows that besides other variables, the trade balance (`tb`) is an important determinant of the real exchange rate (`rer`). 
+</p>
 
 We can also have a look at the average of the PIPs across all units:
 
@@ -309,13 +310,13 @@ We can also have a look at the average of the PIPs across all units:
 model.ssvs.1$cc.results$PIP$PIP.avg
 ```
 
-This shows that the same determinants for the real exchange rate appear also as important regressors in other country models.
+This shows that the same determinants for the real exchange rate appear as important regressors in other country models.
 
 \subsection{Different Specifications of the Model}
 ## Different Specifications of the Model
 
 <p align="justify">
-In this section we explore different specifications of the structure of the GVAR model. Other, specification choices that relate more to the time series properties of the data, such as specifying different lags and priors are left for the reader to explore. We will use the SSVS prior and judge the different specifications by examining the posterior inclusion probabilities. 
+In this section we explore different specifications of the structure of the GVAR model. Other specification choices that relate more to the time series properties of the data, such as specifying different lags and priors are left for the reader to explore. We will use the SSVS prior and judge the different specifications by examining the posterior inclusion probabilities. 
 </p>
 
 <p align="justify">
@@ -331,7 +332,7 @@ eerData2<-eerData
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 ```
 
-We can then re-estimate the model:
+We can then re-estimate the model and hand over the `variable.list` via the argument `expert`:
 
 ```{r,results="hide"}
 # weights for first variable set tradeW.0012, for second finW0711
@@ -349,7 +350,7 @@ model.ssvs.2<-bgvar(Data=eerData2,
 ```
 
 <p align="justify">
-Another specification would be to include a foreign variable only when its domestic counterpart is missing. For example, when working with nominal bilateral exchange rates we probably do not want to include also its weighted average (which corresponds to something like an effective exchange rate). Using the previous model we could place an exclusion restriction on foreign long-term interest rates. The following includes foreign long-term rates only in those country models where no domestic long-term rates are available:
+Another specification would be to include a foreign variable only when its domestic counterpart is missing. For example, when working with nominal bilateral exchange rates we probably do not want to include also its weighted average (which corresponds to something like an effective exchange rate). Using the previous model we could place an exclusion restriction on foreign long-term interest rates using `Wex.restr` which is again handed over via `expert`. The following includes foreign long-term rates only in those country models where no domestic long-term rates are available:
 </p>
 
 
@@ -403,20 +404,16 @@ OC.weights$exo<-"poil"
 ```
 
 <p align="justify">
-The first slot, `weights`, should be a vector of weights that sum up to unity. In the example above, we simply use $1/N$, other weights could include purchasing power parities (PPP). The weights are used to aggregate specific variables that in turn enter the oil model as weakly exogenous. The second slot, `variables`, should specify the names of the endogenous and weakly exogenous variables that are used in the model. In the oil price example, we include the oil price (`poil`) as endogenous variable (not contained in any other country model);  a weighted average using `weights` of output (`y`) to proxy world demand is included as weakly exogenous variable. Next, we specify via `exo` which one of the endogenous variables of the oil price model are fed back into the other country models. In this example we specify `poil`. Last, we include `OC.weights` in a further list called `OE.weights` (other entity weights):
+The first slot, `weights`, should be a vector of weights that sum up to unity. In the example above, we simply use $1/N$, other weights could include purchasing power parities (PPP). The weights are used to aggregate specific variables that in turn enter the oil model as weakly exogenous. The second slot, `variables`, should specify the names of the endogenous and weakly exogenous variables that are used in the OC model. In the oil price example, we include the oil price (`poil`) as an endogenous variable (not contained in any other country model) and  a weighted average using `weights` of output (`y`) to proxy world demand as weakly exogenous variable. Next, we specify via `exo` which one of the endogenous variables of the OC model are fed back into the other country models. In this example we specify `poil`. Last, we put all this information in a further list called `OE.weights` (other entity weights). This is done to allow for multiple other entity models (i.e., an oil price model, a joint monetary union model, etc.). It is important that the list entry has the same name as the other entity model, in our example `OC`. 
 </p>
 
 ```{r "OC.weights2"}
 # other entities weights with same name as new oil country
 OE.weights <- list(OC=OC.weights)
 ```
-<p align="justify">
-where the list entry has to has the same name as the oil country model, in our example `OC`. Note that specifying `OE.weights` in principle allows to include further "extra" country models by simply adding additional list slots.
-</p>
-
 
 <p align="justify">
-Now we can re-estimate the model by specifying `OE.weights`, which is a list with its entries labelled exactly like the additional country models. 
+Now we can re-estimate the model where we pass on `OE.weights` via the `expert` argument. 
 </p>
 
 ```{r "estimate.OC",results="hide"}
@@ -451,32 +448,49 @@ heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 We could also compare the models based on their fit, the likelihood, information criteria such as the DIC, residual properties or their forecasting performance. 
 </p>
 
-\section{Structural Analysis}
-# Structural Analysis
+\section{Impulse response functions}
+# Impulse response functions
 <p align="justify">
-Structural analysis can be performed by invoking the `irf()` function. This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
+The package allows to calculate three different ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition of the variance covariance matrix and finally impulse response functions given a set of user-specified sign restrictions.
 </p>
 
 
 \subsection{Recursive Identification and GIRFs}
 ## Recursive Identification and GIRFs
 <p align="justify">
-Let us start by looking at a monetary policy shock in the US country model. 
-For that purpose, we have to set up an `shockinfo` object, which contains information about which variable we want to shock (`shock`), the size of the shock (`scale`) and whether it is a shock applied in a single country or in multiple countries (`global`). We can use the helper function `get_shockinfo()` to set up a such a dummy object which we can subsequently modify according to our needs. The `irf()` command needs as input an estimated model object, the impulse response horizon (`n.ahead`), the preferred identificaiton scheme (`ident`) and the `shockinfo` dataframe. For the recursive identification and GIRFs the shockinfo argument is actually optional. In case this object is not provided, the model retrieves all shocks with unit scaling. The following lines of code are used for a negative 100 bp shock applied to US short term interest rates:
+Most of the GVAR applications deal with *locally* identified shocks. This implies that the shock of interest is orthogonal to the other shocks in the same unit model and hence can be interpreted in a *structural* way. There is still correlation between the shocks of the unit models, and these responses (the spillovers) are hence not fully structural [@Eickmeier2015]. Hence some GVAR applications favor generalized impulse response functions, which per se do not rely on an orthogonalization. In `BGVAR`, responses to both types of shocks can be easily analyzed using the `irf` function. 
+</p>
 
+<p align="justify">
+This function needs as input a model object (`x`), the impulse response horizon (`n.ahead`) and the identification of the shocks (`ident`). Further arguments can be passed on using the wrapper `expert` and are discussed in the helpfiles. The following provides impulse response to all `N` shocks with unit scaling and using generalized impulse response functions:
+ </p>
+```{r, "shocks", results="hide"}
+irf.girf<-irf(model.ssvs.1, n.ahead=24, ident="girf", expert=list(save.store=FALSE))
+```
+<p align="justify">
+The results are stored in `irf.girf$posterior`, which is a 
+four-dimensional array: $K \times n.ahead \times nr.of shocks \times Q$, with `Q` referring to the 50\%, 68\% and 95\% quantiles of the posterior distribution of the impulse response functions. The posterior median of responses to the first shock could be accessed via `irf.girf$posterior[,,1,"Q50"]`
+</p>
+
+<p align="justify">
+Note that this example was for illustrational purposes; in most instances, we would be interested in a particular shock and calculating responses to all shocks in the system is rather inefficient. Hence, we can provide the `irf` function with more information. To be more precise, let us assume that we are interested in an expansionary monetary policy shock (i.e., a decrease in short-term interest rates) in the US country model.
+</p>
+
+<p align="justify">
+For that purpose, we can set up an `shockinfo` object, which contains information about which variable we want to shock (`shock`), the size of the shock (`scale`) and whether it is a shock applied in a single country or in multiple countries (`global`). We can use the helper function `get_shockinfo()` to set up a such a dummy object which we can subsequently modify according to our needs. The following lines of code are used for a negative 100 bp shock applied to US short term interest rates:
  </p>
 ```{r "us.mp", results="hide"}
 # US monetary policy shock - Cholesky
-shockinfo_chol<-get_shockinfo("chol")
+shockinfo_chol<-get_shockinfo()
 shockinfo_chol$shock<-"US.stir"
 shockinfo_chol$scale<--100
 # US monetary policy shock - GIRF
-shockinfo_girf<-get_shockinfo("girf")
+shockinfo_girf<-get_shockinfo()
 shockinfo_girf$shock<-"US.stir"
 shockinfo_girf$scale<--100
 ```
 
-The `shockinfo` argument for the arguments `chol` and `girf` look exactly the same. If we compare them, we notice that both have three columns defining the shock, the scale and whether it is defined as global shock.
+The `shockinfo` objects for Cholesky and GIRFs look exactly the same. If we compare them, we notice that both have three columns defining the shock, the scale and whether it is defined as global shock.
 
 ```{r, "shockinfo"}
 shockinfo_chol
@@ -488,14 +502,14 @@ Now, we identify a monetary policy shock with recursive identification:
 ```{r, "us.mp.chol", results="hide"}
 irf.chol.us.mp<-irf(model.ssvs.1, n.ahead=24, ident="chol", shockinfo=shockinfo_chol, expert=list(save.store=TRUE))
 ```
-The results are stored in `irf.chol.us.mp`. In order to save the complete store one can activate the `save.store` argument by setting to `TRUE` within the expert settings (Attention: this may need a lot of memory).
+The results are stored in `irf.chol.us.mp`. In order to save the complete set of draws, one can activate the `save.store` argument by setting it to `TRUE` within the expert settings (note: this may need a lot of storage).
 
 
 ```{r, "us.mp2"}
 names(irf.chol.us.mp)
 ```
 <p align="justify">
-`irf.chol.us.mp$posterior` is a $K \times n.ahead \times nr.of shocks \times 7$ object. The last slot contains the 50\%, 68\% and 95\% credible intervals along the posterior median. If `save.store=TRUE`, `IRF_store` contains the full set of impulse response draws. 
+Again, `irf.chol.us.mp$posterior` is a $K \times n.ahead \times nr.of shocks \times 7$ object and the last slot contains the 50\%, 68\% and 95\% credible intervals along with the posterior median. If `save.store=TRUE`, `IRF_store` contains the full set of impulse response draws and you can calculate additional quantiles of interest. 
 </p>
 
 We can plot the complete responses of a particular country by typing:
@@ -526,9 +540,11 @@ plot(irf.girf.us.y, resp="US.rer", shock="US.y")
 ```
 
 <p align="justify">
-We see that the responses are similar. This is not surprising since we have shocked the first variable in the US country model (`y`) and there are no timing restrictions on the remaining variables (they are all affected without any lag). In that case, the orthogonal impulse responses and the GIRF coincide. 
+We see that the responses are similar. This is not surprising because we have shocked the first variable in the US country model (`y`) and there are no timing restrictions on the remaining variables (they are all affected without any lag). In that case, the orthogonal impulse responses and the GIRF coincide. 
+</p>
 
-Last, we could also look at a *joint or global shock*. For example, we could be interested in the effects of a simultaneous decrease in output across major economies, such as the G-7 and Russia.
+<p align="justify">
+Last, we could also look at a *joint or global shock*. For example, we could be interested in the effects of a *simultaneous* decrease in output across major economies, such as the G-7 and Russia. For that purpose, we have to set `global<-TRUE`. The following lines illustrate the joint GDP shock:
 </p>
 
 
@@ -546,7 +562,7 @@ plot(irf.global, resp=c("US.y","EA.y","RU.y"), shock="Global.y")
 \subsection{Identification with Zero- and Sign-Restrictions}
 ## Identification with Zero- and Sign-Restrictions
 <p align="justify">
-In this section, we identify the shocks applying sign-restrictions. For that purpose, we need to load another example data set and estimate a GVAR. This data set contains one-year ahead GDP, inflation and short-term interest rate forecasts for the USA, which we are going to need when imposing rationality conditions. The forecasts are from the  
+In this section, we identify the shocks locally with sign-restrictions. For that purpose, we will use another example data set and estimate a new GVAR. This data set contains one-year ahead GDP, inflation and short-term interest rate forecasts for the USA. The forecasts are from the  
 [survey of professional forecasters (SPF)](https://www.philadelphiafed.org/research-and-data/real-time-center/survey-of-professional-forecasters) data base.
 </p>
 
@@ -567,8 +583,7 @@ model.ssvs.eer<-bgvar(Data=eerDataspf,
                       SV=TRUE)
 ```
 <p align="justify">
-For now, we start with an identification of two standard shocks in economics in the US model, namely an aggregate demand and aggregate supply shock. 
-We specify the sign restrictions by specfying again a `shockinfo` argument for the `irf()` command. For the case of sign-restrictions, the user has to specify a `shockinfo` argument otherwise no signs are provided for the computation of the impulse responses. Hence, we create an object with `get_shockinfo("sign")` now and with the help of another function `add_shockinof()`, we can add sign restrictions. In particular, we can specify single signs or a set of signs for one particular structural shock at a time. Information is needed which variable to shock, on which IRFs to put the sign restrictions, the restrictions and the horizon how long these restrictions should hold. Increasing the number of restrictions (on the variables or the horizon) will lead to preciser inference; however, finding a suitable rotation matrix will become substantially harder. 
+For now, we start with an identification of two standard shocks in economics in the US model, namely an aggregate demand and aggregate supply shock. While the `shockinfo` was optional when using Cholesky / GIRFs, it is *mandatory* when working with sign restrictions. We do this in two steps, first we create a dummy object with `get_shockinfo("sign")` that contains information on the general shock setting and then add sign restrictions one-by-one using `add_shockinfo()`. The following illustrates this:
 </p>
 
 
@@ -579,7 +594,9 @@ shockinfo<-add_shockinfo(shockinfo, shock="US.y",
 shockinfo<-add_shockinfo(shockinfo, shock="US.Dp",
                          restriction="US.y", sign="<", horizon=1, prob=1, scale=1)
 ```
-
+<p align="justify">
+In `add_shockinfo` we provide information on which variable to shock (`shock`), on which responses to put the sign restrictions (`restriction`), the direction of the restriction (`sign`) and the horizon how long these restrictions should hold (`horizon`). Note that the shock is always positive, but can be re-scaled by `scale`. The argument `prob` allows you to specify a percentage of the draws for which the restrictions have to hold. This argument might be useful when working with cross-sectional sign restrictions, where the idea is that some restrictions have to hold on average or at a certain percentage. The default is `prob=1`. If we want to add more restrictions to a particular shock, we can simply provide a vector instead of a scalar `add_shockinfo(shockinfo, shock="US.Dp",restriction=c("US.y", "US.stir"), sign=c("<","<"), horizon=c(1,1), prob=c(1,1), scale=1)` Note that increasing the number of restrictions (on the variables or the horizon) will lead to more precise inference; however, finding a suitable rotation matrix will become substantially harder. 
+</p>
 
 <p align="justify">
 We then invoke the `irf()` command to compute the impulse responses. The function draws rotation matrices using the algorithm of @Ramirez2010. In case we specify additional zero restrictions (see the next example below), we use the algorithm of @Arias2018. By default, we use one CPU core (`cores=NULL`) and do not store the full set of responses (`save.store=FALSE`). The maximum number of rotation matrices sampled per MCMC draw before we jump to the next draw can be specified by `MaxTries`. 
@@ -595,11 +612,9 @@ We can infer the number of successful rotation matrices by looking at
 irf.sign$rot.nr
 ```
 
-```{r,"us.spf.plots",fig.cap="Responses to AS (left) and AD (right) shock.",fig.show="hold",out.width="25%"}
-plot(irf.sign, resp="US.y", shock="US.y")
-plot(irf.sign, resp="US.Dp", shock="US.Dp")
-plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.y")
-plot(irf.sign, resp=c("US.Dp","US.rer"), shock="US.Dp")
+```{r,"us.spf.plots",fig.cap="Responses to AS (upper panel) and AD (lower panel) shock.",fig.show="hold",out.width="50%"}
+plot(irf.sign, resp=c("US.y","US.Dp"), shock="US.y")
+plot(irf.sign, resp=c("US.y","US.Dp"), shock="US.Dp")
 ```
 
 
@@ -648,7 +663,7 @@ points(1,yy,col="grey",pch=19,lwd=4);points(5,yy,col="grey",pch=19,lwd=4)
 <p align="justify">
 Impulse responses that refer to observed data are in red (dashed), and the ones referring to expected data in black. The condition we have imposed on short-term interest rates (top panel) was that observed rates should equal the shock to expected rates *on average over the forecast horizon* (one year, i.e., on impact plus 4 quarters). The respective period is marked by the two vertical, grey lines. Put differently, the average of the red-dashed line over the forecast horizon has to equal the expectation shock on impact (grey dot).
 
-On output, shown in the bottom panel, by contrast, we have imposed a condition that has to hold exactly at the forecast horizon. The red line, the impulse response of observed output has to meet the *impact response* of expected output at $h=5$. In the figure, these two points are indicated by the two grey dots. 
+On output, shown in the bottom panel, by contrast, we have imposed a condition that has to hold exactly at the forecast horizon. The red line, the impulse response of observed output, has to meet the *impact response* of expected output at $h=5$. In the figure, these two points are indicated by the two grey dots. 
 </p>
 
 <p align="justify">
@@ -656,7 +671,7 @@ The last example we look at is how to put restrictions on the cross-section. @Ch
 </p>
 
 <p align="justify">
-Here, we follow @Feldkircher2020 who use cross-sectional restrictions to identify a term spread shock in the euro area. Since they use separate country models for members of the euro area, the joint monetary policy has to be modeled. One idea that has been put forth in recent applications is to set up an additional country for the joint monetary policy in the euro area. In the next example, we follow @Georgiadis2015 and set up an ECB model that determines euro area interest rates according to a Taylor rule. This idea follows the set-up of the additional oil price model and can be summarized graphically in the picture below.
+Here, we follow @Feldkircher2020 who use cross-sectional restrictions to identify a term spread shock in the euro area. Since they use separate country models for members of the euro area, the joint monetary policy has to be modeled. One idea that has been put forth in recent applications is to set up an additional country for the joint monetary policy in the euro area. In the next example, we follow @Georgiadis2015 and set up a ECB model that determines euro area interest rates according to a Taylor rule. This idea follows the set-up of the additional oil price model and can be summarized graphically in the picture below.
 </p>
 
 !["GVAR with euro area members modeled seperately."](ecb.png){width=70%}
@@ -693,7 +708,7 @@ model.ssvs<-bgvar(Data=monthlyData,
                   expert=list(OE.weights=OE.weights))
 ```
 
-We can now impose a global shock and sign restrictions on the cross section by setting up a list object:
+We can now impose a joint shock on long-term interest rates for selected countries using sign restrictions on the cross section with the following lines of code:
 
 
 ```{r,"ea.sign"}
@@ -709,14 +724,13 @@ for(cc in c("AT","BE","ES","FI","FR")){
 }
 ```
 
-The slot `sign.constr$shock1$shock` contains the countries and variables to shock and `sign.constr$shock1$restrictions` the restrictions on the cross-section.
+We can have a look at the restrictions by looking at the `shockinfo` object:
 
 ```{r,"global.restrictions"}
 shockinfo
 ```
 <p align="justify">
-The restrictions on the cross-section can be specified to hold only for a percentage of countries
-We have used the following specification: `sign.constr$shock1$constr<-c(1,0.5,0.5)`. This implies that the shock has to happen in all countries (first entry) and the restrictions on output and prices only for half of the countries. We could make the restrictions stricter by increasing the percentage. In the extreme, if we would specify `sign.constr$shock1$constr<-c(1,1,1)`, restrictions would have to hold for all euro area countries.  
+Note the column `prob`. Here, we have specified that the restrictions have to hold only for half of the countries. We could make the restrictions stricter by increasing the percentage. 
 </p>
 
 We can now compute the impulse responses using the same function as before.
@@ -748,7 +762,7 @@ Forecast error variance decompositions indicate the amount of information each v
 </p>
 
 <p align="justify">
-One way of fixing this is to use generalized forecast error variance decompositions. Like with GIRFs, these are independent of the ordering but, since the shocks are not orthogonalized, yield shares that exceed unity. Recently, \citet{lanne2016generalized} proposed a way of scaling the GFEVDs, which has the nice property of shares summing up to 1 and results being independent of the ordering of the variables in the system. To calculate them, we can use the `GFEVD.LN` command. We can either use a running mean (`running=TRUE`) or the full set of posterior draws. The latter is computationally very expensive. 
+One way of fixing this is to use generalized forecast error variance decompositions. Like with GIRFs, these are independent of the ordering but, since the shocks are not orthogonalized, yield shares that exceed unity. Recently, @Lanne2016 proposed a way of scaling the GFEVDs, which has the nice property of shares summing up to 1 and results being independent of the ordering of the variables in the system. To calculate them, we can use the `GFEVD.LN` command. We can either use a running mean (`running=TRUE`) or the full set of posterior draws. The latter is computationally very expensive. 
 </p>
 
 ```{r, "fevd"}
@@ -788,7 +802,7 @@ barplot(fevd.us.y[idx,,])
 \subsection{Historical Decomposition}
 ## Historical Decomposition
 <p align="justify">
-Historical decompositions allow to examine the relative importance of structural shocks in explaining deviations of a time series from its unconditional mean. This can be used to assess the hypothetical question of how data would have looked like if it was driven only by a particular structural shock (e.g., monetary policy shock) or a combination of structural shocks. It can be calculated using the function `hd()`. The function also allows to compute the structural error of the model. To save computational time as well as due to storage limits, we use the point estimate of the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected. If not specified otherwise (via `R`), the rotation matrix based on the posterior median of the reduced form coefficients (`irf.obj$struc.obj$Rmed`) will be used.
+Historical decompositions allow us to examine the relative importance of structural shocks in explaining deviations of a time series from its unconditional mean. This can be used to assess the hypothetical question of how data would have looked like if it was driven only by a particular structural shock (e.g., monetary policy shock) or a combination of structural shocks. It can be calculated using the function `hd()`. The function also allows us to compute the structural error of the model. To save computational time as well as due to storage limits, we use the point estimate of the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected. If not specified otherwise (via `R`), the rotation matrix based on the posterior median of the reduced form coefficients (`irf.obj$struc.obj$Rmed`) will be used.
 </p>
 
 ```{r,"hd"}
@@ -902,8 +916,8 @@ with `Cut` denoting the number of realized data points that should be shown in t
 Main arguments and description of the function `bgvar`.
 
 * `Data`: Either a
-  + list object of length $N$ that contains the data. Each element of the list refers to a country / entity. The number of columns (i.e., variables) in each country model can be different. The $T$ rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a `.`
-  + matrix of dimension $T \times k$, with $k$ denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a `.` The first part should denote the country / entity and the second part the name of the variable. Country and variable names are not allowed to contain a `.`
+  + list object of length $N$ that contains the data. Each element of the list refers to a country / entity. The number of columns (i.e., variables) in each country model can be different. The $T$ rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a `.` [dot].
+  + matrix of dimension $T \times k$, with $k$ denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a `.` The first part should denote the country / entity and the second part the name of the variable. Country and variable names are not allowed to contain a `.` [dot].
 
 * `W`: An $N \times N$ weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. See the help files for getweights for more details.
 
@@ -952,8 +966,8 @@ Main arguments and description of the function `bgvar`.
 * `eigen` Set to `TRUE` if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If `eigen` is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to $1.05$ (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than $1.05$ in modulus).
 
 * `Ex` For including truly exogenous variables to the model. Either a 
-        + `list object` of maximum length `N` that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in `Data`. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The `T` rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot `.` (i.e., a dot) since this is our naming convention.
-        + `matrix object` of dimension `T` times number of truly exogenous variables. The column names should consist of two parts, separated by a `.` (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a `.` (i.e., a dot).
+        + `list object` of maximum length `N` that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in `Data`. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The `T` rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a `.` [dot] since this is our naming convention.
+        + `matrix object` of dimension `T` times number of truly exogenous variables. The column names should consist of two parts, separated by a `.` [dot]. The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a `.` [dot].
         
 * `trend`	If set to `TRUE` a deterministic trend is added to the country models.
 
@@ -1061,8 +1075,8 @@ model.ng<-bgvar(Data=monthlyData,
 * `expert` Expert settings, must be provided as list. Default is set to `NULL`.
     + `MaxTries` Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computation times.
     + `save.store` If set to `TRUE` the full posterior of both, impulse response and rotation matrices, are returned. Default is `FALSE` in order to save storage.
-    + `use_R` Boolean whtether IRF computation should fall back on `R` version, otherwise `Rcpp` version is used (default).
-    + `applyfun` In case `use_R=TRUE`, this allows for user-specific apply function, which has to have the same interface than `lapply`. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
+    + `use_R` Boolean whether IRF computation should fall back on `R` version, otherwise `Rcpp` version is used (default).
+    + `applyfun` In case `use_R=TRUE`, this allows for user-specific apply function, which has to have the same interface as `lapply`. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
     + `cores` Numeric specifying the number of cores which should be used, also `all` and `half` is possible. By default only one core is used.
 * `verbose` If set to `FALSE` it suppresses printing messages to the console.
 
