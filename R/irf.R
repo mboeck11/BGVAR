@@ -444,7 +444,7 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
   start.comp <- Sys.time()
-  if(verbose) cat(paste("Start impulse response analysis on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
+  if(verbose) cat(paste("Start impulse response analysis on ", cores, " core",ifelse(cores>1,"s",""), " (",thindraws," stable draws in total).",sep=""),"\n")
   if(use_R)
   {
     #--------------------------------------------------------------
@@ -712,10 +712,12 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
     scale <- rep(scale, repetition)
     horizon <- c(unlist(sapply(horizon[idx_nr],seq)),horizon[idx_r])
     global <- rep(global, repetition)
+  }else{
+    repetition <- 1
   }
   # add to shockinfo
   nt<-ifelse(all(is.na(shockinfo)),0,nrow(shockinfo))
-  for(nn in 1:nr){
+  for(nn in 1:(repetition*nr)){
     shockinfo[nt+nn,] <- NA
     shockinfo$shock[nt+nn] <- shock
     shockinfo$restriction[nt+nn] <- restriction[nn]
