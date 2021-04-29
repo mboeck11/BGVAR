@@ -262,7 +262,7 @@
 #' @name .BVAR_linear_wrapper
 #' @noRd
 #' @importFrom utils capture.output
-.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex){
+.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
   Exraw <- NULL
@@ -274,10 +274,23 @@
   if(default_hyperpara[["tau_log"]]){
     default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
   }
-  invisible(capture.output(bvar<-BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
-                                             thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), type="message"))
+  # estimation
+  if(!use_R){
+    invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
+                                                   thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)), type="message"))
+  }else{
+    bvar <- structure("message",class=c("try-error","character"))
+  }
   if(is(bvar,"try-error")){
-    bvar<-.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)
+    bvar<-try(.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
+                         thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), silent=TRUE)
+  }
+  # error handling
+  if(inherits(bvar,"try-error")){
+    cat(paste0("Error occured in countrymodel: ", cN[cc],". Please check.\n"))
+    cat("Error in detail: \n\n")
+    print(bvar)
+    stop()
   }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X

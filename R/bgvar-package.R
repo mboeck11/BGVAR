@@ -114,7 +114,7 @@ NULL
 #'   \item{\code{pmat}}{ Price of agricultural products.}
 #'   }}
 #' }
-#' @aliases W.1316 tA
+#' @aliases W.1316 tA ppp
 #' @docType data
 "pesaranData"
 

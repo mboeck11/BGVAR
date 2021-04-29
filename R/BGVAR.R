@@ -211,6 +211,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
     cat(paste("Lag order: ",plag,"\n",sep=""))
     cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
+    cat(paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
   }
   #------------------------------ user checks  ---------------------------------------------------#
   # check Data
@@ -444,7 +445,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(verbose) cat("\nEstimation of country models starts... ")
   start.estim <- Sys.time()
   globalpost <- applyfun(1:N, function(cc){
-    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex)
+    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R)
   })
   names(globalpost) <- cN
   end.estim <- Sys.time()

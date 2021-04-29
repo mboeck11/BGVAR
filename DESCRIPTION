@@ -4,8 +4,7 @@ Title: Bayesian Global Vector Autoregressions
 Version: 2.2.0
 Author: Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
-    Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
-    Christopher Sims [ctb]
+    Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>)
 Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.boeck@wu.ac.at",
                     comment = c(ORCID = "0000-0001-6024-8305")),
              person("Martin","Feldkircher", role="aut",
@@ -17,7 +16,7 @@ Description: Estimation of Bayesian Global Vector Autoregressions (BGVAR) with d
 Encoding: UTF-8
 License: GPL-3
 Language: en-US
-Depends: R (>= 2.10)
+Depends: R (>= 3.50)
 SystemRequirements: C++11, GNU make
 Imports:
    abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 

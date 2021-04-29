@@ -2,6 +2,9 @@ Change in Version 2.2.0
 - complete redesign of 'irf' function
   - computation of irf now in C++
   - makes use of parallel computing via RcppParallel
+  - additional argument with 'shockinfo'
+- two new functions: get_shockinfo() and add_shockinfo() as helper function for designing shockinfo argument in irf computation
+- introduction of 'expert' settings to reduce number of arguments in main functions (bgvar and irf)
 - conditional predictions now possible within predict function
 - synchronization of parameter names with accompanied paper
 - minor bug fixes

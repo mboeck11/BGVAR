@@ -701,31 +701,27 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
     warning("Only one horizon specified, is used for all horizons.")
     horizon <- rep(horizon,nr)
   }
-  # if horizon is bigger than one
-  idx_nr <- which(!(sign%in%c("ratio.H","ratio.avg")))
-  idx_r  <- which(sign%in%c("ratio.H","ratio.avg"))
-  if(any(horizon[idx_nr]>1) && horizon.fillup){
-    repetition <- c(horizon[idx_nr],rep(1,length(idx_r)))
-    restriction <- rep(restriction, repetition)
-    sign <- rep(sign, repetition)
-    prob <- rep(prob, repetition)
-    scale <- rep(scale, repetition)
-    horizon <- c(unlist(sapply(horizon[idx_nr],seq)),horizon[idx_r])
-    global <- rep(global, repetition)
-  }else{
-    repetition <- 1
-  }
-  # add to shockinfo
-  nt<-ifelse(all(is.na(shockinfo)),0,nrow(shockinfo))
-  for(nn in 1:(repetition*nr)){
-    shockinfo[nt+nn,] <- NA
-    shockinfo$shock[nt+nn] <- shock
-    shockinfo$restriction[nt+nn] <- restriction[nn]
-    shockinfo$sign[nt+nn] <- sign[nn]
-    shockinfo$horizon[nt+nn] <- horizon[nn]
-    shockinfo$prob[nt+nn] <- prob[nn]
-    shockinfo$scale[nt+nn] <- scale[nn]
-    shockinfo$global[nt+nn] <- global[nn]
+  for(irep in 1:nr){
+    # if horizon is bigger than one
+    idx_ratio  <- sign[irep] %in% c("ratio.H","ratio.avg")
+    if(horizon[irep]>1 && !idx_ratio && horizon.fillup){
+      repetition <- max(horizon[irep])
+      # horizon <- c(unlist(sapply(horizon[idx_nr],seq)),horizon[idx_r])
+    }else{
+      repetition <- 1
+    }
+    # add to shockinfo
+    nt<-ifelse(all(is.na(shockinfo)),0,nrow(shockinfo))
+    for(nn in 1:repetition){
+      shockinfo[nt+nn,] <- NA
+      shockinfo$shock[nt+nn] <- shock
+      shockinfo$restriction[nt+nn] <- restriction[irep]
+      shockinfo$sign[nt+nn] <- sign[irep]
+      shockinfo$horizon[nt+nn] <- seq(1,horizon[irep])[nn]
+      shockinfo$prob[nt+nn] <- prob[irep]
+      shockinfo$scale[nt+nn] <- scale[irep]
+      shockinfo$global[nt+nn] <- global[irep]
+    }
   }
   # delete duplicate lines
   shockinfo<-shockinfo[!duplicated(shockinfo),]

@@ -5,6 +5,7 @@
 \alias{pesaranData}
 \alias{W.1316}
 \alias{tA}
+\alias{ppp}
 \title{pesaranData}
 \format{
 The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. Global variables, namely oil prices, the price of metal and agricultural raw materials, are included in the US country model as e.g., in Dees et al. (2007) for oil prices. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:

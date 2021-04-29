@@ -5,6 +5,8 @@ BVAR_linear <- function(Y_in, W_in, p_in, draws_in, burnin_in, cons_in, trend_in
     .Call(`_BGVAR_BVAR_linear`, Y_in, W_in, p_in, draws_in, burnin_in, cons_in, trend_in, sv_in, thin_in, prior_in, hyperparam_in, Ex_in)
 }
 
+#' @name do_rgig
+#' @noRd
 do_rgig1 <- function(lambda, chi, psi) {
     .Call(`_BGVAR_do_rgig1`, lambda, chi, psi)
 }
@@ -29,14 +31,12 @@ dmvnrm_arma_fast <- function(x, mean, sigma, logd = FALSE) {
 
 #' @name compute_irf_parallel
 #' @noRd
-#' @export
 compute_irf_parallel <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
     .Call(`_BGVAR_compute_irf_parallel`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
 }
 
 #' @name compute_irf
 #' @noRd
-#' @export
 compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
     .Call(`_BGVAR_compute_irf`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
 }
