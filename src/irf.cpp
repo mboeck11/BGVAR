@@ -194,6 +194,8 @@ struct IrfParallel : public RcppParallel::Worker
         }
         // end of impulse response computation
       } // end choll_success
+      // check user interruption
+      Rcpp::checkUserInterrupt();
     }
   }
 };
@@ -435,6 +437,9 @@ List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, 
         }
       }
     }
+    // check user interruption
+    if(irep % 200 == 0)
+      Rcpp::checkUserInterrupt();
   } // end for-loop of impulse response computation
   //----------------------------------------------------------------------------
   // transform to cube for output
