@@ -3,32 +3,61 @@
 \docType{data}
 \name{pesaranData}
 \alias{pesaranData}
-\alias{W.1316}
+\alias{W.8016}
+\alias{W.EA.9916}
 \alias{tA}
+\alias{tA.EA}
 \alias{ppp}
+\alias{pesaran.diff}
+\alias{pesaran.level}
+\alias{EA.diff}
+\alias{EA.level}
+\alias{dominant}
 \title{pesaranData}
 \format{
-The data loads three objects \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.1316}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. Global variables, namely oil prices, the price of metal and agricultural raw materials, are included in the US country model as e.g., in Dees et al. (2007) for oil prices. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows over the period from 2013 to 2016.\code{peseranData} contains the country data in logarithms, for more details, see below:
+The data loads \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and contains the country-level data as described in Mohaddes and Raissi (2020). \code{EAData} contains the same data but euro area countries (AT, BE, DE, ES, FI, FR, IT, NL) are aggregated into a euro area block using purchasing power parities (\code{ppp}). The countries are abbreviated using ISO-2 codes. Furthermore, we also provide two datasets with first differences of some variables in \code{pesarnDiff} and \code{EAdiff}. \code{dominant} contains data that is considered global. \code{tA} is a three-dimensional array that contains \code{N} times \code{N} annual trade flow matrices over the period from 1980 to 2016. This array can be used to construct weight matrices. For more details, see below:
 \describe{
-  \item{\code{W.1316}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
-  \item{\code{tA}}{\code{N} times \code{N} times \code{T}  array that contains the yearly, bilateral trade flows, which were used to construct \code{W.1316}.}
-  \item{\code{peseranData}}{ is a list object of length \code{N} containing \itemize{
-  \item{\code{y}}{ Real GDP.}
-  \item{\code{Dp}}{ Consumer price inflation.}
-  \item{\code{eq}}{ Equity prices.}
-  \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}
-  \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
-  \item{\code{ltir}}{ Long-term interest rates, typically 10-year government bond yields.}
-  \item{\code{poil}}{ Price of oil.}
-  \item{\code{pmetal}}{ Price of metals.}
-  \item{\code{pmat}}{ Price of agricultural products.}
-  }}
+  \item{\code{W.8016}}{ Weight matrix for the \code{pesaran.level} and \code{pesaran.diff} data sets, based on averaged trade flows covering the period 1980 to 2016 (based on \code{tA}).}
+  \item{\code{W.EA.9916}}{ Weight matrix for the \code{EA.level} and \code{EA.diff} data sets, based on averaged trade flows covering the period 1999 to 2016 (based on \code{tA.EA}).}
+  \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.8016}.}
+  \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.EA.9916}.}
+  \item{\code{peseranData}}{ List object of length \code{N} containing \itemize{
+    \item{\code{y}}{ Real GDP.}
+    \item{\code{Dp}}{ Consumer price inflation.}
+    \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
+    \item{\code{eq}}{ Equity prices.}
+    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
+ \item{\code{pesaranDiff}}{ List object of length \code{N} containing \itemize{
+    \item{\code{y}}{ Growth rate of real GDP.}
+    \item{\code{Dp}}{ First differences of consumer price inflation.}
+    \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
+    \item{\code{eq}}{ Equity prices.}
+    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
+ \item{\code{EAData}}{ List object of length \code{N} containing \itemize{
+    \item{\code{y}}{ Real GDP.}
+    \item{\code{Dp}}{ Consumer price inflation.}
+    \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
+    \item{\code{eq}}{ Equity prices.}
+    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
+ \item{\code{EADiff}}{ List object of length \code{N} containing \itemize{
+    \item{\code{y}}{ Growth rate of real GDP.}
+    \item{\code{Dp}}{ First differences of consumer price inflation.}
+    \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
+    \item{\code{eq}}{ Equity prices.}
+    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
+ \item{\code{dominant}}{ Data set containing global variables: \itemize{
+    \item{\code{poil}}{ Oil prices.}
+    \item{\code{pmetal}}{ Metal price index.}
+    \item{\code{pmat}}{ Agricultural price index.}}}
 }
 }
 \usage{
 pesaranData
 }
 \description{
-This data set contains  quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 33 countries.
+This data set contains quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 33 countries.
+}
+\references{
+Mohaddes, K. and M. Raissi (2018). Compilation, Revision and Updating of the Global VAR (GVAR) Database, 1979Q2-2016Q4. University of Cambridge: Faculty of Economics (mimeo).
 }
 \keyword{datasets}
