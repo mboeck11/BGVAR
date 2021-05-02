@@ -17,8 +17,8 @@ NULL
 #' @description This data set contains 76 quarterly observations by country, spanning the period from 1995Q1 to 2013Q4. The country coverage is 43 countries and the Euro area (EA) as a regional aggregate.
 #' @format The data loads two objects \code{eerData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerData} contains the country data, for more details, see below:
 #' \describe{
-#'   \item{\code{W.trade0012}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
-#'   \item{\code{W.list}}{A list of 10 weight matrices, described in Feldkircher and Huber (2016).}
+#'   \item{\code{W.trade0012}}{ Weight matrix based on trade flows, rowsums equal unity.}
+#'   \item{\code{W.list}}{ List of ten weight matrices, described in Feldkircher and Huber (2016).}
 #'   \item{\code{eerData}}{ is a list object of length \code{N} containing \itemize{
 #'   \item{\code{y}}{ Real GDP, average of 2005=100. Seasonally adjusted, in logarithms.}
 #'   \item{\code{Dp}}{ Consumer prices (period-on-period). CPI seasonally adjusted, in logarithm.}
@@ -37,8 +37,8 @@ NULL
 #' @description This data set is a subset of \code{eerData} containing just three countries with 76 quarterly observations, spanning the period from 1995Q1 to 2013Q4. The country coverage are the United States, the United Kingdom and the Euro area (EA) as a regional aggregate.
 #' @format The data loads two objects \code{eerDatasmall}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerDatasmall} contains the country data, for more details, see below:
 #' \describe{
-#'   \item{\code{W.trade0012.small}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
-#'   \item{\code{eerDatasmall}}{ is a list object of length \code{N} containing \itemize{
+#'   \item{\code{W.trade0012.small}}{ Weight matrix based on trade flows, rowsums equal unity.}
+#'   \item{\code{eerDatasmall}}{ List object of length \code{N} containing \itemize{
 #'         \item{\code{y}}{ Real GDP, average of 2005=100. Seasonally adjusted, in logarithms.}
 #'         \item{\code{Dp}}{ Consumer prices (period-on-period). CPI seasonally adjusted, in logarithm.}
 #'         \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
@@ -56,11 +56,11 @@ NULL
 #' @description This data set contains 76 quarterly observations by country, spanning the period from 1995Q1 to 2013Q4. The country coverage is 43 countries + the euro area (EA) as a regional aggregate. Additionally, the US country dataset is extended with four quarter ahead expectation data on output, prices and short-term interest rates from the Survey of Professional Forecasters.
 #' @format The data loads two objects \code{eerData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerData} contains the country data, for more details, see below:
 #' \describe{
-#'   \item{\code{W.trade0012spf}}{\code{N} times \code{N} weight matrix based on trade flows, rowsums equal unity.}
-#'   \item{\code{eerDataspf}}{ is a list object of length \code{N} containing \itemize{
-#'   \item{\code{y_t+4}}{ four quarter ahead expectation of Real GDP growth.}
-#'   \item{\code{Dp_t+4}}{ four quarter ahead expectation of consumer price inflation.}
-#'   \item{\code{stir_t+4}}{ four quarter ahead expectation of short-term interest rates.}
+#'   \item{\code{W.trade0012spf}}{ Weight matrix based on trade flows, rowsums equal unity.}
+#'   \item{\code{eerDataspf}}{ List object of length \code{N} containing \itemize{
+#'   \item{\code{y_t+4}}{ Four-quarter ahead expectation of Real GDP growth.}
+#'   \item{\code{Dp_t+4}}{ Four-quarter ahead expectation of consumer price inflation.}
+#'   \item{\code{stir_t+4}}{ Four-quarter ahead expectation of short-term interest rates.}
 #'   \item{\code{y}}{ Real GDP growth.}
 #'   \item{\code{Dp}}{ Consumer price inflation (period-on-period).}
 #'   \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
@@ -79,8 +79,8 @@ NULL
 #' @description This data set contains monthly observations on industrial production, consumer price indices, short- and long-term interest rates, real effective exchange rates and equity prices. The time period covered is from January 2000 to December 2015 and the country coverage amounts to  28 countries -- roughly corresponding to EU member states + G-8 countries and a country model to model common monetary policy in the euro area.
 #' @format The data loads three objects \code{monthlyData}, which is a list object of length \code{N+1} (i.e, the number of countries + the ECB country model), \code{W}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual input output flows for the \code{N} countries over the period from 2000 to 2014. The data are from the world input output table database (\url{http://www.wiod.org/home}) and are fully described in Timmerman et al. (2015). \code{monthlyData} contains the country data. Per default, variables that should affect all countries (global variables) are treated as endogenous variables in the US country model (\code{poil}, \code{pcom}, \code{vix}). Akin to Georgiadis (2015), interest setting in the euro area is modeled by a Taylor rule that includes ppp-weighted output and prices of euro area countries. The euro area interest rate enters other country models as an additional exogenous variable. For more details, see below:
 #' \itemize{
-#' \item{W.} {\code{N} times \code{N} weight matrix, rowsums equal unity.}
-#' \item{monthlyData} { is a list object of length \code{N} containing \itemize{
+#' \item{W} {Weight matrix, rowsums equal unity.}
+#' \item{monthlyData} { List object containing \itemize{
 #' \item{\code{y}}{ Industrial production index, in real terms, logarithmic transform and seasonally adjusted.}
 #' \item{\code{p}}{ Harmonized Consumer Price Index (HCPI) for EU member states, for other countries Consumer Price Index. Data in logarithmic transform and seasonally adjusted.}
 #' \item{\code{stir}}{ Short-term interest rate, typically 3 months money market rate.}
@@ -133,7 +133,7 @@ NULL
 #'     \item{\code{pmetal}}{ Metal price index.}
 #'     \item{\code{pmat}}{ Agricultural price index.}}}
 #' }
-#' @aliases W.8016 W.EA.9916 tA tA.EA ppp pesaran.diff pesaran.level EA.diff EA.level dominant
+#' @aliases pesaranDiff EAData EADiff W.8016 W.EA.9916 tA tA.EA ppp dominant
 #' @references 
 #' Mohaddes, K. and M. Raissi (2018). Compilation, Revision and Updating of the Global VAR (GVAR) Database, 1979Q2-2016Q4. University of Cambridge: Faculty of Economics (mimeo).
 #' @docType data

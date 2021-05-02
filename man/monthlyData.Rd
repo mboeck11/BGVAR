@@ -10,8 +10,8 @@
 \format{
 The data loads three objects \code{monthlyData}, which is a list object of length \code{N+1} (i.e, the number of countries + the ECB country model), \code{W}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual input output flows for the \code{N} countries over the period from 2000 to 2014. The data are from the world input output table database (\url{http://www.wiod.org/home}) and are fully described in Timmerman et al. (2015). \code{monthlyData} contains the country data. Per default, variables that should affect all countries (global variables) are treated as endogenous variables in the US country model (\code{poil}, \code{pcom}, \code{vix}). Akin to Georgiadis (2015), interest setting in the euro area is modeled by a Taylor rule that includes ppp-weighted output and prices of euro area countries. The euro area interest rate enters other country models as an additional exogenous variable. For more details, see below:
 \itemize{
-\item{W.} {\code{N} times \code{N} weight matrix, rowsums equal unity.}
-\item{monthlyData} { is a list object of length \code{N} containing \itemize{
+\item{W} {Weight matrix, rowsums equal unity.}
+\item{monthlyData} { List object containing \itemize{
 \item{\code{y}}{ Industrial production index, in real terms, logarithmic transform and seasonally adjusted.}
 \item{\code{p}}{ Harmonized Consumer Price Index (HCPI) for EU member states, for other countries Consumer Price Index. Data in logarithmic transform and seasonally adjusted.}
 \item{\code{stir}}{ Short-term interest rate, typically 3 months money market rate.}
