@@ -107,25 +107,29 @@ NULL
 #'   \item{\code{peseranData}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Real GDP.}
 #'     \item{\code{Dp}}{ Consumer price inflation.}
-#'     \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
+#'     \item{\code{r}}{ Short-term interest rate, typically 3-months money market rate.}
+#'     \item{\code{lr}}{ Long-term interest rate.}
 #'     \item{\code{eq}}{ Equity prices.}
 #'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
 #'  \item{\code{pesaranDiff}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Growth rate of real GDP.}
 #'     \item{\code{Dp}}{ First differences of consumer price inflation.}
 #'     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
+#'     \item{\code{lr}}{ Long-term interest rate.}
 #'     \item{\code{eq}}{ Equity prices.}
 #'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
 #'  \item{\code{EAData}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Real GDP.}
 #'     \item{\code{Dp}}{ Consumer price inflation.}
 #'     \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
+#'     \item{\code{lr}}{ Long-term interest rate.}
 #'     \item{\code{eq}}{ Equity prices.}
 #'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
 #'  \item{\code{EADiff}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Growth rate of real GDP.}
 #'     \item{\code{Dp}}{ First differences of consumer price inflation.}
 #'     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
+#'     \item{\code{lr}}{ Long-term interest rate.}
 #'     \item{\code{eq}}{ Equity prices.}
 #'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
 #'  \item{\code{dominant}}{ Data set containing global variables: \itemize{
