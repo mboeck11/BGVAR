@@ -1,3 +1,8 @@
+Change in Version 2.2.1
+- small update to clear errors in CRAN Checks
+- added output of 'bgvar' function. Now directly shows the number of stable draws when using the function.
+- added a missing reference in vignette
+
 Change in Version 2.2.0
 - complete redesign of 'irf' function
   - computation of irf now in C++

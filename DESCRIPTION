@@ -16,7 +16,7 @@ Description: Estimation of Bayesian Global Vector Autoregressions (BGVAR) with d
 Encoding: UTF-8
 License: GPL-3
 Language: en-US
-Depends: R (>= 3.50)
+Depends: R (>= 3.5.0)
 SystemRequirements: C++11, GNU make
 Imports:
    abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 
