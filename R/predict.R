@@ -116,17 +116,24 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     Jm    <- aux$Jm
     Jsigt <- Jm%*%Sig_t%*%t(Jm)
     # this is the forecast loop
+    stop <- FALSE
     for(ih in 1:n.ahead){
       z1      <- Mm%*%z1
       Sigma00 <- Mm%*%Sigma00%*%t(Mm) + Jsigt
       chol_varyt <- try(t(chol(Sigma00[1:bigK,1:bigK])),silent=TRUE)
-      if(is(chol_varyt,"try-error")){
-        yf <- mvrnorm(1,mu=z1[1:bigK],Sigma00[1:bigK,1:bigK])
-      }else{
+      if(is(chol_varyt,"matrix")){
         yf <- z1[1:bigK]+chol_varyt%*%rnorm(bigK,0,1)
+      }
+      if(is(chol_varyt,"try-error")){
+        yf <- try(mvrnorm(1,mu=z1[1:bigK],Sigma00[1:bigK,1:bigK]),silent=TRUE)
+      }
+      if(is(yf,"try-error")){
+        stop = TRUE
+        break # break inner loop
       }
       y2 <- cbind(y2,yf)
     }
+    if(stop){next} # continue outer loop
     pred_store[irep,,] <- y2
   }
   #----------do conditional forecasting -------------------------------------------#
@@ -139,8 +146,10 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     for(irep in 1:thindraws){
       pred    <- pred_store[irep,,]
       Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
+      chol_varyt <- try(t(chol(Sigma_u)), silent=TRUE)
+      if(is(chol_varyt,"try-error")) {next}
       irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
-                             smat=t(chol(Sigma_u)),nstep=n.ahead)
+                             smat=chol_varyt,nstep=n.ahead)
       
       temp <- as.vector(constr) + rnorm(bigK*n.ahead,0,as.vector(constr_sd))
       constr_use <- matrix(temp,n.ahead,bigK)
@@ -194,8 +203,8 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   yfull <- object$args$yfull
   if(hold.out>0){
     lps.stats <- array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
-    lps.stats[,"mean",] <- apply(pred_store[,,1:hold.out],c(2:3),mean)
-    lps.stats[,"sd",]   <- apply(pred_store[,,1:hold.out],c(2:3),sd)
+    lps.stats[,"mean",] <- apply(pred_store[,,1:hold.out],c(2:3),mean,na.rm=TRUE)
+    lps.stats[,"sd",]   <- apply(pred_store[,,1:hold.out],c(2:3),sd,na.rm=TRUE)
     hold.out.sample<-yfull[(nrow(yfull)+1-hold.out):nrow(yfull),,drop=FALSE]
   }else{
     lps.stats<-NULL
