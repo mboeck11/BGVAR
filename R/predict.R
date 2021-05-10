@@ -98,7 +98,12 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   
   pred_store <- array(NA,dim=c(thindraws,bigK,n.ahead))
   # start loop here
-  if(verbose) cat("Start computing predictions...\n")
+  if(verbose){
+    if(flag_cond)
+      cat("Start computing conditional predictions...\n")
+    else
+      cat("Start computing predictions...\n")
+  }
   for(irep in 1:thindraws){
     #Step I: Construct a global VC matrix Omega_t
     Ginv    <- Ginv_large[irep,,]
@@ -141,7 +146,6 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     cond_store <- array(NA, c(thindraws, bigK, n.ahead))
     dimnames(cond_store)[[2]] <- varNames
     
-    if(verbose) cat("Start computing conditional predictions...\n")
     if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
     for(irep in 1:thindraws){
       pred    <- pred_store[irep,,]
@@ -273,7 +277,7 @@ lps.bgvar.pred <- function(object, ...){
   h        <- nrow(hold.out)
   K        <- ncol(hold.out)
   if(is.null(hold.out)){
-    stop("Please submit a forecast object that includes a hold out sample for evaluation (set h>0 when estimating the model with bgvar)!")
+    stop("Please submit a forecast object that includes a hold out sample for evaluation (set hold.out>0 when estimating the model with bgvar)!")
   }
   lps.stats  <- object$lps.stats
   lps.scores <- matrix(NA,h,K)
@@ -313,7 +317,7 @@ rmse.bgvar.pred <- function(object, ...){
   h        <- nrow(hold.out)
   K        <- ncol(hold.out)
   if(is.null(hold.out)){
-    stop("Please submit a forecast object that includes a hold out sample for evaluation (set h>0 in fcast)!")
+    stop("Please submit a forecast object that includes a hold out sample for evaluation (set hold.out>0 in fcast)!")
   }
   lps.stats   <- object$lps.stats
   rmse.scores <- matrix(NA,h,K)
