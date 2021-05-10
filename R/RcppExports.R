@@ -37,6 +37,7 @@ compute_irf_parallel <- function(A_large, S_large, Ginv_large, type, nhor, thind
 
 #' @name compute_irf
 #' @noRd
+#' @export
 compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
     .Call(`_BGVAR_compute_irf`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
 }

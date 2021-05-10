@@ -248,6 +248,7 @@ List compute_irf_parallel(arma::cube A_large, arma::cube S_large, arma::cube Gin
 
 //' @name compute_irf
 //' @noRd
+//' @export
 // [[Rcpp::export]]
 List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in) {
   
