@@ -23,7 +23,7 @@
 #' library(BGVAR)
 #' data(eerDatasmall)
 #' model.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,prior="MN",
-#'                  draws=50,burnin=50,plag=1,eigen=TRUE)
+#'                  draws=100,burnin=50,plag=1,eigen=TRUE)
 #'                       
 #' # US monetary policy shock
 #' shockinfo <- get_shockinfo("chol")
