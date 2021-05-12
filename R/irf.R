@@ -491,8 +491,11 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
     # type
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
     # compute impulse responses
-    temp = compute_irf_parallel(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
-    # temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
+    if(cores == 1){
+      temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
+    }else{
+      temp = compute_irf_parallel(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
+    }
     for(irep in 1:thindraws){
       for(ihor in 1:(n.ahead+1)){
         IRF_store[irep,,,ihor] = temp$irf[((ihor-1)*bigK+1):(bigK*ihor),,irep]

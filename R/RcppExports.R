@@ -31,7 +31,6 @@ dmvnrm_arma_fast <- function(x, mean, sigma, logd = FALSE) {
 
 #' @name compute_irf_parallel
 #' @noRd
-#' @export
 compute_irf_parallel <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
     .Call(`_BGVAR_compute_irf_parallel`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
 }
