@@ -26,7 +26,7 @@ struct IrfParallel : public RcppParallel::Worker
   
   // take the square root of the range of elements requested
   void operator()(std::size_t begin, std::size_t end) {
-    for(int irep = begin; irep < end; irep++){
+    for(std::size_t irep = begin; irep < end; irep++){
       // get stuff
       List shock_idx = shocklist["shock.idx"];
       LogicalVector shock_cidx = shocklist["shock.cidx"];
@@ -40,7 +40,7 @@ struct IrfParallel : public RcppParallel::Worker
       mat Ginv = Ginv_large.row(irep);
       // construct Fmat
       cube Fmat(bigK, bigK, plag, fill::zeros);
-      for(uword pp = 0; pp < plag; pp++){
+      for(int pp = 0; pp < plag; pp++){
         Fmat.slice(pp) = Amat.cols(pp*bigK,(pp+1)*bigK-1);
       }
       // create P0G
@@ -280,7 +280,7 @@ List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, 
     mat Ginv = Ginv_large.row(irep);
     // construct Fmat
     cube Fmat(bigK, bigK, plag, fill::zeros);
-    for(uword pp = 0; pp < plag; pp++){
+    for(int pp = 0; pp < plag; pp++){
       Fmat.slice(pp) = Amat.cols(pp*bigK,(pp+1)*bigK-1);
     }
     // create P0G

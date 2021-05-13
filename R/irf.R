@@ -61,10 +61,10 @@
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
 #' 
 #' # generalized impulse responses
-#' irf.girf.us.mp<-irf(model.eer, n.ahead=24, ident="girf", shockinfo=shockinfo)
+#' irf.girf.us.mp<-irf(model.eer, n.ahead=20, ident="girf", shockinfo=shockinfo)
 #' 
 #' # cholesky identification
-#' irf.chol.us.mp<-irf(model.eer, n.ahead=24, ident="chol", shockinfo=shockinfo)
+#' irf.chol.us.mp<-irf(model.eer, n.ahead=20, ident="chol", shockinfo=shockinfo)
 #' 
 #' # sign restrictions
 #' shockinfo <- get_shockinfo("sign")
@@ -72,15 +72,16 @@
 #' sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
 #' 
-#' # sign restrictions with relaxed cross-country restrictions
+#' \donttest{
+#' #' # sign restrictions with relaxed cross-country restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' # restriction for other countries holds to 75\%
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.y","UK.y"), 
 #'                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
 #'                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-#' irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
-#' \donttest{
+#' irf.sign.us.mp<-irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo)
+#' 
 #' # Example with zero restriction (Arias et al., 2018) and 
 #' # rationality conditions (D'Amico and King, 2017).
 #' data("eerDataspf")
