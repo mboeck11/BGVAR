@@ -310,41 +310,6 @@ irfcf.bgvar.irf <- function(x, shockvar, resp, n.ahead=24, save.store=FALSE, ver
   return(out)
 }
 
-#' @name .impulsdtrf
-#' @noRd
-.impulsdtrf <- function(B,smat,nstep)
-{
-  
-  neq <- dim(B)[1]
-  nvar <- dim(B)[2]
-  lags <- dim(B)[3]
-  dimnB <- dimnames(B)
-  if(dim(smat)[2] != dim(B)[2]) stop("B and smat conflict on # of variables")
-  response <- array(0,dim=c(neq,nvar,nstep+lags-1));
-  response[ , , lags] <- smat
-  response <- aperm(response, c(1,3,2))
-  irhs <- 1:(lags*nvar)
-  ilhs <- lags * nvar + (1:nvar)
-  response <- matrix(response, ncol=neq)
-  B <- B[, , seq(from=lags, to=1, by=-1)]  #reverse time index to allow matrix mult instead of loop
-  B <- matrix(B,nrow=nvar)
-  for (it in 1:(nstep-1)) {
-    response[ilhs, ] <- B %*% response[irhs, ]
-    irhs <- irhs + nvar
-    ilhs <- ilhs + nvar
-  }
-  dim(response) <- c(nvar, nstep + lags - 1, nvar)
-  #drop the zero initial conditions; array in usual format
-  if(lags>1){
-    response<-response[,-(1:(lags-1)),]
-  }
-  response <- aperm(response, c(1, 3, 2))
-  dimnames(response) <- list(dimnB[[1]], dimnames(smat)[[2]], NULL)
-  ## dimnames(response)[2] <- dimnames(smat)[1]
-  ## dimnames(response)[1] <- dimnames(B)[2]
-  return(response)
-}
-
 #' @name .divisors
 #' @noRd
 .divisors <- function (n,div) {
