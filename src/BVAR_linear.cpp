@@ -10,7 +10,6 @@ using namespace arma;
 
 //' @name BVAR_linear
 //' @noRd
-//' @export
 //[[Rcpp::interfaces(r, cpp)]]
 //[[Rcpp::export]]
 List BVAR_linear(arma::mat Yraw, 
@@ -134,6 +133,21 @@ List BVAR_linear(arma::mat Yraw,
   }
   if(prior==1) get_Vminnesota(V_prior, sigmas, shrink1, shrink2, shrink3, shrink4, cons, Mstar, plag, trend);
   
+  // initialize stuff for MN prior
+  mat V_prop1(k,M), V_prop2(k,M), V_prop4(k,M); 
+  double shrink_prop1, shrink_prop2, shrink_prop4;
+  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old4=0.0, post_prop4=0.0;
+  for(int i=0; i<k; i++){
+    for(int j=0; j<M; j++){
+      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
+      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
+      post_old4 = post_old4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
+    }
+  }
+  post_old1 = post_old1 + R::dgamma(shrink1,0.01,1/0.01,true) + log(shrink1); // add prior - shape scale parameterization!!!! + correction term
+  post_old2 = post_old2 + R::dgamma(shrink2,0.01,1/0.01,true) + log(shrink2); // add prior - shape scale parameterization!!!! + correction term
+  post_old4 = post_old4 + R::dgamma(shrink4,0.01,1/0.01,true) + log(shrink4); // add prior - shape scale parameterization!!!! + correction term
+  
   // SSVS stuff
   mat gamma(k,M, fill::ones);
   mat temp = kron(SIGMA_OLS,XtXinv);
@@ -152,6 +166,10 @@ List BVAR_linear(arma::mat Yraw,
   mat A_tau(plag+1,2); A_tau.fill(tau_theta);
   mat A_tuning(plag+1,2); A_tuning.fill(0.43);
   mat A_accept(plag+1,2, fill::zeros);
+  // initialize stuff for NG prior
+  mat A_con, V_con, P_con, A_end, V_end, P_end, A_exo, V_exo, P_exo;
+  int r_con, c_con, d_con, r_end, c_end, d_end, r_exo, c_exo, d_exo, r_cov, c_cov;
+  double prodlambda;
   //---------------------------------------------------------------
   // prior on coefficients in H matrix of VCV
   //---------------------------------------------------------------
@@ -233,8 +251,6 @@ List BVAR_linear(arma::mat Yraw,
   cube theta_store(thindraws,k,M, fill::zeros);
   cube lambda2_store(thindraws,plag+1,3, fill::zeros);
   cube tau_store(thindraws,plag+1,3, fill::zeros);
-  //cube accept_store(thindraws,p+1,3, fill::zeros);
-  //cube tuning_store(thindraws,p+1,3, fill::zeros);
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
@@ -313,69 +329,57 @@ List BVAR_linear(arma::mat Yraw,
     // Step 2: different prior setups
     // SIMS
     if(prior == 1){
-      mat postval_prop1(k,M, fill::zeros); mat postval_old1(k,M, fill::zeros);
-      mat postval_prop2(k,M, fill::zeros); mat postval_old2(k,M, fill::zeros);
-      mat postval_prop4(k,M, fill::zeros); mat postval_old4(k,M, fill::zeros);
       // first shrinkage parameter (own lags)
-      double shrink_prop1 = exp(R::rnorm(0,scale1))*shrink1;
-      mat V_prop1(k,M); get_Vminnesota(V_prop1, sigmas, shrink_prop1, shrink2, shrink3, shrink4, cons, Mstar, plag, trend);
-      //get_shrink(V_prior, V_prop1, shrink1, shrink_prop1, A_draw, A_prior, accept1, scale1, irep, burnin);
-      
+      shrink_prop1 = exp(R::rnorm(0,scale1))*shrink1;
+      get_Vminnesota(V_prop1, sigmas, shrink_prop1, shrink2, shrink3, shrink4, cons, Mstar, plag, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
-          postval_prop1(i,j) = R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prop1(i,j)),true);
-          postval_old1(i,j) = R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
+          post_prop1 = post_prop1 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop1(i,j)), true);
         }
       }
       // total likelihood 
-      double post_prop1 = accu(postval_prop1) + R::dgamma(shrink_prop1,0.01,1/0.01,true) + log(shrink_prop1);  // add prior - shape scale parameterization!!!! + correction term
-      double post_old1 = accu(postval_old1) + R::dgamma(shrink1,0.01,1/0.01,true) + log(shrink1); // add prior - shape scale parameterization!!!! + correction term
+      post_prop1 = post_prop1 + R::dgamma(shrink_prop1,0.01,1/0.01,true) + log(shrink_prop1);  // add prior - shape scale parameterization!!!! + correction term
       if((post_prop1-post_old1) > log(R::runif(0,1))){
         shrink1 = shrink_prop1;
         V_prior = V_prop1;
+        post_old1 = post_prop1;
         accept1 += 1;
       }
       
       // second shrinkage parameter (cross equations)
-      double shrink_prop2 = exp(R::rnorm(0,scale2))*shrink2;
-      mat V_prop2(k,M); get_Vminnesota(V_prop2, sigmas, shrink1, shrink_prop2, shrink3, shrink4, cons, Mstar, plag, trend);
-      //get_shrink(V_prior, V_prop2, shrink2, shrink_prop2, A_draw, A_prior, accept2, scale2, irep, burnin);
-      
+      shrink_prop2 = exp(R::rnorm(0,scale2))*shrink2;
+      get_Vminnesota(V_prop2, sigmas, shrink1, shrink_prop2, shrink3, shrink4, cons, Mstar, plag, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
-          postval_prop2(i,j) = R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prop2(i,j)),true);
-          postval_old2(i,j) = R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
+          post_prop2 = post_prop2 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop2(i,j)), true);
         }
       }
       // total likelihood 
-      double post_prop2 = accu(postval_prop2) + R::dgamma(shrink_prop2,0.01,1/0.01,true) + log(shrink_prop2);  // add prior - shape scale parameterization!!!! + correction term
-      double post_old2 = accu(postval_old2) + R::dgamma(shrink2,0.01,1/0.01,true) + log(shrink2); // add prior - shape scale parameterization!!!! + correction term
+      post_prop2 = post_prop2 + R::dgamma(shrink_prop2,0.01,1/0.01,true) + log(shrink_prop2);  // add prior - shape scale parameterization!!!! + correction term
       if((post_prop2-post_old2) > log(R::runif(0,1))){
         shrink2 = shrink_prop2;
         V_prior = V_prop2;
+        post_old2 = post_prop2; 
         accept2 += 1;
       }
       
       // fourth shrinkage parameter (weakly exogenous)
-      double shrink_prop4 = exp(R::rnorm(0,scale4))*shrink4;
-      mat V_prop4(k,M); get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, trend);
-      //get_shrink(V_prior, V_prop4, shrink4, shrink_prop4, A_draw, A_prior, accept4, scale4, irep, burnin);
-      
+      shrink_prop4 = exp(R::rnorm(0,scale4))*shrink4;
+      get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
-          postval_prop4(i,j) = R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop4(i,j)), true);
-          postval_old4(i,j) = R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
+          post_prop4 = post_prop4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop4(i,j)), true);
         }
       }
       // total likelihood 
-      double post_prop4 = accu(postval_prop4) + R::dgamma(shrink_prop4,0.01,1/0.01,true) + log(shrink_prop4);  // add prior - shape scale parameterization!!!! + correction term
-      double post_old4 = accu(postval_old4) + R::dgamma(shrink4,0.01,1/0.01,true) + log(shrink4); // add prior - shape scale parameterization!!!! + correction term
+      post_prop4 = post_prop4 + R::dgamma(shrink_prop4,0.01,1/0.01,true) + log(shrink_prop4);  // add prior - shape scale parameterization!!!! + correction term
       if((post_prop4-post_old4) > log(R::runif(0,1))){
         shrink4 = shrink_prop4;
         V_prior = V_prop4;
+        post_old4 = post_prop4;
         accept4 += 1;
       }
       
@@ -420,13 +424,13 @@ List BVAR_linear(arma::mat Yraw,
       // coefficients A matrix
       for(int pp=0; pp < (plag+1); pp++){
         if(pp==0){
-          mat A_con = A_draw.rows(plag*M, plag*M+Mstar-1); 
-          mat V_con = V_prior.rows(plag*M, plag*M+Mstar-1); 
-          mat P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
-          int r = A_con.n_rows; int c = A_con.n_cols; int d = A_con.n_elem;
+          A_con = A_draw.rows(plag*M, plag*M+Mstar-1); 
+          V_con = V_prior.rows(plag*M, plag*M+Mstar-1); 
+          P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
+          r_con = A_con.n_rows; c_con = A_con.n_cols; d_con = A_con.n_elem;
           
-          lambda2_A(0,1) = sample_lambda2(V_con, A_tau(0,1), d_lambda, e_lambda, d, 1);
-          sample_theta(V_con, A_con, P_con, lambda2_A(0,1), A_tau(0,1), r, c, false);
+          lambda2_A(0,1) = sample_lambda2(V_con, A_tau(0,1), d_lambda, e_lambda, d_con, 1);
+          sample_theta(V_con, A_con, P_con, lambda2_A(0,1), A_tau(0,1), r_con, c_con, false);
           V_prior.rows(plag*M, plag*M+Mstar-1) = V_con;
           
           if(sample_tau_bool){
@@ -434,16 +438,16 @@ List BVAR_linear(arma::mat Yraw,
             sample_tau(A_tau(0,1), lambda_prod, theta_vec, A_tuning(0,1), A_accept(0,1), burnin, irep);
           }
         }else{
-          mat A_end = A_draw.rows((pp-1)*M, pp*M-1); 
-          mat V_end = V_prior.rows((pp-1)*M, pp*M-1); 
-          mat P_end = A_prior.rows((pp-1)*M, pp*M-1);
-          int r_end = A_end.n_rows; int c_end = A_end.n_cols; int d_end = A_end.n_elem;
+          A_end = A_draw.rows((pp-1)*M, pp*M-1); 
+          V_end = V_prior.rows((pp-1)*M, pp*M-1); 
+          P_end = A_prior.rows((pp-1)*M, pp*M-1);
+          r_end = A_end.n_rows; c_end = A_end.n_cols; d_end = A_end.n_elem;
           
-          double prodlambda = 1.0;
+          prodlambda = 1.0;
           if(pp>1){
             vec lambdavec  = lambda2_A.submat(1,0,pp-1,0);
             prodlambda = prod(lambdavec);
-            }
+          }
           lambda2_A(pp,0) = sample_lambda2(V_end, A_tau(pp,0), d_lambda, e_lambda, d_end, prodlambda);
           sample_theta(V_end, A_end, P_end, lambda2_A(pp,0), A_tau(pp,0), r_end, c_end, false);
           V_prior.rows((pp-1)*M, pp*M-1) = V_end;
@@ -455,10 +459,10 @@ List BVAR_linear(arma::mat Yraw,
             sample_tau(A_tau(pp,0), lambda_prod_end, theta_vec_end, A_tuning(pp,0), A_accept(pp,0), burnin, irep);
           }
           // weakly exogenous
-          mat A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
-          mat V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
-          mat P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
-          int r_exo = A_exo.n_rows; int c_exo = A_exo.n_cols; int d_exo = A_exo.n_elem;
+          A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
+          V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
+          P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
+          r_exo = A_exo.n_rows; c_exo = A_exo.n_cols; d_exo = A_exo.n_elem;
           
           vec lambdavec = lambda2_A.submat(0,1,pp-1,1);
           prodlambda = prod(lambdavec);
@@ -475,13 +479,13 @@ List BVAR_linear(arma::mat Yraw,
         }
       }
       // coefficients H matrix
-      int r = L_draw.n_rows; int c = L_draw.n_cols;
+      r_cov = L_draw.n_rows; c_cov = L_draw.n_cols;
       lambda2_L = sample_lambda2(L_prior, L_tau, d_lambda, e_lambda, v, 1);
-      sample_theta(L_prior, L_draw, l_prior, lambda2_L, L_tau, r, c, true);
+      sample_theta(L_prior, L_draw, l_prior, lambda2_L, L_tau, r_cov, c_cov, true);
       
       if(sample_tau_bool){
         vec theta_vec_l(v); int vv=0;
-        for(int i=1; i < r; i++){
+        for(int i=1; i < r_cov; i++){
           for(int j=0; j < i; j++){
             theta_vec_l(vv) = L_prior(i,j); vv += 1;
           }
@@ -537,10 +541,6 @@ List BVAR_linear(arma::mat Yraw,
           lambda2_store.row((irep-burnin)/thin) = join_rows(lambda2_A,lambda2_Lmat);
           L_taumat(0,0) = L_tau;
           tau_store.row((irep-burnin)/thin) = join_rows(A_tau,L_taumat);
-          //H_accmat(0,0) = H_accept;
-          //accept_store.row((irep-burnin)/thin) = join_rows(A_accept,H_accmat);
-          //H_tunmat(0,0) = H_tuning;
-          //tuning_store.row((irep-burnin)/thin) = join_rows(A_tuning,H_tunmat);
         }
       }
     }
