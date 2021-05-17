@@ -5,95 +5,6 @@
 using namespace Rcpp;
 using namespace arma;
 
-void sample_arcoefs(arma::mat& A_out, arma::mat& H_out, arma::mat& Em_out, arma::mat& Em_str_out,
-                    arma::mat& Y, arma::mat& X, arma::mat& Sv, 
-                    const arma::mat aprior, const arma::mat Vprior, const arma::mat hprior, const arma::mat Hprior) {
-  // get dimensions
-  int M = Y.n_cols;
-  int k = X.n_cols;
-  
-  // Import Rs chol function
-  Environment base = Environment("package:base");
-  Function Rchol = base["chol"];
-  
-  // build Vinvprior
-  cube Vinvprior(k, k, M);
-  for(int mm = 0; mm < M; mm++){
-    Vinvprior.slice(mm) = diagmat(1/Vprior.col(mm));
-  }
-  
-  // estimate equation-by-equation
-  for(int mm = 0; mm < M; mm++){
-    if(mm == 0){
-      mat S_m = exp(-0.5*Sv.col(mm));
-      mat Y_m = Y.col(mm) % S_m;
-      mat X_m = X % repmat(S_m,1,k);
-      mat Vinv_m = Vinvprior.slice(mm);
-      colvec a_m = aprior.col(mm);
-      
-      mat V_p = (X_m.t() * X_m + Vinv_m).i();
-      mat A_p = V_p * (X_m.t() * Y_m + Vinv_m * a_m);
-      
-      colvec rand_normal(k);
-      for(int i=0; i<k; i++){
-        rand_normal(i) = R::rnorm(0,1);
-      }
-      mat V_p_chol_lower;
-      bool chol_success = chol(V_p_chol_lower, V_p, "lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true, false, -1);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-      colvec A_m = A_p + V_p_chol_lower*rand_normal;
-      
-      A_out.col(mm) = A_m;
-      Em_out.col(mm) = Y.col(mm) - X * A_m;
-      Em_str_out.col(mm) = Y.col(mm) - X * A_m;
-    }else{
-      mat S_m = exp(-0.5*Sv.col(mm));
-      mat Y_m = Y.col(mm) % S_m;
-      mat X_m = join_rows(X,Em_out.cols(0,mm-1)) % repmat(S_m,1,k+mm);
-      
-      mat Vinv_m(k+mm, k+mm, fill::zeros);
-      Vinv_m.submat(0,0,k-1,k-1) = Vinvprior.slice(mm);
-      for(int i=k;i<(k+mm);i++){
-        Vinv_m(i,i) = 1/Hprior(mm,i-k);
-      }
-      colvec a_m = join_cols(aprior.col(mm),hprior.submat(mm,0,mm,mm-1).t());
-      
-      mat V_p = (X_m.t() * X_m + Vinv_m).i();
-      mat A_p = V_p * (X_m.t() * Y_m + Vinv_m * a_m);
-      
-      colvec rand_normal(k+mm);
-      for(int i=0; i<(k+mm); i++){
-        rand_normal(i) = R::rnorm(0,1);
-      }
-      mat V_p_chol_lower;
-      bool chol_success = chol(V_p_chol_lower, V_p,"lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true, false, -1);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-      colvec A_m = A_p + V_p_chol_lower*rand_normal;
-      
-      A_out.col(mm) = A_m.rows(0,k-1);
-      H_out.submat(mm,0,mm,mm-1) = A_m.rows(k,k+mm-1).t();
-      Em_out.col(mm) = Y.col(mm) - X * A_m.rows(0,k-1);
-      Em_str_out.col(mm) = Y.col(mm) - join_rows(X,Em_out.cols(0,mm-1)) * A_m;
-    }
-  }
-}
-
 
 void sample_sig2(arma::vec& sig2_out, arma::vec& Em_str, const double a_i, const double b_i, const double T){
   double a_full = a_i + T/2;
@@ -122,7 +33,7 @@ void sample_theta(arma::mat& tau2, arma::mat& coef, arma::mat& prior, const doub
   int k;
   if(Hmat) k=1; else k=0;
   for(int i=k;i < r; i++){
-    if(Hmat)  c = i;
+    if(Hmat) c = i;
     for(int j=0; j < c; j++){
       double lambda = tau - 0.5;
       double psi = tau * lambda2;

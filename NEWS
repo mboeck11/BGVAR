@@ -1,3 +1,6 @@
+Change in Version 2.2.2
+- small fix in BVAR_linear.cpp
+
 Change in Version 2.2.1
 - small update to clear errors in CRAN Checks
 - added output of 'bgvar' function. Now directly shows the number of stable draws when using the function.

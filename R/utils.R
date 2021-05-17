@@ -265,7 +265,7 @@
 .BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
-  Exraw <- NULL
+  Exraw <- matrix(NA_real_)
   if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
   all  <- t(W%*%t(xglobal))
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
@@ -276,8 +276,9 @@
   }
   # estimation
   if(!use_R){
-    invisible(capture.output(bvar<-try(BVAR_linear(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
-                                                   thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw)), type="message"))
+    # sourceCpp("./src/BVAR_linear.cpp")
+    invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,plag,draws,burnin,thin,TRUE,trend,SV,
+                                                   prior_in,default_hyperpara)), type="message"))
   }else{
     bvar <- structure("message",class=c("try-error","character"))
   }
@@ -298,7 +299,7 @@
   if(!is.null(Exraw)) Mex <- ncol(Exraw)
   xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
               paste(rep("Wexlag",Mstar),rep(seq(1,plag),each=Mstar),sep=""))
-  if(!is.null(Exraw)) xnames <- c(xnames,paste(rep("Tex",Mex)))
+  if(!is.null(Ex)) xnames <- c(xnames,paste(rep("Tex",Mex)))
   xnames <- c(xnames,"cons")
   if(trend) xnames <- c(xnames,"trend")
   colnames(X) <- xnames

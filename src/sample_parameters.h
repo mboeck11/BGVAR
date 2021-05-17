@@ -6,11 +6,6 @@
 using namespace Rcpp;
 using namespace arma;
 
-void sample_arcoefs(arma::mat& A_out, arma::mat& H_out, arma::mat& Em_out, arma::mat& Em_str_out,
-                    arma::mat& Y, arma::mat& X, arma::mat& Sv, 
-                    const arma::mat aprior, const arma::mat Vprior, 
-                    const arma::mat hprior, const arma::mat Hprior);
-
 void sample_sig2(arma::vec& sig2_out, arma::vec& Em_str, const double a_i, const double b_i, const double T);
 
 void res_protector(double& x);
