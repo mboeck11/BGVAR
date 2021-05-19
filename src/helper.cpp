@@ -171,34 +171,3 @@ arma::vec dmvnrm_arma_old(mat& x,
     return out;
   return exp(out);
 }
-
-void get_PHI(cube& PHI, cube& Fmat, const int nhor){
-  const int plag = Fmat.n_slices;
-  const int bigK = Fmat.n_cols;
-  
-  arma::cube PHIx(bigK, bigK, plag+nhor+1, fill::zeros);
-  PHIx.slice(plag) = arma::mat(bigK,bigK,fill::eye);
-  for(int ihor=plag; ihor < plag+nhor; ihor++){
-    arma::mat acc(bigK,bigK,fill::zeros);
-    for(int pp=0; pp<plag; pp++){
-      arma::mat Fmatslice = Fmat.slice(pp);
-      arma::mat PHIxslice = PHIx.slice(ihor-pp);
-      acc = acc + Fmatslice*PHIxslice;
-    }
-    PHIx.slice(ihor+1) = acc;
-  }
-  PHI = PHIx.slices(plag,plag+nhor);
-}
-
-void get_nullspace(mat& NU, mat& M){
-  mat Q, R; qr(Q, R, M);
-  uword r = rank(M);
-  if(r == 0){
-    uvec set(M.n_cols); for(size_t c = 0; c < M.n_cols; c++){set(c) = c;};
-    NU = Q.cols(set);
-  }else{
-    uvec set(r); for(size_t c = 0; c < r; c++){set(c) = c;};
-    NU = Q;
-    NU.shed_cols(set);
-  }
-}

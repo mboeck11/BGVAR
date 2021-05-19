@@ -397,7 +397,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
-                            d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=FALSE,tau_log=TRUE) # NG
+                            d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=TRUE,tau_log=TRUE) # NG
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
                  "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
@@ -463,7 +463,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
   if(!is.null(trim)) {args$thindraws <- length(stacked.results$F.eigen)}
   if(verbose) cat("\nStacking finished.\n")
-  if(verbose) cat(paste0("Computation of BGVAR yields ",args$thindraws," (",round(args$thindraws/draws,2)*100,"%) draws (",
+  if(verbose) cat(paste0("Computation of BGVAR yields ",args$thindraws," (",round(args$thindraws/(draws/thin),2)*100,"%) draws (",
                          ifelse(eigen,"active","inactive")," trimming)."))
   #--------------------------- prepare country models -------------------------------------------------------------#
   # country model residuals

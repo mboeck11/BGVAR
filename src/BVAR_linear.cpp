@@ -2,11 +2,28 @@
 #include <stochvol.h>
 #include <stdlib.h>
 #include "helper.h"
-#include "sample_parameters.h"
 #include "do_rgig1.h"
 
 using namespace Rcpp;
 using namespace arma;
+
+double draw_bernoulli(double p){
+  double unif = R::runif(0,1);
+  double ret = 1;
+  if(unif < p) {ret = 0;}
+  return ret;
+}
+
+double tau_post(double tau, double lambda, arma::vec theta, double rat){
+  double priorval = R::dexp(tau, rat, true);
+  int d = theta.n_elem;
+  double postval = 0;
+  for(int dd=0; dd<d; dd++){
+    postval = postval + R::dgamma(theta(dd), tau, 1/(tau*lambda/2), true);
+  }
+  double logpost = priorval + postval;
+  return logpost;
+}
 
 //' @name BVAR_linear
 //' @noRd
@@ -163,13 +180,14 @@ List BVAR_linear(arma::mat Yraw,
   }
   // NG stuff
   mat lambda2_A(plag+1,2,fill::zeros);
-  mat A_tau(plag+1,2); A_tau.fill(tau_theta);
+  mat A_tau(plag+1,2); A_tau.fill(tau_theta); A_tau(0,0)=0;
   mat A_tuning(plag+1,2); A_tuning.fill(0.43);
   mat A_accept(plag+1,2, fill::zeros);
   // initialize stuff for NG prior
   mat A_con, V_con, P_con, A_end, V_end, P_end, A_exo, V_exo, P_exo;
-  int r_con, c_con, d_con, r_end, c_end, d_end, r_exo, c_exo, d_exo, r_cov, c_cov;
-  double prodlambda;
+  int r_con, c_con, d_con, r_end, c_end, d_end, r_exo, c_exo, d_exo;
+  double prodlambda, dl, el, lambda, chi, psi, res;
+  double unif, proposal, post_tau_prop, post_tau_curr, diff;
   //---------------------------------------------------------------
   // prior on coefficients in H matrix of VCV
   //---------------------------------------------------------------
@@ -222,6 +240,8 @@ List BVAR_linear(arma::mat Yraw,
     -1,  // unused for independence prior for sigma
     ExpertSpec_FastSV::ProposalPhi::IMMEDIATE_ACCEPT_REJECT_NORMAL  // immediately reject (mu,phi,sigma) if proposed phi is outside (-1, 1)
   };
+  // initialize stuff
+  double a_full, b_full, sig2, mu, phi, sigma, h0;
   //---------------------------------------------------------------------------------------------------------------
   // SAMPLER MISCELLANEOUS
   //---------------------------------------------------------------------------------------------------------------
@@ -429,13 +449,46 @@ List BVAR_linear(arma::mat Yraw,
           P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
           r_con = A_con.n_rows; c_con = A_con.n_cols; d_con = A_con.n_elem;
           
-          lambda2_A(0,1) = sample_lambda2(V_con, A_tau(0,1), d_lambda, e_lambda, d_con, 1);
-          sample_theta(V_con, A_con, P_con, lambda2_A(0,1), A_tau(0,1), r_con, c_con, false);
+          // sample lambda
+          dl = d_lambda + A_tau(0,1)*d_con;
+          el = e_lambda + 0.5*A_tau(0,1)*accu(V_con);
+          lambda2_A(0,1) = R::rgamma(dl, 1/el);
+          
+          // sample theta
+          for(int ii=0; ii < r_con; ii++){
+            for(int jj=0; jj < c_con; jj++){
+              lambda = A_tau(0,1) - 0.5;
+              psi = A_tau(0,1) * lambda2_A(0,1);
+              chi = std::pow(A_con(ii,jj)-P_con(ii,jj),2);
+              
+              res = do_rgig1(lambda, chi, psi);
+              if(res<1e-7) res = 1e-7;
+              if(res>1e+7) res = 1e+7;
+              
+              V_con(ii,jj) = res;
+            }
+          }
           V_prior.rows(plag*M, plag*M+Mstar-1) = V_con;
           
+          // sample tau
           if(sample_tau_bool){
-            vec theta_vec = V_con.as_col(); vec lambda_vec = lambda2_A.submat(0,1,pp,1); double lambda_prod = prod(lambda_vec);
-            sample_tau(A_tau(0,1), lambda_prod, theta_vec, A_tuning(0,1), A_accept(0,1), burnin, irep);
+            vec theta_vec = V_con.as_col();
+            prodlambda = as_scalar(lambda2_A.submat(0,1,pp,1));
+            
+            proposal = exp(R::rnorm(0,A_tuning(0,1)))*A_tau(0,1);
+            unif = R::runif(0,1);
+            
+            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
+            post_tau_curr = tau_post(A_tau(0,1), prodlambda, theta_vec, 1);
+            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(0,1));
+            if(diff > log(unif)){
+              A_tau(0,1) = proposal;
+              A_accept(0,1) += 1;
+            }
+            if(irep < 0.5*burnin){
+              if(A_accept(0,1)/irep > 0.30){A_tuning(0,1) = A_tuning(0,1)*1.01;}
+              if(A_accept(0,1)/irep < 0.15){A_tuning(0,1) = A_tuning(0,1)*0.99;}
+            }
           }
         }else{
           A_end = A_draw.rows((pp-1)*M, pp*M-1); 
@@ -443,54 +496,151 @@ List BVAR_linear(arma::mat Yraw,
           P_end = A_prior.rows((pp-1)*M, pp*M-1);
           r_end = A_end.n_rows; c_end = A_end.n_cols; d_end = A_end.n_elem;
           
-          prodlambda = 1.0;
-          if(pp>1){
-            vec lambdavec  = lambda2_A.submat(1,0,pp-1,0);
-            prodlambda = prod(lambdavec);
+          // sample lambda
+          if(pp == 1){
+            prodlambda = 1.0;
+          }else{
+            prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp-1,0)));
           }
-          lambda2_A(pp,0) = sample_lambda2(V_end, A_tau(pp,0), d_lambda, e_lambda, d_end, prodlambda);
-          sample_theta(V_end, A_end, P_end, lambda2_A(pp,0), A_tau(pp,0), r_end, c_end, false);
+          dl = d_lambda + A_tau(pp,0)*d_end;
+          el = e_lambda + 0.5*A_tau(pp,0)*accu(V_end)*prodlambda;
+          lambda2_A(pp,0) = R::rgamma(dl, 1/el);
+          
+          // sample theta
+          prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
+          for(int ii=0; ii < r_end; ii++){
+            for(int jj=0; jj < c_end; jj++){
+              lambda = A_tau(pp,0) - 0.5;
+              psi = A_tau(pp,0) * prodlambda;
+              chi = std::pow(A_end(ii,jj)-P_end(ii,jj),2);
+              
+              res = do_rgig1(lambda, chi, psi);
+              if(res<1e-7) res = 1e-7;
+              if(res>1e+7) res = 1e+7;
+              
+              V_end(ii,jj) = res;
+            }
+          }
           V_prior.rows((pp-1)*M, pp*M-1) = V_end;
           
+          // sample tau
           if(sample_tau_bool){
-            vec theta_vec_end = V_end.as_col();
-            vec lambda_vec_end = lambda2_A.submat(1,0,pp,0); 
-            double lambda_prod_end = prod(lambda_vec_end); 
-            sample_tau(A_tau(pp,0), lambda_prod_end, theta_vec_end, A_tuning(pp,0), A_accept(pp,0), burnin, irep);
+            vec theta_vec = V_end.as_col();
+            prodlambda = as_scalar(lambda2_A.submat(1,0,pp,0));
+            
+            proposal = exp(R::rnorm(0,A_tuning(pp,0)))*A_tau(pp,0);
+            unif = R::runif(0,1);
+            
+            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
+            post_tau_curr = tau_post(A_tau(pp,0), prodlambda, theta_vec, 1);
+            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp,0));
+            if(diff > log(unif)){
+              A_tau(pp,0) = proposal;
+              A_accept(pp,0) += 1;
+            }
+            if(irep < 0.5*burnin){
+              if(A_accept(pp,0)/irep > 0.30){A_tuning(pp,0) = A_tuning(pp,0)*1.01;}
+              if(A_accept(pp,0)/irep < 0.15){A_tuning(pp,0) = A_tuning(pp,0)*0.99;}
+            }
           }
+          //-------------------------------------------------------------------
           // weakly exogenous
           A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
           V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
           P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
           r_exo = A_exo.n_rows; c_exo = A_exo.n_cols; d_exo = A_exo.n_elem;
           
-          vec lambdavec = lambda2_A.submat(0,1,pp-1,1);
-          prodlambda = prod(lambdavec);
-          lambda2_A(pp,1) = sample_lambda2(V_exo, A_tau(pp,1), d_lambda, e_lambda, d_exo, prodlambda);
-          sample_theta(V_exo, A_exo, P_exo, lambda2_A(pp,1), A_tau(pp,1), r_exo, c_exo, false);
+          // sample lambda
+          if(pp == 1){
+            prodlambda = 1.0;
+          }else{
+            prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp-1,1)));
+          }
+          dl = d_lambda + A_tau(pp,1)*d_exo;
+          el = e_lambda + 0.5*A_tau(pp,1)*accu(V_end)*prodlambda;
+          lambda2_A(pp,1) = R::rgamma(dl, 1/el);
+          
+          // sample theta
+          prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp,1)));
+          for(int ii=0; ii < r_exo; ii++){
+            for(int jj=0; jj < c_exo; jj++){
+              lambda = A_tau(pp,1) - 0.5;
+              psi = A_tau(pp,1) * prodlambda;
+              chi = std::pow(A_exo(ii,jj) - P_exo(ii,jj),2);
+              
+              res = do_rgig1(lambda, chi, psi);
+              if(res<1e-7) res = 1e-7;
+              if(res>1e+7) res = 1e+7;
+              
+              V_exo(ii,jj) = res;
+            }
+          }
           V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1) = V_exo;
           
+          // sample tau
           if(sample_tau_bool){
-            vec theta_vec_exo = V_exo.as_col();
-            vec lambda_vec_exo = lambda2_A.submat(0,1,pp,1);
-            double lambda_prod_exo = prod(lambda_vec_exo);
-            sample_tau(A_tau(pp,1), lambda_prod_exo, theta_vec_exo, A_tuning(pp,1), A_accept(pp,1), burnin, irep);
+            vec theta_vec = V_exo.as_col();
+            
+            proposal = exp(R::rnorm(0,A_tuning(pp,1)))*A_tau(pp,1);
+            unif = R::runif(0,1);
+            
+            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
+            post_tau_curr = tau_post(A_tau(pp,1), prodlambda, theta_vec, 1);
+            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp,1));
+            if(diff > log(unif)){
+              A_tau(pp,1) = proposal;
+              A_accept(pp,1) += 1;
+            }
+            if(irep < 0.5*burnin){
+              if(A_accept(pp,1)/irep > 0.30){A_tuning(pp,1) = A_tuning(pp,1)*1.01;}
+              if(A_accept(pp,1)/irep < 0.15){A_tuning(pp,1) = A_tuning(pp,1)*0.99;}
+            }
           }
         }
       }
+      //------------------------------------------
       // coefficients H matrix
-      r_cov = L_draw.n_rows; c_cov = L_draw.n_cols;
-      lambda2_L = sample_lambda2(L_prior, L_tau, d_lambda, e_lambda, v, 1);
-      sample_theta(L_prior, L_draw, l_prior, lambda2_L, L_tau, r_cov, c_cov, true);
+      uvec lower_indices = trimatl_ind(size(L_draw), -1);
+      vec L_vec = L_prior(lower_indices);
       
-      if(sample_tau_bool){
-        vec theta_vec_l(v); int vv=0;
-        for(int i=1; i < r_cov; i++){
-          for(int j=0; j < i; j++){
-            theta_vec_l(vv) = L_prior(i,j); vv += 1;
-          }
+      // sample lambda
+      dl = d_lambda + L_tau*v;
+      el = e_lambda + 0.5*L_tau*accu(L_vec);
+      lambda2_L = R::rgamma(dl, 1/el);
+      
+      // sample theta
+      for(int ii=1; ii < M; ii++){
+        for(int jj=0; jj < ii; jj++){
+          lambda = L_tau - 0.5;
+          psi = L_tau * lambda2_L;
+          chi = std::pow(L_draw(ii,jj) - l_prior(ii,jj),2);
+          
+          res = do_rgig1(lambda, chi, psi);
+          if(res<1e-7) res = 1e-7;
+          if(res>1e+7) res = 1e+7;
+          
+          L_prior(ii,jj) = res;
         }
-        sample_tau(L_tau, lambda2_L, theta_vec_l, L_tuning, L_accept, burnin, irep);
+      }
+      
+      // sample tau
+      if(sample_tau_bool){
+        L_vec = L_prior(lower_indices);
+        
+        proposal = exp(R::rnorm(0,L_tuning))*L_tau;
+        unif = R::runif(0,1);
+        
+        post_tau_prop = tau_post(proposal, lambda2_L, L_vec, 1);
+        post_tau_curr = tau_post(L_tau, lambda2_L, L_vec, 1);
+        diff= post_tau_prop - post_tau_curr + std::log(proposal) - std::log(L_tau);
+        if(diff > log(unif)){
+          L_tau = proposal;
+          L_accept += 1;
+        }
+        if(irep < 0.5*burnin){
+          if(L_accept/irep > 0.30){L_tuning = L_tuning*1.01;}
+          if(L_accept/irep < 0.15){L_tuning = L_tuning*0.99;}
+        }
       }
     }
     //-----------------------------------------------
@@ -500,15 +650,18 @@ List BVAR_linear(arma::mat Yraw,
       vec cur_sv  = Sv_draw.unsafe_col(mm);  // changed to **unsafe**_col which reuses memory
       if(sv){
         const vec datastand = log(data_sv%data_sv + offset);
-        double mu = Sv_para(0, mm);
-        double phi = Sv_para(1, mm);
-        double sigma = Sv_para(2, mm);
-        double h0 = Sv_para(3, mm);
+        mu = Sv_para(0, mm);
+        phi = Sv_para(1, mm);
+        sigma = Sv_para(2, mm);
+        h0 = Sv_para(3, mm);
         stochvol::update_fast_sv(datastand, mu, phi, sigma, h0, cur_sv, rec, prior_spec, expert);
         Sv_para.col(mm) = arma::colvec({mu, phi, sigma});
         //Sv_draw.col(mm) = cur_sv;  // unsafe_col overwrites the original data without copying
       }else{
-        sample_sig2(cur_sv, data_sv, a_1, b_1, T);
+        a_full = a_1 + 0.5 * T;
+        b_full = b_1 + 0.5 * as_scalar(data_sv.t() * data_sv);
+        sig2 = 1/R::rgamma(a_full, 1/b_full);
+        cur_sv.fill(sig2);
         //Sv_draw.col(mm) = log(cur_sv);
       }
     }

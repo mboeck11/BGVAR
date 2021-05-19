@@ -29,16 +29,11 @@ dmvnrm_arma_fast <- function(x, mean, sigma, logd = FALSE) {
     .Call(`_BGVAR_dmvnrm_arma_fast`, x, mean, sigma, logd)
 }
 
-#' @name compute_irf_parallel
-#' @noRd
-compute_irf_parallel <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
-    .Call(`_BGVAR_compute_irf_parallel`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
-}
-
 #' @name compute_irf
 #' @noRd
-compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in) {
-    .Call(`_BGVAR_compute_irf`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in)
+#' @export
+compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose) {
+    .Call(`_BGVAR_compute_irf`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose)
 }
 
 # Register entry points for exported C++ functions

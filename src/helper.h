@@ -22,8 +22,4 @@ arma::vec dmvnrm_arma_fast(const arma::mat& x, const arma::mat& mean, const arma
 
 arma::vec dmvnrm_arma_old(arma::mat& x, arma::mat& mean, arma::mat& sigma, bool logd = false);
 
-void get_PHI(arma::cube& PHI, arma::cube& Fmat, const int nhor);
-
-void get_nullspace(arma::mat& NU, arma::mat& M);
-
 #endif

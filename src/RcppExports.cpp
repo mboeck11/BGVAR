@@ -115,26 +115,9 @@ BEGIN_RCPP
     return rcpp_result_gen;
 END_RCPP
 }
-// compute_irf_parallel
-List compute_irf_parallel(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in);
-RcppExport SEXP _BGVAR_compute_irf_parallel(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP) {
-BEGIN_RCPP
-    Rcpp::RObject rcpp_result_gen;
-    Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< arma::cube >::type A_large(A_largeSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type S_large(S_largeSEXP);
-    Rcpp::traits::input_parameter< arma::cube >::type Ginv_large(Ginv_largeSEXP);
-    Rcpp::traits::input_parameter< const int >::type type(typeSEXP);
-    Rcpp::traits::input_parameter< const int >::type nhor(nhorSEXP);
-    Rcpp::traits::input_parameter< const int >::type thindraws(thindrawsSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type shocklist_in(shocklist_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_irf_parallel(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in));
-    return rcpp_result_gen;
-END_RCPP
-}
 // compute_irf
-List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in);
-RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP) {
+Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool verbose);
+RcppExport SEXP _BGVAR_compute_irf(SEXP A_largeSEXP, SEXP S_largeSEXP, SEXP Ginv_largeSEXP, SEXP typeSEXP, SEXP nhorSEXP, SEXP thindrawsSEXP, SEXP shocklist_inSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
@@ -145,7 +128,8 @@ BEGIN_RCPP
     Rcpp::traits::input_parameter< const int >::type nhor(nhorSEXP);
     Rcpp::traits::input_parameter< const int >::type thindraws(thindrawsSEXP);
     Rcpp::traits::input_parameter< const SEXP >::type shocklist_in(shocklist_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in));
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(compute_irf(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose));
     return rcpp_result_gen;
 END_RCPP
 }
@@ -172,8 +156,7 @@ static const R_CallMethodDef CallEntries[] = {
     {"_BGVAR_gvar_stacking", (DL_FUNC) &_BGVAR_gvar_stacking, 8},
     {"_BGVAR_globalLik", (DL_FUNC) &_BGVAR_globalLik, 6},
     {"_BGVAR_dmvnrm_arma_fast", (DL_FUNC) &_BGVAR_dmvnrm_arma_fast, 4},
-    {"_BGVAR_compute_irf_parallel", (DL_FUNC) &_BGVAR_compute_irf_parallel, 7},
-    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 7},
+    {"_BGVAR_compute_irf", (DL_FUNC) &_BGVAR_compute_irf, 8},
     {"_BGVAR_RcppExport_registerCCallable", (DL_FUNC) &_BGVAR_RcppExport_registerCCallable, 0},
     {NULL, NULL, 0}
 };

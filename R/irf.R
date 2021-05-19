@@ -477,38 +477,25 @@ irf.bgvar <- function(x,n.ahead=24,ident="chol",shockinfo=NULL,quantiles=NULL,ex
   }else
   { # cpp-version
     #--------------------------------------------------------------
-    # set number of cores
-    if(is.numeric(cores)){
-      setThreadOptions(numThreads=cores)
-    }else if(is.character(cores)){
-      setThreadOptions(numThreads=ifelse(cores=="all",defaultNumThreads(),ifelse(cores=="half",defaultNumThreads(),1)))
-    }else{
-      setThreadOptions(numThreads=1)
-    }
     # adjust indexes due to different indexation (starting with zero in cpp)
     shocklist_cpp<-shocklist; shocklist_cpp$shock.idx<-lapply(shocklist_cpp$shock.idx,function(l)l-1)
     shocklist_cpp$shock.horz <- shocklist_cpp$shock.horz-1
     shocklist_cpp$shock.order <- shocklist_cpp$shock.order-1
     # type
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
-    # compute impulse responses
-    if(cores == 1){
-      temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
-    }else{
-      temp = compute_irf_parallel(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp)
-    }
+    
+    # sourceCpp("./src/irf.cpp")
+    temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp,verbose=verbose)
     for(irep in 1:thindraws){
-      for(ihor in 1:(n.ahead+1)){
-        IRF_store[irep,,,ihor] = temp$irf[((ihor-1)*bigK+1):(bigK*ihor),,irep]
-      }
-      R_store[irep,,] <- temp$rot[,,irep]
-      if(temp$counter[irep] == MaxTries) IRF_store[irep,,,] <- NA
+      IRF_store[irep,,,] <- temp$irf[[irep]]
+      R_store[irep,,] <- temp$rot[[irep]]
+      if(temp$counter[irep,1] == MaxTries) IRF_store[irep,,,] <- NA_real_
     }
   }
   end.comp <- Sys.time()
   diff.comp <- difftime(end.comp,start.comp,units="mins")
   mins <- round(diff.comp,0); secs <- round((diff.comp-floor(diff.comp))*60,0)
-  if(verbose) cat(paste("\nImpulse response analysis took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nImpulse response analysis took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.\n","seconds.\n"),sep=""))
   #------------------------------ post processing  ---------------------------------------------------#
   # re-set IRF object in case we have found only a few rotation matrices
   if(ident=="sign")

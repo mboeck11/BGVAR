@@ -283,8 +283,8 @@
     bvar <- structure("message",class=c("try-error","character"))
   }
   if(is(bvar,"try-error")){
-    bvar<-try(.BVAR_linear_R(Y_in=Yraw,W_in=Wraw,p_in=plag,draws_in=draws,burnin_in=burnin,cons_in=TRUE,trend_in=trend,sv_in=SV,
-                         thin_in=thin,prior_in=prior_in,hyperparam_in=default_hyperpara,Ex_in=Exraw), silent=TRUE)
+    bvar<-try(.BVAR_linear_R(Yraw,Wraw,Exraw,plag,draws,burnin,thin,TRUE,trend,SV,
+                             prior_in,default_hyperpara,TRUE), silent=TRUE)
   }
   # error handling
   if(inherits(bvar,"try-error")){
@@ -407,46 +407,42 @@
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @export
 #' @noRd
-.BVAR_linear_R <- function(Y_in,W_in,p_in,draws_in,burnin_in,cons_in,trend_in,sv_in,thin_in,quiet_in,prior_in,hyperparam_in,Ex_in){
+.BVAR_linear_R <- function(Yraw,Wraw,Exraw,plag,draws,burnin,thin,cons,trend,sv,prior,hyperpara,verbose){
   #----------------------------------------INPUTS----------------------------------------------------#
-  Yraw  <- Y_in
-  p     <- p_in
   Traw  <- nrow(Yraw)
   M     <- ncol(Yraw)
-  K     <- M*p
-  Ylag  <- .mlag(Yraw,p)
+  K     <- M*plag
+  Ylag  <- .mlag(Yraw,plag)
   nameslags <- NULL
-  for (ii in 1:p) nameslags <- c(nameslags,rep(paste("Ylag",ii,sep=""),M))
+  for (ii in 1:plag) nameslags <- c(nameslags,rep(paste("Ylag",ii,sep=""),M))
   colnames(Ylag) <- nameslags
   
-  exo   <- FALSE; Mstar <- 0; Kstar <- 0; wexnameslags <- NULL; Wraw <- NULL; Wexlag <- NULL
-  if(!is.null(W_in)){
-    Wraw  <- W_in; Mstar <- ncol(Wraw); Kstar <- Mstar*(p+1)
-    exo <- TRUE
-    Wexlag <- .mlag(Wraw,p)
-    colnames(Wraw) <- rep("Wex",Mstar)
-    for (ii in 1:p) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
-    colnames(Wexlag) <- wexnameslags
-  }
+  Mstar <- ncol(Wraw)
+  Kstar <- Mstar*(plag+1)
+  exo <- TRUE
+  Wexlag <- .mlag(Wraw,plag)
+  colnames(Wraw) <- rep("Wex",Mstar)
+  wexnameslags <- NULL
+  for (ii in 1:plag) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
+  colnames(Wexlag) <- wexnameslags
   
-  texo <- FALSE; Mex <- 0; Exraw <- NULL
-  if(!is.null(Ex_in)){
-    Exraw <- Ex_in; Mex <- ncol(Exraw)
+  texo <- FALSE; Mex <- 0
+  if(nrow(Exraw) != 1){
+    Mex <- ncol(Exraw)
     texo <- TRUE
     colnames(Exraw) <- rep("Tex",Mex)
   }
   
-  X <- cbind(Ylag,Wraw,Wexlag,Exraw)
-  X <- X[(p+1):nrow(X),,drop=FALSE]
-  Y <- Yraw[(p+1):Traw,,drop=FALSE]
+  Xraw <- cbind(Ylag,Wraw,Wexlag)
+  if(texo) Xraw <- cbind(X,Exraw)
+  X <- Xraw[(plag+1):nrow(Xraw),,drop=FALSE]
+  Y <- Yraw[(plag+1):Traw,,drop=FALSE]
   bigT  <- nrow(X)
   
-  cons  <- cons_in
   if(cons){
     X <- cbind(X,1)
     colnames(X)[ncol(X)] <- "cons"
   }
-  trend <- trend_in
   if(trend){
     X <- cbind(X,seq(1,bigT))
     colnames(X)[ncol(X)] <- "trend"
@@ -458,9 +454,7 @@
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
   #---------------------------------------------------------------------------------------------------------
-  hyperpara <- hyperparam_in
   prior     <- prior_in
-  sv        <- sv_in
   prmean    <- hyperpara$prmean
   a_1       <- hyperpara$a_1
   b_1       <- hyperpara$b_1
@@ -526,31 +520,34 @@
   scale4  <- .43
   sigma_sq  <- matrix(0,M,1) #vector which stores the residual variance
   for (i in 1:M){
-    Ylag_i        <- .mlag(Yraw[,i],p)
-    Ylag_i        <- Ylag_i[(p+1):nrow(Ylag_i),,drop=FALSE]
-    Y_i           <- Yraw[(p+1):nrow(Yraw),i,drop=FALSE]
+    Ylag_i        <- .mlag(Yraw[,i],plag)
+    Ylag_i        <- Ylag_i[(plag+1):nrow(Ylag_i),,drop=FALSE]
+    Y_i           <- Yraw[(plag+1):nrow(Yraw),i,drop=FALSE]
     Ylag_i        <- cbind(Ylag_i,seq(1,nrow(Y_i)))
     alpha_i       <- solve(crossprod(Ylag_i))%*%crossprod(Ylag_i,Y_i)
-    sigma_sq[i,1] <- (1/(nrow(Y_i)-p-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
+    sigma_sq[i,1] <- (1/(nrow(Y_i)-plag-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
   }
   sigma_wex <- matrix(0,Mstar,1)
   for (j in 1:Mstar){
-    Ywex_i <- .mlag(Wraw[,j],p)
-    Ywex_i <- Ywex_i[(p+1):Traw,]
-    Yw_i   <- Wraw[(p+1):Traw,j,drop=FALSE]
+    Ywex_i <- .mlag(Wraw[,j],plag)
+    Ywex_i <- Ywex_i[(plag+1):Traw,]
+    Yw_i   <- Wraw[(plag+1):Traw,j,drop=FALSE]
     Ywex_i <- cbind(Ywex_i,seq(1,nrow(Yw_i)))
     alpha_w <- solve(crossprod(Ywex_i))%*%t(Ywex_i)%*%Yw_i
-    sigma_wex[j,1] <- (1/(nrow(Yw_i)-p-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
+    sigma_wex[j,1] <- (1/(nrow(Yw_i)-plag-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
   }
   if(prior==1){
-    theta <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
+    theta <- .get_V(k=k,M=M,Mstar=Mstar,p=plag,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
                     a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex,trend=trend)
   }
+  post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
+  post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
+  post4 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)+log(shrink4)
   
   # SSVS stuff
   gamma  <-  matrix(1,k,M)
   sigma_alpha  <-  sqrt(diag(kronecker(SIGMA_OLS,XtXinv)))
-  tau0 <- matrix(NA, k, M); tau1 <- matrix(NA, k, M)
+  tau0 <- matrix(NA_real_, k, M); tau1 <- matrix(NA_real_, k, M)
   ii <- 1
   for(mm in 1:M){
     for(kk in 1:k){
@@ -560,12 +557,12 @@
     }
   }
   # NG stuff
-  lambda2_A    <- matrix(0.01,p+1,2)
-  A_tau        <- matrix(tau_theta,p+1,2)
+  lambda2_A    <- matrix(0.01,plag+1,2)
+  A_tau        <- matrix(tau_theta,plag+1,2)
   colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
-  rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,p),sep="")
-  A_tuning     <- matrix(.43,p+1,2)
-  A_accept     <- matrix(0,p+1,2)
+  rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,plag),sep="")
+  A_tuning     <- matrix(.43,plag+1,2)
+  A_accept     <- matrix(0,plag+1,2)
   lambda2_A[1,1] <- A_tau[1,1] <- A_tuning[1,1] <- A_accept[1,1] <- NA
   #------------------------------------
   # Priors on coefs in H matrix of VCV
@@ -595,15 +592,12 @@
   #---------------------------------------------------------------------------------------------------------
   # SAMPLER MISCELLANEOUS
   #---------------------------------------------------------------------------------------------------------
-  nsave <- draws_in
-  nburn <- burnin_in
-  ntot  <- nsave+nburn
+  ntot  <- draws+burnin
   
   # thinning
-  thin         <- thin_in
   count        <- 0
-  thindraws    <- nsave/thin
-  thin.draws   <- seq(nburn+1,ntot,by=thin)
+  thindraws    <- draws/thin
+  thin.draws   <- seq(burnin+1,ntot,by=thin)
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
@@ -620,8 +614,8 @@
   omega_store  <- array(NA,c(thindraws,M,M))
   # NG
   theta_store  <- array(NA,c(thindraws,k,M))
-  lambda2_store<- array(NA,c(thindraws,p+1,3))
-  tau_store    <- array(NA,c(thindraws,p+1,3))
+  lambda2_store<- array(NA,c(thindraws,plag+1,3))
+  tau_store    <- array(NA,c(thindraws,plag+1,3))
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
   #---------------------------------------------------------------------------------------------------------
@@ -667,13 +661,11 @@
       shrink1.prop <- exp(rnorm(1,0,scale1))*shrink1
       theta1.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1.prop,a_bar_2=shrink2,a_bar_3=shrink3,
                               a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post1.prop<-sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)
-      post1.prop<-post1.prop+log(shrink1.prop) # correction term
-      post1 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)
-      post1 <- post1+log(shrink1) # correction term
+      post1.prop<-sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
       if ((post1.prop-post1)>log(runif(1,0,1))){
         shrink1 <- shrink1.prop
         theta   <- theta1.prop
+        post1   <- post1.prop
         accept1 <- accept1+1
       }
       
@@ -681,13 +673,11 @@
       shrink2.prop <- exp(rnorm(1,0,scale2))*shrink2
       theta2.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2.prop,a_bar_3=shrink3,
                               a_bar_4=shrink4,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post2.prop <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)
-      post2.prop <- post2.prop + log(shrink2.prop) # correction term
-      post2 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)
-      post2 <- post2 + log(shrink2) # correction term
+      post2.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
       if ((post2.prop-post2)>log(runif(1,0,1))){
         shrink2 <- shrink2.prop
         theta   <- theta2.prop
+        post2   <- post2.prop
         accept2 <- accept2+1
       }
       
@@ -695,13 +685,11 @@
       shrink4.prop <- exp(rnorm(1,0,scale4))*shrink4
       theta4.prop   <- .get_V(k=k,M=M,Mstar=Mstar,p=p,a_bar_1=shrink1,a_bar_2=shrink2,a_bar_3=shrink3,
                               a_bar_4=shrink4.prop,sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post4.prop <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)
-      post4.prop <- post4.prop + log(shrink4.prop)
-      post4 <- sum(dnorm(as.vector(A_draw),as.vector(A_prior),sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)
-      post4 <- post4 + log(shrink4)
+      post4.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
       if ((post4.prop-post4)>log(runif(1,0,1))){
         shrink4  <- shrink4.prop
         theta    <- theta4.prop
+        post4    <- post4.prop
         accept4  <- accept4+1
       }
       
@@ -774,7 +762,7 @@
         }
       }
       # Norml-Gamma for weakly exogenous
-      for (ss in 0:p){
+      for (ss in 0:plag){
         if (ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))
         A.lag.star  <- A_draw[slct.i,,drop=FALSE]
         A.lag.prior <- A_prior[slct.i,,drop=FALSE]
@@ -814,7 +802,7 @@
         }
       }
       # Normal-Gamma for endogenous variables
-      for (ss in 1:p){
+      for (ss in 1:plag){
         slct.i    <- which(rownames(A_draw)==paste("Ylag",ss,sep=""))
         A.lag     <- A_draw[slct.i,,drop=FALSE]
         A.prior   <- A_prior[slct.i,,drop=FALSE]
@@ -857,7 +845,7 @@
     }
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
-    if (sv){
+    if (SV){
       for (mm in 1:M){
         para   <- as.list(pars_var[,mm])
         para$nu = Inf; para$rho=0; para$beta<-0
@@ -901,9 +889,9 @@
       # NG
       theta_store[count,,]     <- theta
       lambda2_store[count,1,3] <- lambda2_L
-      lambda2_store[count,1:(p+1),1:2] <- lambda2_A
+      lambda2_store[count,1:(plag+1),1:2] <- lambda2_A
       tau_store[count,1,3]             <- L_tau
-      tau_store[count,1:(p+1),1:2]     <- A_tau
+      tau_store[count,1:(plag+1),1:2]     <- A_tau
     }
   }
   #---------------------------------------------------------------------------------------------------------
@@ -922,7 +910,7 @@
 #' @importFrom stats median
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @noRd
-.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL){
+.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL,verbose=TRUE){
   # initialize objects here
   bigT <- nrow(xglobal) 
   bigK <- ncol(xglobal)
@@ -990,7 +978,7 @@
     #   X_large         <- X_large[(plag+1):nrow(X_large),]
     #   globalLik[irep] <- .globalLik(Y=Y_large,X=X_large,Sig=G.inv%*%S_large[irep,,]%*%t(G.inv),ALPHA=ALPHA,bigT=bigT-plag)
     # }
-    setTxtProgressBar(pb, irep)
+    if(verbose) setTxtProgressBar(pb, irep)
   }
   
   # kick out in-stable draws
@@ -1279,7 +1267,7 @@
   condall <- 0
   impresp<-Q_bar<-NA
   while(condall == 0 && icounter < MaxTries){
-    Q <- matrix(0,bigK,bigK)
+    Q <- diag(bigK)
     for(cc in 1:N){
       idx <- shock.idx[[cc]]
       Kidx <- length(idx)
@@ -1311,8 +1299,6 @@
           }
         }
         Q[idx,idx] <- Qc
-      }else{
-        Q[idx,idx] <- diag(Kidx)
       }
     }
     colnames(Q) <- varNames[shock.order]; rownames(Q) <- varNames
