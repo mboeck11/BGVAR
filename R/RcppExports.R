@@ -31,7 +31,6 @@ dmvnrm_arma_fast <- function(x, mean, sigma, logd = FALSE) {
 
 #' @name compute_irf
 #' @noRd
-#' @export
 compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose) {
     .Call(`_BGVAR_compute_irf`, A_large, S_large, Ginv_large, type, nhor, thindraws, shocklist_in, verbose)
 }

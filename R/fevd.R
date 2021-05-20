@@ -234,7 +234,9 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
     if(verbose) cat(paste("Start computation on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
     
     imp.obj <- applyfun(1:thindraws,function(irep){
-      irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
+      irfa <- .irf.girf.sims(invG=Ginv_large[,,irep],
+                             lF=adrop(F_large[,,,irep,drop=FALSE],drop=1),
+                             gcov=S_large[,,irep],
                              x,horizon=n.ahead)$impl
       GFEVD <- .mk_fevd.sims(irfa)
       return(list(GFEVD=GFEVD))
@@ -251,7 +253,9 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
     dimnames(GFEVD_post)[[4]]<-c("low16","median","high84")
     if(verbose) cat(paste("Start computation on ", cores, " cores", " (",thindraws," stable draws in total).",sep=""),"\n")
     imp.obj <- applyfun(1:thindraws,function(irep){
-      irfa <- .irf.girf.sims(invG=Ginv_large[irep,,],lF=adrop(F_large[irep,,,,drop=FALSE],drop=1),gcov=S_large[irep,,],
+      irfa <- .irf.girf.sims(invG=Ginv_large[,,irep],
+                             lF=adrop(F_large[,,,irep,drop=FALSE],drop=1),
+                             gcov=S_large[,,irep],
                              x,horizon=n.ahead)$impl
       GFEVD <- .mk_fevd.sims(irfa)
       return(list(GFEVD=GFEVD))

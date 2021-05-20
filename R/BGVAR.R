@@ -695,8 +695,8 @@ residuals.bgvar <- function(object, ...){
   rownames(YY) <- as.character(time[-c(1:plag)])
   res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
   for(irep in 1:draws){
-    res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[irep,,]))
-    res.array.country[irep,,] <- (res.array.global[irep,,]%*%t(solve(G.mat[irep,,])))
+    res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[,,irep]))
+    res.array.country[irep,,] <- (res.array.global[,,irep]%*%t(solve(G.mat[,,irep])))
   }
   out <- structure(list(global=res.array.global,country=res.array.country,Data=YY),
                    class = "bgvar.resid")
@@ -728,8 +728,8 @@ resid.bgvar <- residuals.bgvar
 #' }
 #' @importFrom stats quantile
 coef.bgvar<-function(object, ..., quantile=.50){
-  out <- apply(object$stacked.results$F_large,c(2,3,4),quantile,quantile,na.rm=TRUE)
-  dimnames(out)[[2]] <- colnames(object$xglobal)
+  out <- apply(object$stacked.results$F_large,c(1,2,3),quantile,quantile,na.rm=TRUE)
+  dimnames(out)[[1]] <- colnames(object$xglobal)
   return(out)
 }
 
@@ -759,8 +759,8 @@ coefficients.bgvar <- coef.bgvar
 #' }
 #' @export
 vcov.bgvar<-function(object, ..., quantile=.50){
-  S_qu <- apply(object$stacked.results$S_large,c(2,3),quantile,quantile,na.rm=TRUE)
-  Ginv_qu <- apply(object$stacked.results$Ginv_large,c(2,3),quantile,quantile,na.rm=TRUE)
+  S_qu <- apply(object$stacked.results$S_large,c(1,2),quantile,quantile,na.rm=TRUE)
+  Ginv_qu <- apply(object$stacked.results$Ginv_large,c(1,2),quantile,quantile,na.rm=TRUE)
   if(length(quantile)==1){
     out <- Ginv_qu%*%S_qu%*%t(Ginv_qu)
   }else{
@@ -796,7 +796,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
   bigT     <- nrow(YY)
   if(trend) XX <- cbind(XX,seq(1,bigT))
   if(global){
-    A_post <- apply(object$stacked.results$A_large,c(2,3),median)
+    A_post <- apply(object$stacked.results$A_large,c(1,2),median)
     fit    <- XX%*%t(A_post)
   }else{
     fit <- YY-do.call("cbind",object$cc.results$res)

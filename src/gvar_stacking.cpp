@@ -35,12 +35,19 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   int number_determinants = 1; // cons
   if(trend){number_determinants += 1;}
   
+  /*
   cube A_large(thindraws,bigK,bigK*p+number_determinants);
   cube S_large(thindraws,bigK,bigK);
   cube Ginv_large(thindraws,bigK,bigK);
   cube F_large(thindraws,bigK,bigK*p);
+   */
   
-  vec a1; vec b1;
+  arma::cube A_large(bigK,bigK*p+number_determinants,thindraws);
+  arma::cube S_large(bigK,bigK,thindraws);
+  arma::cube Ginv_large(bigK,bigK,thindraws);
+  arma::cube F_large(bigK,bigK*p,thindraws);
+  
+  arma::vec a1, b1;
   //---------------------------------------------------------------------------------------------
   vec prog_rep_points = round(linspace(0, thindraws, 50));
   //bool display_progress = true;
@@ -59,53 +66,54 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     cube Sigma   = store["SIGMAmed_store"];
     mat a0store  = store["a0store"];
     
-    mat Lambda0irep = Lambda0.row(irep);
-    if(Lambda0irep.n_cols!=M){
-      Lambda0irep = Lambda0irep.t();
-    }
-    vec a0 = a0store.row(irep).t();
-    mat A0 = join_rows(eye(M,M),-Lambda0irep.t());
-    mat G  = A0*W;
-    mat S  = Sigma.row(irep);
+    mat Lambda0irep = Lambda0.slice(irep);
+    //if(Lambda0irep.n_cols!=M){Lambda0irep = Lambda0irep.t();}
+    
+    arma::vec a0 = a0store.col(irep).t();
+    arma::mat A0 = join_rows(eye(M,M),-Lambda0irep.t());
+    arma::mat G  = A0*W;
+    arma::mat S  = Sigma.slice(irep);
     if(trend){
       mat a1store = store["a1store"];
-      a1 = a1store.row(irep).t();
+      a1 = a1store.col(irep).t();
     }
     List H(p);
     for(int pp=0; pp<p; pp++){
-      cube Lambda_p = Lambda[pp]; mat Lambdairep = Lambda_p.row(irep);
-      cube Phi_p  = Phi[pp]; mat Phiirep = Phi_p.row(irep);
+      arma::cube Lambda_p = Lambda[pp]; 
+      arma::mat Lambdairep = Lambda_p.slice(irep);
+      arma::cube Phi_p = Phi[pp]; 
+      arma::mat Phiirep = Phi_p.slice(irep);
+      /*
       if(Lambdairep.n_cols!=M){
         Lambdairep = Lambdairep.t();
       }
       if(Phiirep.n_cols!=M){
         Phiirep = Phiirep.t();
       }
+       */
       mat H0 = join_rows(Phiirep.t(),Lambdairep.t())*W;
       H[pp]=H0;
     }
     // all others -- start at 1
     for(int cc = 1; cc < N; cc++){
       List VAR = globalpost[cc];
-      mat Y = VAR["Y"];
-      mat W = VAR["W"];
+      arma::mat Y = VAR["Y"];
+      arma::mat W = VAR["W"];
       unsigned int M = Y.n_cols;
       
-      List store   = VAR["store"];
-      List Phi     = store["Phistore"];
-      List Lambda  = store["Lambdastore"];
-      cube Lambda0 = store["Lambda0store"];
-      cube Sigma   = store["SIGMAmed_store"];
-      mat a0store  = store["a0store"];
+      Rcpp::List store   = VAR["store"];
+      Rcpp::List Phi     = store["Phistore"];
+      Rcpp::List Lambda  = store["Lambdastore"];
+      arma::cube Lambda0 = store["Lambda0store"];
+      arma::cube Sigma   = store["SIGMAmed_store"];
+      arma::mat a0store  = store["a0store"];
       
-      mat Lambda0irep = Lambda0.row(irep);
-      if(Lambda0irep.n_cols!=M){
-        Lambda0irep = Lambda0irep.t();
-      }
-      vec a01 = a0store.row(irep).t();
-      mat A1  = join_rows(eye(M,M),-Lambda0irep.t());
-      mat G1  = A1*W;
-      mat S1  = Sigma.row(irep);
+      arma::mat Lambda0irep = Lambda0.slice(irep);
+      //if(Lambda0irep.n_cols!=M){Lambda0irep = Lambda0irep.t();}
+      arma::colvec a01 = a0store.col(irep).t();
+      arma::mat A1  = join_rows(eye(M,M),-Lambda0irep.t());
+      arma::mat G1  = A1*W;
+      arma::mat S1  = Sigma.slice(irep);
       // join
       G  = join_cols(G,G1);
       a0 = join_cols(a0,a01);
@@ -119,14 +127,18 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       S1 = join_rows(S0.t(),S1);
       S  = join_cols(S,S1);
       for(int pp=0; pp<p; pp++){
-        cube Lambda_p = Lambda[pp]; mat Lambdairep = Lambda_p.row(irep);
-        cube Phi_p  = Phi[pp]; mat Phiirep = Phi_p.row(irep);
+        arma::cube Lambda_p = Lambda[pp]; 
+        arma::mat Lambdairep = Lambda_p.slice(irep);
+        arma::cube Phi_p = Phi[pp]; 
+        arma::mat Phiirep = Phi_p.slice(irep);
+        /*
         if(Lambdairep.n_cols!=M){
           Lambdairep = Lambdairep.t();
         }
         if(Phiirep.n_cols!=M){
           Phiirep = Phiirep.t();
         }
+         */
         mat H1 = join_rows(Phiirep.t(),Lambdairep.t())*W;
         mat H0 = H[pp];
         mat H2 = join_cols(H0,H1);
@@ -136,21 +148,21 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     mat Ginv = G.i();
     vec b0   = Ginv*a0;
     if(trend){b1 = Ginv*a1;}
-    mat F; mat A;
+    arma::mat F, A;
     for(int pp=0; pp<p; pp++){
-      mat temp = H[pp];
+      arma::mat temp = H[pp];
       F = join_rows(F,Ginv*temp); A = join_rows(A,Ginv*temp);
     }
     A = join_rows(A,b0);
     if(trend){A = join_rows(A,b1);}
     // save
-    F_large.row(irep) = F;
-    A_large.row(irep) = A;
-    S_large.row(irep) = S;
-    Ginv_large.row(irep) = Ginv;
+    F_large.slice(irep) = F;
+    A_large.slice(irep) = A;
+    S_large.slice(irep) = S;
+    Ginv_large.slice(irep) = Ginv;
     // compute eigenvalues
     if(eigen){
-      mat MM(bigK*p,bigK*p, fill::zeros); MM.submat(0,0,bigK-1,bigK*p-1) = F;
+      arma::mat MM(bigK*p, bigK*p, fill::zeros); MM.submat(0,0,bigK-1,bigK*p-1) = F;
       if(p>1) MM.submat(bigK,0,bigK*p-1,bigK*p-bigK-1).eye();
       cx_vec eigval; cx_mat eigvec; eig_gen(eigval, eigvec, MM);
       F_eigen(irep) = abs(real(eigval)).max();
@@ -193,9 +205,9 @@ List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const ar
   // Evaluate density
   //----------------------------------------------------------------------------------------------------------------------
   for(int irep = 0; irep < thindraws; irep++){
-    mat A       = A_in.row(irep);
-    mat S       = S_in.row(irep);
-    mat Ginv    = Ginv_in.row(irep);
+    mat A       = A_in.slice(irep);
+    mat S       = S_in.slice(irep);
+    mat Ginv    = Ginv_in.slice(irep);
     mat Sig     = Ginv*S*Ginv.t();
     mat mean    = X*A.t();
     vec logLik  = dmvnrm_arma_fast(Y, mean, Sig, true);

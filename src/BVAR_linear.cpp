@@ -185,7 +185,6 @@ List BVAR_linear(arma::mat Yraw,
   mat A_accept(plag+1,2, fill::zeros);
   // initialize stuff for NG prior
   mat A_con, V_con, P_con, A_end, V_end, P_end, A_exo, V_exo, P_exo;
-  int r_con, c_con, d_con, r_end, c_end, d_end, r_exo, c_exo, d_exo;
   double prodlambda, dl, el, lambda, chi, psi, res;
   double unif, proposal, post_tau_prop, post_tau_curr, diff;
   //---------------------------------------------------------------
@@ -256,21 +255,21 @@ List BVAR_linear(arma::mat Yraw,
   //---------------------------------------------------------------------------------------------
   // STORAGES
   //---------------------------------------------------------------------------------------------
-  cube A_store(thindraws,k,M);
-  cube L_store(thindraws,M,M);
-  cube res_store(thindraws,T,M);
+  arma::cube A_store(k,M,thindraws);
+  arma::cube L_store(M,M,thindraws);
+  arma::cube res_store(T,M,thindraws);
   // SV
-  cube Sv_store(thindraws,T,M);
-  cube pars_store(thindraws,4,M);
+  arma::cube Sv_store(T,M,thindraws);
+  arma::cube pars_store(4,M,thindraws);
   // SIMS
-  mat shrink_store(thindraws,3, fill::zeros);
+  arma::cube shrink_store(3,1,thindraws, fill::zeros);
   // SSVS
-  cube gamma_store(thindraws,k,M, fill::zeros);
-  cube omega_store(thindraws,M,M, fill::zeros);
+  arma::cube gamma_store(k,M,thindraws, fill::zeros);
+  arma::cube omega_store(M,M,thindraws, fill::zeros);
   // NG
-  cube theta_store(thindraws,k,M, fill::zeros);
-  cube lambda2_store(thindraws,plag+1,3, fill::zeros);
-  cube tau_store(thindraws,plag+1,3, fill::zeros);
+  arma::cube theta_store(k,M,thindraws, fill::zeros);
+  arma::cube lambda2_store(plag+1,3,thindraws, fill::zeros);
+  arma::cube tau_store(plag+1,3,thindraws, fill::zeros);
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
@@ -447,16 +446,15 @@ List BVAR_linear(arma::mat Yraw,
           A_con = A_draw.rows(plag*M, plag*M+Mstar-1); 
           V_con = V_prior.rows(plag*M, plag*M+Mstar-1); 
           P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
-          r_con = A_con.n_rows; c_con = A_con.n_cols; d_con = A_con.n_elem;
           
           // sample lambda
-          dl = d_lambda + A_tau(0,1)*d_con;
+          dl = d_lambda + A_tau(0,1)*std::pow(Mstar,2);
           el = e_lambda + 0.5*A_tau(0,1)*accu(V_con);
           lambda2_A(0,1) = R::rgamma(dl, 1/el);
           
           // sample theta
-          for(int ii=0; ii < r_con; ii++){
-            for(int jj=0; jj < c_con; jj++){
+          for(int ii=0; ii < Mstar; ii++){
+            for(int jj=0; jj < Mstar; jj++){
               lambda = A_tau(0,1) - 0.5;
               psi = A_tau(0,1) * lambda2_A(0,1);
               chi = std::pow(A_con(ii,jj)-P_con(ii,jj),2);
@@ -494,7 +492,6 @@ List BVAR_linear(arma::mat Yraw,
           A_end = A_draw.rows((pp-1)*M, pp*M-1); 
           V_end = V_prior.rows((pp-1)*M, pp*M-1); 
           P_end = A_prior.rows((pp-1)*M, pp*M-1);
-          r_end = A_end.n_rows; c_end = A_end.n_cols; d_end = A_end.n_elem;
           
           // sample lambda
           if(pp == 1){
@@ -502,14 +499,14 @@ List BVAR_linear(arma::mat Yraw,
           }else{
             prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp-1,0)));
           }
-          dl = d_lambda + A_tau(pp,0)*d_end;
+          dl = d_lambda + A_tau(pp,0)*std::pow(M,2);
           el = e_lambda + 0.5*A_tau(pp,0)*accu(V_end)*prodlambda;
           lambda2_A(pp,0) = R::rgamma(dl, 1/el);
           
           // sample theta
           prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
-          for(int ii=0; ii < r_end; ii++){
-            for(int jj=0; jj < c_end; jj++){
+          for(int ii=0; ii < M; ii++){
+            for(int jj=0; jj < M; jj++){
               lambda = A_tau(pp,0) - 0.5;
               psi = A_tau(pp,0) * prodlambda;
               chi = std::pow(A_end(ii,jj)-P_end(ii,jj),2);
@@ -548,7 +545,6 @@ List BVAR_linear(arma::mat Yraw,
           A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
           V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
           P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
-          r_exo = A_exo.n_rows; c_exo = A_exo.n_cols; d_exo = A_exo.n_elem;
           
           // sample lambda
           if(pp == 1){
@@ -556,14 +552,14 @@ List BVAR_linear(arma::mat Yraw,
           }else{
             prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp-1,1)));
           }
-          dl = d_lambda + A_tau(pp,1)*d_exo;
+          dl = d_lambda + A_tau(pp,1)*std::pow(Mstar,2);
           el = e_lambda + 0.5*A_tau(pp,1)*accu(V_end)*prodlambda;
           lambda2_A(pp,1) = R::rgamma(dl, 1/el);
           
           // sample theta
           prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp,1)));
-          for(int ii=0; ii < r_exo; ii++){
-            for(int jj=0; jj < c_exo; jj++){
+          for(int ii=0; ii < Mstar; ii++){
+            for(int jj=0; jj < Mstar; jj++){
               lambda = A_tau(pp,1) - 0.5;
               psi = A_tau(pp,1) * prodlambda;
               chi = std::pow(A_exo(ii,jj) - P_exo(ii,jj),2);
@@ -674,26 +670,26 @@ List BVAR_linear(arma::mat Yraw,
     // Step 5: STORAGE
     if(irep >= burnin){
       if((irep-burnin) % thin == 0){
-        A_store.row((irep-burnin)/thin) = A_draw;
-        L_store.row((irep-burnin)/thin) = L_draw;
-        res_store.row((irep-burnin)/thin) = Y - X * A_draw;
-        Sv_store.row((irep-burnin)/thin) = Sv_draw;
-        pars_store.row((irep-burnin)/thin) = Sv_para;
-        theta_store.row((irep-burnin)/thin) = V_prior;
+        A_store.slice((irep-burnin)/thin) = A_draw;
+        L_store.slice((irep-burnin)/thin) = L_draw;
+        res_store.slice((irep-burnin)/thin) = Y - X * A_draw;
+        Sv_store.slice((irep-burnin)/thin) = Sv_draw;
+        pars_store.slice((irep-burnin)/thin) = Sv_para;
+        theta_store.slice((irep-burnin)/thin) = V_prior;
         if(prior==1){
-         shrink_store((irep-burnin)/thin,0) = shrink1;
-         shrink_store((irep-burnin)/thin,1) = shrink2;
-         shrink_store((irep-burnin)/thin,2) = shrink4;
+         shrink_store(0,0,(irep-burnin)/thin) = shrink1;
+         shrink_store(1,0,(irep-burnin)/thin) = shrink2;
+         shrink_store(2,0,(irep-burnin)/thin) = shrink4;
         }
         if(prior==2){
-          gamma_store.row((irep-burnin)/thin) = gamma;
-          omega_store.row((irep-burnin)/thin) = omega;
+          gamma_store.slice((irep-burnin)/thin) = gamma;
+          omega_store.slice((irep-burnin)/thin) = omega;
         }
         if(prior==3){
           lambda2_Lmat(0,0) = lambda2_L;
-          lambda2_store.row((irep-burnin)/thin) = join_rows(lambda2_A,lambda2_Lmat);
+          lambda2_store.slice((irep-burnin)/thin) = join_rows(lambda2_A,lambda2_Lmat);
           L_taumat(0,0) = L_tau;
-          tau_store.row((irep-burnin)/thin) = join_rows(A_tau,L_taumat);
+          tau_store.slice((irep-burnin)/thin) = join_rows(A_tau,L_taumat);
         }
       }
     }
