@@ -696,7 +696,7 @@ residuals.bgvar <- function(object, ...){
   res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
   for(irep in 1:draws){
     res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[,,irep]))
-    res.array.country[irep,,] <- (res.array.global[,,irep]%*%t(solve(G.mat[,,irep])))
+    res.array.country[irep,,] <- (res.array.global[irep,,]%*%t(solve(G.mat[,,irep])))
   }
   out <- structure(list(global=res.array.global,country=res.array.country,Data=YY),
                    class = "bgvar.resid")

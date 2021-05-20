@@ -100,21 +100,24 @@ avg.pair.cc=function(object, digits=3){
     
     dat.res[1,i]<-paste(length(which(aux<=0.1))," (",round((length(which(aux<=0.1))/K)*100,2),"%)",sep="")
     res.res[1,i]<-paste(length(which(aux2<=0.1))," (",round((length(which(aux2<=0.1))/K2)*100,2),"%)",sep="")
-    res.resG[1,i]<-paste(length(which(aux3<=0.1))," (",round((length(which(aux3<=0.1))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3<=0.1))/K3)*100,2)
+    res.resG[1,i]<-paste(length(which(aux3<=0.1))," (",ifelse(is.nan(temp),0,1),"%)",sep="")
     
     dat.res[2,i]<-paste(length(which(aux>0.1&aux<=0.2))," (",round((length(which(aux>0.1&aux<=0.2))/K)*100,2),"%)",sep="")
     res.res[2,i]<-paste(length(which(aux2>0.1&aux2<=0.2))," (",round((length(which(aux2>0.1&aux2<=0.2))/K2)*100,2),"%)",sep="")
-    res.resG[2,i]<-paste(length(which(aux3>0.1&aux2<=0.2))," (",round((length(which(aux3>0.1&aux3<=0.2))/K3)*100,2),"%)",sep="")
-    
+    temp<-round((length(which(aux3>0.1&aux3<=0.2))/K3)*100,2)
+    res.resG[2,i]<-paste(length(which(aux3>0.1&aux2<=0.2))," (",ifelse(is.nan(temp),0,1),"%)",sep="")
     
     dat.res[3,i]<-paste(length(which(aux>0.2&aux<=0.5))," (",round((length(which(aux>0.2&aux<=0.5))/K)*100,2),"%)",sep="")
     res.res[3,i]<-paste(length(which(aux2>0.2&aux2<=0.5))," (",round((length(which(aux2>0.2&aux2<=0.5))/K2)*100,2),"%)",sep="")
-    res.resG[3,i]<-paste(length(which(aux3>0.2&aux3<=0.5))," (",round((length(which(aux3>0.2&aux3<=0.5))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3>0.2&aux3<=0.5))/K3)*100,2)
+    res.resG[3,i]<-paste(length(which(aux3>0.2&aux3<=0.5))," (",ifelse(is.nan(temp),0,temp),"%)",sep="")
     
     
     dat.res[4,i]<-paste(length(which(aux>0.5&aux<=1))," (",round((length(which(aux>0.5&aux<=1))/K)*100,2),"%)",sep="")
     res.res[4,i]<-paste(length(which(aux2>0.5&aux2<=1))," (",round((length(which(aux2>0.5&aux2<=1))/K2)*100,2),"%)",sep="")
-    res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",round((length(which(aux3>0.5&aux3<=1))/K3)*100,2),"%)",sep="")
+    temp<-round((length(which(aux3>0.5&aux3<=1))/K3)*100,2)
+    res.resG[4,i]<-paste(length(which(aux3>0.5&aux3<=1))," (",ifelse(is.nan(temp),0,temp),"%)",sep="")
     
   }
   colnames(dat.res) <- colnames(res.res) <- colnames(res.resG) <- colnames(datL)

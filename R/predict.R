@@ -106,8 +106,8 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   }
   for(irep in 1:thindraws){
     #Step I: Construct a global VC matrix Omega_t
-    Ginv    <- Ginv_large[irep,,]
-    Sig_t   <- Ginv%*%(S_large[irep,,])%*%t(Ginv)
+    Ginv    <- Ginv_large[,,irep]
+    Sig_t   <- Ginv%*%(S_large[,,irep])%*%t(Ginv)
     Sig_t   <- as.matrix(Sig_t)
     zt      <- Xn[bigT,]
     z1      <- zt
@@ -116,7 +116,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     y2      <- NULL
     
     #gets companion form
-    aux   <- .get_companion(A_large[irep,,],varndxv)
+    aux   <- .get_companion(A_large[,,irep],varndxv)
     Mm    <- aux$MM
     Jm    <- aux$Jm
     Jsigt <- Jm%*%Sig_t%*%t(Jm)
@@ -149,10 +149,10 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     if(verbose) pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
     for(irep in 1:thindraws){
       pred    <- pred_store[irep,,]
-      Sigma_u <- Ginv_large[irep,,]%*%S_large[irep,,]%*%t(Ginv_large[irep,,])
+      Sigma_u <- Ginv_large[,,irep]%*%S_large[,,irep]%*%t(Ginv_large[,,irep])
       chol_varyt <- try(t(chol(Sigma_u)), silent=TRUE)
       if(is(chol_varyt,"try-error")) {next}
-      irf     <- .impulsdtrf(B=adrop(F_large[irep,,,,drop=FALSE],drop=1),
+      irf     <- .impulsdtrf(B=adrop(F_large[,,,irep,drop=FALSE],drop=4),
                              smat=chol_varyt,nstep=n.ahead)
       
       temp <- as.vector(constr) + rnorm(bigK*n.ahead,0,as.vector(constr_sd))

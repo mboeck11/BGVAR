@@ -235,7 +235,7 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
     
     imp.obj <- applyfun(1:thindraws,function(irep){
       irfa <- .irf.girf.sims(invG=Ginv_large[,,irep],
-                             lF=adrop(F_large[,,,irep,drop=FALSE],drop=1),
+                             lF=adrop(F_large[,,,irep,drop=FALSE],drop=4),
                              gcov=S_large[,,irep],
                              x,horizon=n.ahead)$impl
       GFEVD <- .mk_fevd.sims(irfa)
