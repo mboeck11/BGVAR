@@ -54,12 +54,10 @@ Plotting function for fitted values, residuals, predictions, impulse responses a
 \examples{
 \dontshow{
 library(BGVAR)
-cN<-c("EA","US","UK")
-eerData<-eerData[cN]
-W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
+data(eerDatasmall)
+model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+                    prior="SSVS",eigen=TRUE)
 }
-model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-                    prior="SSVS")
 \donttest{
 # example for class 'bgvar'
 plot(model.ssvs, resp=c("EA.y","US.Dp"))

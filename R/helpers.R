@@ -164,18 +164,19 @@ conv.diag<-function(object, crit.val=1.96){
   d2    <- dim(ALPHA)[2]
   K     <- d1*d2
   
-  mcmc.obj<-NULL
-  for(irep in 1:draws){
-    aux<-NULL
-    for(j in 1:d1){
-      aux<-cbind(aux,ALPHA[j,,irep])
+  geweke.z<-NULL
+  for(i in 1:d1){
+    for(j in 1:d2){
+      mcmc.obj<-mcmc(ALPHA[i,j,])
+      geweke<-try(geweke.diag(mcmc.obj),silent=TRUE)
+      if(!is(geweke,"try-error")){
+        geweke.z<-c(geweke.z,as.numeric(geweke$z))
+      }else{
+        K<-K-1
+      }
     }
-    mcmc.obj<-cbind(mcmc.obj,aux)
   }
-  mcmc.obj<-mcmc(mcmc.obj)
-  geweke<-geweke.diag(mcmc.obj)
-  geweke.z<-as.numeric(unlist(geweke$z)) # if z is smaller or greater than 1.96 there is evidence that the means of both distributions are different
-  idx<-which(abs(geweke.z)>crit.val)
+  idx<-which(abs(geweke.z)>crit.val) # if z is smaller or greater than 1.96 there is evidence that the means of both distributions are different
   xx<-paste(length(idx), " out of ",K, " variables' z-values exceed the 1.96 threshold", " (", round(length(idx)/K*100,2),"%).",sep="")
   return <- structure(list(geweke.z=geweke.z,perc=xx), class="bgvar.CD")
   return(return)

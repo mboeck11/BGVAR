@@ -15,6 +15,7 @@
 #' data(eerDatasmall)
 #' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",eigen=TRUE)
+#' }
 #' \donttest{
 #' # example for class 'bgvar'
 #' plot(model.ssvs, resp=c("EA.y","US.Dp"))
