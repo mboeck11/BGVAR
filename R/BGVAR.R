@@ -841,6 +841,18 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     Ginv_large<- object$stacked.results$Ginv_large
     globalLik <- try(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik,silent=TRUE)
     
+   # if(all(as.numeric(globalLik)==-Inf)){
+   #   for(irep in 1:thindraws){
+   #     for(tt in 1:bigT){
+   #       dmvnorm(x     = Y_large[tt,],
+   #               mean  = X_large[tt,,drop=FALSE]%*%t(A_large[,,irep]),
+   #               sigma = Ginv_large[,,irep]%*%S_large[,,irep]%*%t(Ginv_large[,,irep]),
+   #               log   = TRUE
+   #       )
+   #     }
+   #   }
+   # }
+    
     if(is(globalLik,"try-error")){
       out <- -Inf
     }else{
