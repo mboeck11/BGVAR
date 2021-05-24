@@ -448,22 +448,22 @@ List BVAR_linear(arma::mat Yraw,
           P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
           
           // sample lambda
-          dl = d_lambda + A_tau(0,1)*std::pow(Mstar,2);
+          dl = d_lambda + A_tau(0,1)*Mstar*M;
           el = e_lambda + 0.5*A_tau(0,1)*accu(V_con);
           lambda2_A(0,1) = R::rgamma(dl, 1/el);
           
           // sample theta
           for(int ii=0; ii < Mstar; ii++){
-            for(int jj=0; jj < Mstar; jj++){
+            for(int mm=0; mm < M; mm++){
               lambda = A_tau(0,1) - 0.5;
               psi = A_tau(0,1) * lambda2_A(0,1);
-              chi = std::pow(A_con(ii,jj)-P_con(ii,jj),2);
+              chi = std::pow(A_con(ii,mm)-P_con(ii,mm),2);
               
               res = do_rgig1(lambda, chi, psi);
               if(res<1e-7) res = 1e-7;
               if(res>1e+7) res = 1e+7;
               
-              V_con(ii,jj) = res;
+              V_con(ii,mm) = res;
             }
           }
           V_prior.rows(plag*M, plag*M+Mstar-1) = V_con;
@@ -506,16 +506,16 @@ List BVAR_linear(arma::mat Yraw,
           // sample theta
           prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
           for(int ii=0; ii < M; ii++){
-            for(int jj=0; jj < M; jj++){
+            for(int mm=0; mm < M; mm++){
               lambda = A_tau(pp,0) - 0.5;
               psi = A_tau(pp,0) * prodlambda;
-              chi = std::pow(A_end(ii,jj)-P_end(ii,jj),2);
+              chi = std::pow(A_end(ii,mm)-P_end(ii,mm),2);
               
               res = do_rgig1(lambda, chi, psi);
               if(res<1e-7) res = 1e-7;
               if(res>1e+7) res = 1e+7;
               
-              V_end(ii,jj) = res;
+              V_end(ii,mm) = res;
             }
           }
           V_prior.rows((pp-1)*M, pp*M-1) = V_end;
@@ -552,23 +552,23 @@ List BVAR_linear(arma::mat Yraw,
           }else{
             prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp-1,1)));
           }
-          dl = d_lambda + A_tau(pp,1)*std::pow(Mstar,2);
+          dl = d_lambda + A_tau(pp,1)*M*Mstar;
           el = e_lambda + 0.5*A_tau(pp,1)*accu(V_end)*prodlambda;
           lambda2_A(pp,1) = R::rgamma(dl, 1/el);
           
           // sample theta
           prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp,1)));
           for(int ii=0; ii < Mstar; ii++){
-            for(int jj=0; jj < Mstar; jj++){
+            for(int mm=0; mm < M; mm++){
               lambda = A_tau(pp,1) - 0.5;
               psi = A_tau(pp,1) * prodlambda;
-              chi = std::pow(A_exo(ii,jj) - P_exo(ii,jj),2);
+              chi = std::pow(A_exo(ii,mm) - P_exo(ii,mm),2);
               
               res = do_rgig1(lambda, chi, psi);
               if(res<1e-7) res = 1e-7;
               if(res>1e+7) res = 1e+7;
               
-              V_exo(ii,jj) = res;
+              V_exo(ii,mm) = res;
             }
           }
           V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1) = V_exo;

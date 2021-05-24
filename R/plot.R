@@ -12,12 +12,9 @@
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
-#' cN<-c("EA","US","UK")
-#' eerData<-eerData[cN]
-#' W.trade0012<-apply(W.trade0012[cN,cN],2,function(x)x/rowSums(W.trade0012[cN,cN]))
-#' }
-#' model.ssvs <- bgvar(Data=eerData,W=W.trade0012,plag=1,draws=100,burnin=100,
-#'                     prior="SSVS")
+#' data(eerDatasmall)
+#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+#'                     prior="SSVS",eigen=TRUE)
 #' \donttest{
 #' # example for class 'bgvar'
 #' plot(model.ssvs, resp=c("EA.y","US.Dp"))
@@ -42,7 +39,7 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   vars <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
   Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
-    A_post <- apply(x$stacked.results$A_large,c(2,3),median)
+    A_post <- apply(x$stacked.results$A_large,c(1,2),median)
     fit    <- XX%*%t(A_post)
   }else{
     fit <- YY-do.call("cbind",x$cc.results$res)

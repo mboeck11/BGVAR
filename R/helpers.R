@@ -159,16 +159,16 @@ conv.diag<-function(object, crit.val=1.96){
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   
   ALPHA <- object$stacked.results$A_large
-  d1    <- dim(ALPHA)[3]
-  d2    <- dim(ALPHA)[1]
-  d3    <- dim(ALPHA)[2]
-  K     <- d2*d1
+  draws <- dim(ALPHA)[3]
+  d1    <- dim(ALPHA)[1]
+  d2    <- dim(ALPHA)[2]
+  K     <- d1*d2
   
   mcmc.obj<-NULL
-  for(i in 1:d1){
+  for(irep in 1:draws){
     aux<-NULL
-    for(j in 1:d2){
-      aux<-cbind(aux,ALPHA[j,,i])
+    for(j in 1:d1){
+      aux<-cbind(aux,ALPHA[j,,irep])
     }
     mcmc.obj<-cbind(mcmc.obj,aux)
   }

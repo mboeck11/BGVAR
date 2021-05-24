@@ -276,8 +276,9 @@
   }
   # estimation
   if(!use_R){
-    invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,plag,draws,burnin,thin,TRUE,trend,SV,
-                                                   prior_in,default_hyperpara)), type="message"))
+    invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,as.integer(plag),as.integer(draws),as.integer(burnin),
+                                                   as.integer(thin),TRUE,trend,SV,as.integer(prior_in),
+                                                   default_hyperpara)), type="message"))
   }else{
     bvar <- structure("message",class=c("try-error","character"))
   }
@@ -772,20 +773,20 @@
         
         if (ss==0){
           lambda2_A[ss+1,2] <- rgamma(n     = 1,
-                                      shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
+                                      shape = d_lambda + A_tau[ss+1,2]*Mstar*M,
                                       rate  = e_lambda + A_tau[ss+1,2]/2*sum(theta.lag))
         }else{
           lambda2_A[ss+1,2] <- rgamma(n     = 1,
                                       shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
                                       rate  = e_lambda + A_tau[ss+1,2]*0.5*prod(lambda2_A[1:ss,2])*sum(theta.lag))
         }
-        for(jj in 1:Mstar){
-          for(ii in 1:M){
+        for(ii in 1:Mstar){
+          for(mm in 1:M){
             temp <- do_rgig1(lambda = A_tau[ss+1,2]-0.5,
-                             chi    = (A.lag.star[jj,ii] - A.lag.prior[jj,ii])^2,
+                             chi    = (A.lag.star[ii,mm] - A.lag.prior[ii,mm])^2,
                              psi    = A_tau[ss+1,2]*prod(lambda2_A[1:(ss+1),2]))
             temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
-            theta.lag[jj,ii] <- temp
+            theta.lag[ii,mm] <- temp
           }
         }
         theta[slct.i,] <- theta.lag
@@ -808,7 +809,7 @@
         }
       }
       # Normal-Gamma for endogenous variables
-      for (ss in 1:plag){
+      for(ss in 1:plag){
         slct.i    <- which(rownames(A_draw)==paste("Ylag",ss,sep=""))
         A.lag     <- A_draw[slct.i,,drop=FALSE]
         A.prior   <- A_prior[slct.i,,drop=FALSE]
@@ -823,13 +824,13 @@
                                       shape = d_lambda + A_tau[ss+1,1]*M^2,
                                       rate  = e_lambda + A_tau[ss+1,1]/2*prod(lambda2_A[2:(ss+1),1])*sum(theta.lag))
         }
-        for(jj in 1:M){
-          for (ii in 1:M){
+        for(ii in 1:M){
+          for(mm in 1:M){
             temp <- do_rgig1(lambda = A_tau[ss+1,1] - 0.5,
-                             chi    = (A.lag[jj,ii] - A.prior[jj,ii])^2,
+                             chi    = (A.lag[ii,mm] - A.prior[ii,mm])^2,
                              psi    = A_tau[ss+1,1]*prod(lambda2_A[2:(ss+1),1]))
             temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
-            theta.lag[jj,ii] <- temp
+            theta.lag[ii,mm] <- temp
           }
         }
         theta[slct.i,] <- theta.lag
