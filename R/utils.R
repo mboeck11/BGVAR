@@ -276,6 +276,7 @@
   }
   # estimation
   if(!use_R){
+    #Rcpp::sourceCpp("./src/BVAR_linear.cpp")
     invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,as.integer(plag),as.integer(draws),as.integer(burnin),
                                                    as.integer(thin),TRUE,trend,SV,as.integer(prior_in),
                                                    default_hyperpara)), type="message"))
@@ -718,52 +719,56 @@
           }
         }
       }
-      for(mm in 2:M){
-        for(ii in 1:(mm-1)){
-          u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * q_ij
-          u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * (1-q_ij)
-          ost  <-  u_ij1/(u_ij1 + u_ij2)
-          if(is.na(ost)) ost <- 1
-          omega[mm,ii] <-  .bernoulli(ost)
-          if (is.na(omega[mm,ii])) omega[mm,ii] <- 1
-          if(omega[mm,ii]==1){
-            L_prior[mm,ii] <- kappa1^2
-          }else{
-            L_prior[mm,ii] <- kappa0^2
+      if(M>1){
+        for(mm in 2:M){
+          for(ii in 1:(mm-1)){
+            u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * q_ij
+            u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * (1-q_ij)
+            ost  <-  u_ij1/(u_ij1 + u_ij2)
+            if(is.na(ost)) ost <- 1
+            omega[mm,ii] <-  .bernoulli(ost)
+            if (is.na(omega[mm,ii])) omega[mm,ii] <- 1
+            if(omega[mm,ii]==1){
+              L_prior[mm,ii] <- kappa1^2
+            }else{
+              L_prior[mm,ii] <- kappa0^2
+            }
           }
         }
-      }
+      } # END-if M>1
     }
     # NG
     if(prior==3){
       # Normal-Gamma for Covariances
-      lambda2_L    <- rgamma(1,d_lambda+L_tau*v,e_lambda+L_tau/2*sum(L_prior[lower.tri(L_prior)]))
-      #Step VI: Sample the prior scaling factors for covariances from GIG
-      for(mm in 2:M){
-        for(ii in 1:(mm-1)){
-          temp <- do_rgig1(lambda = L_tau-0.5, 
-                           chi    = (L_draw[mm,ii] - l_prior[mm,ii])^2, 
-                           psi    = L_tau*lambda2_L)
-          temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
-          L_prior[mm,ii] <- temp
+      if(M>1){
+        lambda2_L    <- rgamma(1,d_lambda+L_tau*v,e_lambda+L_tau/2*sum(L_prior[lower.tri(L_prior)]))
+        #Step VI: Sample the prior scaling factors for covariances from GIG
+        for(mm in 2:M){
+          for(ii in 1:(mm-1)){
+            temp <- do_rgig1(lambda = L_tau-0.5, 
+                             chi    = (L_draw[mm,ii] - l_prior[mm,ii])^2, 
+                             psi    = L_tau*lambda2_L)
+            temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
+            L_prior[mm,ii] <- temp
+          }
         }
-      }
-      if(sample_tau){
-        #Sample L_tau through a simple RWMH step
-        L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
-        post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-        post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-        post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
-        post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
-        if (post.diff > log(runif(1,0,1))){
-          L_tau      <- L_tau_prop
-          L_accept   <- L_accept+1
+        if(sample_tau){
+          #Sample L_tau through a simple RWMH step
+          L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
+          post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
+          post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
+          if (post.diff > log(runif(1,0,1))){
+            L_tau      <- L_tau_prop
+            L_accept   <- L_accept+1
+          }
+          if (irep<(0.5*burnin)){
+            if ((L_accept/irep)>0.3)  L_tuning <- 1.01*L_tuning
+            if ((L_accept/irep)<0.15) L_tuning <- 0.99*L_tuning
+          }
         }
-        if (irep<(0.5*burnin)){
-          if ((L_accept/irep)>0.3)  L_tuning <- 1.01*L_tuning
-          if ((L_accept/irep)<0.15) L_tuning <- 0.99*L_tuning
-        }
-      }
+      } # END-if M>1
       # Norml-Gamma for weakly exogenous
       for (ss in 0:plag){
         if(ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))

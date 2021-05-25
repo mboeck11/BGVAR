@@ -189,7 +189,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
 //' @name globalLik
 //' @noRd
 //[[Rcpp::export]]
-List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const arma::cube S_in, const arma::cube Ginv_in, const SEXP thindraws_in) {
+List globalLik(const SEXP Y_in, const SEXP X_in, const arma::cube A_in, const arma::cube S_in, const arma::cube Ginv_in, const SEXP thindraws_in){
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
   //----------------------------------------------------------------------------------------------------------------------

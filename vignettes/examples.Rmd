@@ -332,7 +332,6 @@ The `eerData` set provides us with a list of different weight matrices that are 
 Now we specify the sets of variables to be weighted:
 
 ```{r "var.weight"}
-eerData2<-eerData
 variable.list<-list();variable.list$real<-c("y","Dp","tb");variable.list$fin<-c("stir","ltir","rer")
 ```
 
@@ -340,7 +339,7 @@ We can then re-estimate the model and hand over the `variable.list` via the argu
 
 ```{r,results="hide"}
 # weights for first variable set tradeW.0012, for second finW0711
-model.ssvs.2<-bgvar(Data=eerData2,
+model.ssvs.2<-bgvar(Data=eerData,
                     W=W.list[c("tradeW.0012","finW0711")],
                     plag=1,
                     draws=100,
@@ -393,6 +392,7 @@ For that purpose we have to remove oil prices from the US model and attach them 
 
 
 ```{r "OC"}
+eerData2<-eerData
 eerData2$OC<-eerData$US[,c("poil"),drop=FALSE] # move oil prices into own slot
 eerData2$US<-eerData$US[,c("y","Dp", "rer" , "stir", "ltir","tb")] # exclude it from US m odel
 ```

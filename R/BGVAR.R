@@ -276,9 +276,6 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     Data      <- Data_new
     args$time <- timeindex
     args$Traw <- length(timeindex)
-    if(any(unlist(lapply(Data,ncol))==1)){
-      stop("Please provide for each country more than one variable.")
-    }
   }
   args$Data <- Data
   # check Weight matrix if matrix
