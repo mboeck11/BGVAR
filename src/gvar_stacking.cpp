@@ -35,13 +35,6 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   int number_determinants = 1; // cons
   if(trend){number_determinants += 1;}
   
-  /*
-  cube A_large(thindraws,bigK,bigK*p+number_determinants);
-  cube S_large(thindraws,bigK,bigK);
-  cube Ginv_large(thindraws,bigK,bigK);
-  cube F_large(thindraws,bigK,bigK*p);
-   */
-  
   arma::cube A_large(bigK,bigK*p+number_determinants,thindraws);
   arma::cube S_large(bigK,bigK,thindraws);
   arma::cube Ginv_large(bigK,bigK,thindraws);
@@ -67,15 +60,13 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     mat a0store  = store["a0store"];
     
     mat Lambda0irep = Lambda0.slice(irep);
-    //if(Lambda0irep.n_cols!=M){Lambda0irep = Lambda0irep.t();}
-    
-    arma::vec a0 = a0store.col(irep).t();
+    arma::colvec a0 = a0store.col(irep);
     arma::mat A0 = join_rows(eye(M,M),-Lambda0irep.t());
     arma::mat G  = A0*W;
     arma::mat S  = Sigma.slice(irep);
     if(trend){
       mat a1store = store["a1store"];
-      a1 = a1store.col(irep).t();
+      a1 = a1store.col(irep);
     }
     List H(p);
     for(int pp=0; pp<p; pp++){
@@ -83,14 +74,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       arma::mat Lambdairep = Lambda_p.slice(irep);
       arma::cube Phi_p = Phi[pp]; 
       arma::mat Phiirep = Phi_p.slice(irep);
-      /*
-      if(Lambdairep.n_cols!=M){
-        Lambdairep = Lambdairep.t();
-      }
-      if(Phiirep.n_cols!=M){
-        Phiirep = Phiirep.t();
-      }
-       */
+      
       mat H0 = join_rows(Phiirep.t(),Lambdairep.t())*W;
       H[pp]=H0;
     }
@@ -109,8 +93,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       arma::mat a0store  = store["a0store"];
       
       arma::mat Lambda0irep = Lambda0.slice(irep);
-      //if(Lambda0irep.n_cols!=M){Lambda0irep = Lambda0irep.t();}
-      arma::colvec a01 = a0store.col(irep).t();
+      arma::colvec a01 = a0store.col(irep);
       arma::mat A1  = join_rows(eye(M,M),-Lambda0irep.t());
       arma::mat G1  = A1*W;
       arma::mat S1  = Sigma.slice(irep);
@@ -119,7 +102,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       a0 = join_cols(a0,a01);
       if(trend){
         mat a1store = store["a1store"];
-        vec a11 = a1store.row(irep).t();
+        vec a11 = a1store.row(irep);
         a1 = join_cols(a1,a11);
       }
       mat S0(S.n_cols,M,fill::zeros);
@@ -131,14 +114,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
         arma::mat Lambdairep = Lambda_p.slice(irep);
         arma::cube Phi_p = Phi[pp]; 
         arma::mat Phiirep = Phi_p.slice(irep);
-        /*
-        if(Lambdairep.n_cols!=M){
-          Lambdairep = Lambdairep.t();
-        }
-        if(Phiirep.n_cols!=M){
-          Phiirep = Phiirep.t();
-        }
-         */
+       
         mat H1 = join_rows(Phiirep.t(),Lambdairep.t())*W;
         mat H0 = H[pp];
         mat H2 = join_cols(H0,H1);

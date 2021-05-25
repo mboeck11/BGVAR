@@ -81,29 +81,6 @@
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
 #'                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo)
-#' 
-#' # Example with zero restriction (Arias et al., 2018) and 
-#' # rationality conditions (D'Amico and King, 2017).
-#' data("eerDataspf")
-#' model.eer<-bgvar(Data=eerDataspf, W=W.trade0012.spf, draws=300, burnin=300,
-#'                  plag=1, prior="SSVS", eigen=TRUE)
-#' shockinfo <- get_shockinfo("sign")
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", 
-#'                            restriction=c("US.Dp_t+4","US.stir","US.y_t+4"),
-#'                            sign=c("<","0","<"), horizon=1, prob=1, scale=1)
-#' # rationality condition: US.stir_t+4 on impact is equal to average of 
-#' # IRF of US.stir between horizon 1 to 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.stir_t+4",
-#'                            sign="ratio.avg", horizon=5, prob=1, scale=1)
-#' # rationality condition: US.Dp_t+4 on impact is equal to IRF of US.Dp at horizon 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.Dp_t+4",
-#'                            sign="ratio.H", horizon=5, prob=1, scale=1)
-#' # rationality condition: US.y_t+4 on impact is equal to IRF of US.y at horizon 4
-#' shockinfo <- add_shockinfo(shockinfo, shock="US.stir_t+4", restriction="US.y_t+4",
-#'                            sign="ratio.H", horizon=5, prob=1, scale=1)
-#' # regulate maximum number of tries with expert settings
-#' irf.ratio <- irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo,
-#'                  expert=list(MaxTries=10))
 #' }
 #' @seealso \code{\link{bgvar}}, \code{\link{get_shockinfo}}, \code{\link{add_shockinfo}}
 #' @importFrom abind adrop abind
@@ -717,7 +694,11 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
       shockinfo$shock[nt+nn] <- shock
       shockinfo$restriction[nt+nn] <- restriction[irep]
       shockinfo$sign[nt+nn] <- sign[irep]
-      shockinfo$horizon[nt+nn] <- seq(1,horizon[irep])[nn]
+      if(repetition == 1){
+        shockinfo$horizon[nt+nn] <- horizon[irep]
+      }else{
+        shockinfo$horizon[nt+nn] <- seq(1,horizon[irep])[nn]
+      }
       shockinfo$prob[nt+nn] <- prob[irep]
       shockinfo$scale[nt+nn] <- scale[irep]
       shockinfo$global[nt+nn] <- global[irep]

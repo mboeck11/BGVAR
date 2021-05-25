@@ -935,10 +935,11 @@
   trim.info <- "No trimming"
   
   A_large     <- array(NA, dim=c(thindraws,bigK,(bigK*plag+1+ifelse(trend,1,0))))
-  S_large     <- array(NA, dim=c(thindraws,bigK,bigK))
-  Ginv_large  <- array(NA, dim=c(thindraws,bigK,bigK))
-  F_large     <- array(NA, dim=c(thindraws,bigK,bigK,plag))
-  dimnames(S_large)[[2]]<-dimnames(S_large)[[3]]<-dimnames(Ginv_large)[[2]]<-dimnames(Ginv_large)[[3]]<-dimnames(A_large)[[2]]<-colnames(xglobal)
+  A_large     <- array(NA_real_, dim=c(bigK,bigK*plag+1+ifelse(trend,1,0),thindraws))
+  S_large     <- array(NA, dim=c(bigK,bigK,thindraws))
+  Ginv_large  <- array(NA, dim=c(bigK,bigK,thindraws))
+  F_large     <- array(NA, dim=c(bigK,bigK,plag,thindraws))
+  dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
   
   pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
   for (irep in 1:thindraws){
@@ -951,30 +952,30 @@
     for (cc in 1:length(cN)){
       VAR <- globalpost[[cc]]
       W   <- VAR$W
-      A   <- cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[irep,,,drop=FALSE],drop=1)))
+      A   <- cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[,,irep,drop=FALSE],drop=3)))
       
       for(pp in 1:plag){
-        assign(paste("B",pp,sep=""),cbind(t(adrop(VAR$store$Phistore[[pp]][irep,,,drop=FALSE],drop=1)),
-                                    t(adrop(VAR$store$Lambdastore[[pp]][irep,,,drop=FALSE],drop=1))))
+        assign(paste("B",pp,sep=""),cbind(t(adrop(VAR$store$Phistore[[pp]][,,irep,drop=FALSE],drop=3)),
+                                    t(adrop(VAR$store$Lambdastore[[pp]][,,irep,drop=FALSE],drop=3))))
         if(cc==1) assign(paste("H",pp,sep=""), get(paste("B",pp,sep=""))%*%W)
         if(cc>1)  assign(paste("H",pp,sep=""), rbind(get(paste("H",pp,sep="")),get(paste("B",pp,sep=""))%*%W))
       }
       G            <- rbind(G,A%*%W)
-      a0           <- rbind(a0,t(VAR$store$a0store[irep,,drop=FALSE]))
-      if(trend) a1 <- rbind(a1,t(VAR$store$a1store[irep,,drop=FALSE]))
-      S_post[[cc]] <- apply(adrop(VAR$store$SIGMA_store[irep,,,,drop=FALSE],drop=1),c(2,3),median)
+      a0           <- rbind(a0,VAR$store$a0store[,irep,drop=FALSE])
+      if(trend) a1 <- rbind(a1,VAR$store$a1store[,irep,drop=FALSE])
+      S_post[[cc]] <- apply(adrop(VAR$store$SIGMA_store[,,,irep,drop=FALSE],drop=4),c(2,3),median)
     }
     G.inv  <- solve(G)
-    S_large[irep,,] <- as.matrix(bdiag(S_post))
+    S_large[,,irep] <- as.matrix(bdiag(S_post))
     b0     <- G.inv%*%a0
     if(trend) b1 <- G.inv%*%a1 else b1 <- NULL
-    Ginv_large[irep,,] <- G.inv
+    Ginv_large[,,irep] <- G.inv
     
     ALPHA <- NULL
     for (kk in 1:plag){
       assign(paste("F",kk,sep=""),G.inv%*%get(paste("H",kk,sep="")))
-      F_large[irep,,,kk] <- get(paste("F",kk,sep=""))
-      ALPHA <- cbind(ALPHA,F_large[irep,,,kk])
+      F_large[,,kk,irep] <- get(paste("F",kk,sep=""))
+      ALPHA <- cbind(ALPHA,F_large[,,kk,irep])
     }
     
     ALPHA <- cbind(ALPHA,b0,b1)
@@ -1030,6 +1031,7 @@
   trim.info <- "No trimming"
   
   ## call Rcpp
+  # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
   out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, draws_in=draws,
                        thin_in=thin, trend_in=trend, eigen_in=TRUE, verbose_in=verbose)
   A_large    <- out$A_large
