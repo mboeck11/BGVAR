@@ -13,8 +13,8 @@ do_rgig1 <- function(lambda, chi, psi) {
 
 #' @name gvar_stacking
 #' @noRd
-gvar_stacking <- function(xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in) {
-    .Call(`_BGVAR_gvar_stacking`, xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in)
+gvar_stacking <- function(xglobal, plag, globalpost, draws, thin, trend, eigen, verbose) {
+    .Call(`_BGVAR_gvar_stacking`, xglobal, plag, globalpost, draws, thin, trend, eigen, verbose)
 }
 
 #' @name globalLik

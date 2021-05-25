@@ -68,20 +68,20 @@ BEGIN_RCPP
 END_RCPP
 }
 // gvar_stacking
-List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP draws_in, const SEXP thin_in, const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in);
-RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobal_inSEXP, SEXP plag_inSEXP, SEXP globalpost_inSEXP, SEXP draws_inSEXP, SEXP thin_inSEXP, SEXP trend_inSEXP, SEXP eigen_inSEXP, SEXP verbose_inSEXP) {
+List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List globalpost, const int draws, const int thin, const bool trend, const bool eigen, const bool verbose);
+RcppExport SEXP _BGVAR_gvar_stacking(SEXP xglobalSEXP, SEXP plagSEXP, SEXP globalpostSEXP, SEXP drawsSEXP, SEXP thinSEXP, SEXP trendSEXP, SEXP eigenSEXP, SEXP verboseSEXP) {
 BEGIN_RCPP
     Rcpp::RObject rcpp_result_gen;
     Rcpp::RNGScope rcpp_rngScope_gen;
-    Rcpp::traits::input_parameter< const SEXP >::type xglobal_in(xglobal_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type plag_in(plag_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type globalpost_in(globalpost_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type draws_in(draws_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type thin_in(thin_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type trend_in(trend_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type eigen_in(eigen_inSEXP);
-    Rcpp::traits::input_parameter< const SEXP >::type verbose_in(verbose_inSEXP);
-    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal_in, plag_in, globalpost_in, draws_in, thin_in, trend_in, eigen_in, verbose_in));
+    Rcpp::traits::input_parameter< const arma::mat >::type xglobal(xglobalSEXP);
+    Rcpp::traits::input_parameter< const int >::type plag(plagSEXP);
+    Rcpp::traits::input_parameter< const Rcpp::List >::type globalpost(globalpostSEXP);
+    Rcpp::traits::input_parameter< const int >::type draws(drawsSEXP);
+    Rcpp::traits::input_parameter< const int >::type thin(thinSEXP);
+    Rcpp::traits::input_parameter< const bool >::type trend(trendSEXP);
+    Rcpp::traits::input_parameter< const bool >::type eigen(eigenSEXP);
+    Rcpp::traits::input_parameter< const bool >::type verbose(verboseSEXP);
+    rcpp_result_gen = Rcpp::wrap(gvar_stacking(xglobal, plag, globalpost, draws, thin, trend, eigen, verbose));
     return rcpp_result_gen;
 END_RCPP
 }

@@ -1032,8 +1032,14 @@
   
   ## call Rcpp
   # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
-  out <- gvar_stacking(xglobal_in=xglobal, plag_in=plag, globalpost_in=globalpost, draws_in=draws,
-                       thin_in=thin, trend_in=trend, eigen_in=TRUE, verbose_in=verbose)
+  out <- gvar_stacking(xglobal    = xglobal, 
+                       plag       = as.integer(plag), 
+                       globalpost = globalpost, 
+                       draws      = as.integer(draws),
+                       thin       = as.integer(thin), 
+                       trend      = trend, 
+                       eigen      = TRUE, 
+                       verbose    = verbose)
   A_large    <- out$A_large
   for(pp in 1:plag){
     F_large[,,pp,] <- out$F_large[,((bigK*(pp-1))+1):(bigK*pp),,drop=FALSE]

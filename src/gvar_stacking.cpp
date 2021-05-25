@@ -11,23 +11,13 @@ using namespace arma;
 //' @name gvar_stacking
 //' @noRd
 //[[Rcpp::export]]
-List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalpost_in, const SEXP draws_in, const SEXP thin_in,
-                   const SEXP trend_in, const SEXP eigen_in, const SEXP verbose_in) {
+List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List globalpost, const int draws, const int thin,
+                   const bool trend, const bool eigen, const bool verbose) {
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
   //----------------------------------------------------------------------------------------------------------------------
-  NumericMatrix xglobalr(xglobal_in);
-  int bigT = xglobalr.nrow(), bigK = xglobalr.ncol();
-  mat xglobal(xglobalr.begin(), bigT, bigK, false);
-  List globalpost(clone(globalpost_in));
+  const int bigK = xglobal.n_cols;
   const int N = globalpost.size();
-  
-  const int p      = as<int>(plag_in);
-  const int draws  = as<int>(draws_in);
-  const int thin   = as<int>(thin_in);
-  const bool trend = as<bool>(trend_in);
-  const bool eigen = as<bool>(eigen_in);
-  const bool verbose = as<bool>(verbose_in);
   
   const int thindraws = draws/thin;
   vec F_eigen(thindraws, fill::zeros);
@@ -35,10 +25,10 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
   int number_determinants = 1; // cons
   if(trend){number_determinants += 1;}
   
-  arma::cube A_large(bigK,bigK*p+number_determinants,thindraws);
+  arma::cube A_large(bigK,bigK*plag+number_determinants,thindraws);
   arma::cube S_large(bigK,bigK,thindraws);
   arma::cube Ginv_large(bigK,bigK,thindraws);
-  arma::cube F_large(bigK,bigK*p,thindraws);
+  arma::cube F_large(bigK,bigK*plag,thindraws);
   
   arma::vec a1, b1;
   //---------------------------------------------------------------------------------------------
@@ -68,8 +58,8 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       mat a1store = store["a1store"];
       a1 = a1store.col(irep);
     }
-    List H(p);
-    for(int pp=0; pp<p; pp++){
+    List H(plag);
+    for(int pp=0; pp < plag; pp++){
       arma::cube Lambda_p = Lambda[pp]; 
       arma::mat Lambdairep = Lambda_p.slice(irep);
       arma::cube Phi_p = Phi[pp]; 
@@ -109,7 +99,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
       S  = join_rows(S,S0);
       S1 = join_rows(S0.t(),S1);
       S  = join_cols(S,S1);
-      for(int pp=0; pp<p; pp++){
+      for(int pp=0; pp < plag; pp++){
         arma::cube Lambda_p = Lambda[pp]; 
         arma::mat Lambdairep = Lambda_p.slice(irep);
         arma::cube Phi_p = Phi[pp]; 
@@ -125,7 +115,7 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     vec b0   = Ginv*a0;
     if(trend){b1 = Ginv*a1;}
     arma::mat F, A;
-    for(int pp=0; pp<p; pp++){
+    for(int pp=0; pp < plag; pp++){
       arma::mat temp = H[pp];
       F = join_rows(F,Ginv*temp); A = join_rows(A,Ginv*temp);
     }
@@ -138,8 +128,8 @@ List gvar_stacking(const SEXP xglobal_in, const SEXP plag_in, const SEXP globalp
     Ginv_large.slice(irep) = Ginv;
     // compute eigenvalues
     if(eigen){
-      arma::mat MM(bigK*p, bigK*p, fill::zeros); MM.submat(0,0,bigK-1,bigK*p-1) = F;
-      if(p>1) MM.submat(bigK,0,bigK*p-1,bigK*p-bigK-1).eye();
+      arma::mat MM(bigK*plag, bigK*plag, fill::zeros); MM.submat(0,0,bigK-1,bigK*plag-1) = F;
+      if(plag>1) MM.submat(bigK,0,bigK*plag-1,bigK*plag-bigK-1).eye();
       cx_vec eigval; cx_mat eigvec; eig_gen(eigval, eigvec, MM);
       F_eigen(irep) = abs(real(eigval)).max();
     }
