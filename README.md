@@ -19,7 +19,7 @@ devtools::install_github("mboeck11/BGVAR")
 
 Note that Mac OS needs gfortran binary packages to be installed. See also: https://gcc.gnu.org/wiki/GFortranBinaries.
 
-Note that Windows OS needs the R package Rtools installed that you can compile code with Rcpp. There are some common issues which you find here: https://thecoatlessprofessor.com/programming/cpp/installing-rtools-for-compiled-code-via-rcpp/ 
+Note that Windows OS needs the R package Rtools installed that you can compile code with Rcpp. There are some common issues which you find here: https://thecoatlessprofessor.com/programming/cpp/installing-rtools-for-compiled-code-via-rcpp/.
 
 ## Usage
 
