@@ -651,7 +651,7 @@ List BVAR_linear(arma::mat Yraw,
         sigma = Sv_para(2, mm);
         h0 = Sv_para(3, mm);
         stochvol::update_fast_sv(datastand, mu, phi, sigma, h0, cur_sv, rec, prior_spec, expert);
-        Sv_para.col(mm) = arma::colvec({mu, phi, sigma});
+        Sv_para.col(mm) = arma::colvec({mu, phi, sigma, h0});
         //Sv_draw.col(mm) = cur_sv;  // unsafe_col overwrites the original data without copying
       }else{
         a_full = a_1 + 0.5 * T;
