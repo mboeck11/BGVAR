@@ -739,7 +739,7 @@ Note the column `prob`. Here, we have specified that the restrictions have to ho
 
 We can now compute the impulse responses using the same function as before.
 ```{r,"global.shock.irf",echo=TRUE,results="hide"}
-irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo, expert=list(MaxTries=100))
+irf.sign.ssvs<-irf(model.ssvs, n.ahead=24, ident="sign", shockinfo=shockinfo, expert=list(MaxTries=500))
 ```
 
 To verify the sign restrictions, type:
@@ -837,16 +837,20 @@ Since the GVAR framework was developed to capture cross-country dependencies, it
 To compute forecasts with the `BGVAR` package, we use the command `predict`. To be able to evaluate the forecast, we have to specify the size of the hold-out sample when estimating the model. Here, we choose a hold-out-sample of 8 observations by setting `h=8` (the default values is `h=0`):   
 </p>
 ```{r,"fcast.est", results="hide"}
+browser()
 model.ssvs.h8<-bgvar(Data=eerData,
                      W=W.trade0012,
+                     draws=500,
+                     burnin=500,
                      plag=1,
-                     draws=100,
-                     burnin=100,
                      prior="SSVS",
-                     SV=TRUE
-                     ,eigen=1.05,
+                     hyperpara=NULL, 
+                     SV=TRUE,
+                     thin=1,
                      trend=TRUE,
-                     hold.out=8)
+                     hold.out=8,
+                     eigen=1
+                     )
 ```
 <p align="justify">
 The forecasts can then be calculated using the `predict` function. We calculate forecasts up to 8 periods ahead by setting `n.ahead=8`-step
