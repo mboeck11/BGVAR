@@ -291,7 +291,7 @@ We can estimate the model with two further priors on the unit models, the SSVS p
                      SV=TRUE,
                      thin=1,
                      trend=TRUE,
-                     h=0,
+                     hold.out=0,
                      eigen=1
                      )
 ```

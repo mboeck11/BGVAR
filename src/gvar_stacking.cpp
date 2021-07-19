@@ -92,7 +92,7 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
       a0 = join_cols(a0,a01);
       if(trend){
         mat a1store = store["a1store"];
-        vec a11 = a1store.row(irep);
+        vec a11 = a1store.col(irep);
         a1 = join_cols(a1,a11);
       }
       mat S0(S.n_cols,M,fill::zeros);
