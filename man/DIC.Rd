@@ -7,9 +7,9 @@
 DIC(object, ...)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 }
 \value{
 Returns a numeric value with the corresponding DIC.

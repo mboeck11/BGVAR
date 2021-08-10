@@ -7,9 +7,9 @@
 conv.diag(object, crit.val=1.96)
 }
 \arguments{
-\item{object}{a fitted \code{bgvar} object.}
+\item{object}{A fitted \code{bgvar} object.}
 
-\item{crit.val}{critical value used for test statistic.}
+\item{crit.val}{Critical value used for test statistic.}
 }
 \value{
 Returns an object of class \code{bgvar.CD}. This is a list with \itemize{

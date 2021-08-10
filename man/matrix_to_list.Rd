@@ -7,7 +7,7 @@
 matrix_to_list(datamat)
 }
 \arguments{
-\item{datamat}{a matrix of size T times K, where T are time periods and K total amount of variables.}
+\item{datamat}{A matrix of size T times K, where T are time periods and K total amount of variables.}
 }
 \value{
 returns a list of length \code{N} (number of entities).

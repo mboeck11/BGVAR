@@ -8,15 +8,15 @@
 residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 }
 \arguments{
-\item{obj}{an object of class \code{bgvar}.}
+\item{obj}{An object of class \code{bgvar}.}
 
-\item{lag.cor}{the order of serial correlation to be tested for. Default is set to \code{lag.cor=1}.}
+\item{lag.cor}{The order of serial correlation to be tested for. Default is set to \code{lag.cor=1}.}
 
-\item{alpha}{significance level of test. Default is set to \code{alpha=0.95}.}
+\item{alpha}{Significance level of test. Default is set to \code{alpha=0.95}.}
 
-\item{dig1}{number of digits to display F-statistics and its critical values.}
+\item{dig1}{Number of digits to display F-statistics and its critical values.}
 
-\item{dig2}{number of digits to display p-values.}
+\item{dig2}{Number of digits to display p-values.}
 }
 \value{
 Returns a list with the following objects \itemize{

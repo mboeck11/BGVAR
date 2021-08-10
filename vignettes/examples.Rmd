@@ -150,6 +150,40 @@ W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 ```
 
+\section{Reading Data from Excel}
+# Reading Data from Excel
+<p align=justify>
+In order to make BGVAR easier to handle for users working and organising data in spreadsheets via Excel, we provide a own reader function relying on the `readxl` package. In this section we intend to provide some code to write the provided datasets to Excel spreadsheets, and to show then how to read the data from Excel. Hence, we provide an easy-to-follow approach with an example how the data should be organised in Excel.
+</p>
+
+<p align=justify>
+We start by exporting the data to excel. The spreadsheet should be organised as follows. Each sheet consists of the data set for one particular country, hence the naming of the sheets with the country names is essential. In each sheet, you should provide the time in the first column of the matrix, followed by one column per variable. In the following, we will export the `eerData` data set to Excel:
+
+```{r, "export excel", eval=FALSE}
+time <- as.character(seq.Date(as.Date("1995-01-01"),as.Date("2013-10-01"),by="quarter"))
+
+for(cc in 1:length(eerData)){
+  x <- coredata(eerData[[cc]])
+  rownames(x) <- time
+  write.xlsx(x = x, file="./excel_eerData.xlsx", sheetName = names(eerData)[cc], 
+             col.names=TRUE, row.names=TRUE, append=TRUE)
+}
+```
+
+which will create in your current working directory an excel sheet named `excel_eerData.xlsx`. This can then be read to R with the `BGVAR` package as follows:
+
+```{r, "import excel", eval=FALSE}
+eerData_read <- excel_to_list(file = "./excel_eerData.xlsx", first_column_as_time=TRUE, skipsheet=NULL, ...)
+```
+
+which creates a list in the style of the original `eerData` data set. The first argument `file` has to be valid path to an excel file. The second argument `first_column_as_time` is a logical indicating whether you provide as first column in each spreadsheet a time index, while the `skipsheet` argument can be specified to leave out specific sheets (either as vector of strings or numeric indices). If you want to transform the list object to a matrix, you can use the command `list_to_matrix` or to transform it back to a list with `matrix_to_list`:
+
+```{r, "transform to matrix", eval=FALSE}
+eerData_matrix <- list_to_matrix(eerData_read)
+eerData_list <- matrix_to_list(eerData_matrix)
+```
+</p>
+
 \section{Estimation}
 # Estimation
 <p align=justify>
@@ -166,7 +200,7 @@ The first two priors are described in more detail in @CrespoCuaresma2016. For a 
 We start with estimating our toy model using the `NG` prior, the reduced `eerData` data set and 
 the adjusted `W.trade0012` weight matrix:
 
-```{r "model.1",results="hide"}
+```{r "model.1",results="hide" }
  model.1<-bgvar(Data=eerData,
                 W=W.trade0012,
                 draws=100,

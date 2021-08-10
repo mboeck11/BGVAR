@@ -7,10 +7,10 @@
 list_to_matrix(datalist)
 }
 \arguments{
-\item{datalist}{a list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity..}
+\item{datalist}{A list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity.}
 }
 \value{
-returns a matrix of size T times K (number of time periods times number of total variables).
+Returns a matrix of size T times K (number of time periods times number of total variables).
 }
 \description{
 Converts a list to an appropriate input matrix for use of \code{bgvar}.

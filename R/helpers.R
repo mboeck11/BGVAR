@@ -135,8 +135,8 @@ avg.pair.cc=function(object, digits=3){
 #' @title MCMC Convergence Diagnostics
 #' @description This function computes Geweke's Convergence diagnostic making use of the \code{coda} package.
 #' @usage conv.diag(object, crit.val=1.96)
-#' @param object a fitted \code{bgvar} object.
-#' @param crit.val critical value used for test statistic.
+#' @param object A fitted \code{bgvar} object.
+#' @param crit.val Critical value used for test statistic.
 #' @details Geweke (1992) proposed a convergence diagnostic for Markov chains based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10\% and the last 50\%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation.
 #' @return Returns an object of class \code{bgvar.CD}. This is a list with \itemize{
 #' \item{\code{geweke.z}}{ Z-scores for a test of equality of means between the first and last parts of the chain. A separate statistic is calculated for each variable in each chain.}
@@ -191,8 +191,8 @@ print.bgvar.CD <- function(x, ...){
 #' @name DIC
 #' @title Deviance Information Criterion
 #' @description Computes the Deviance information criterion for an object \code{bgvar}.
-#' @param object an object of class \code{bgvar}.
-#' @param ... additional arguments.
+#' @param object An object of class \code{bgvar}.
+#' @param ... Additional arguments.
 #' @return Returns a numeric value with the corresponding DIC.
 #' @author Maximilian Boeck
 #' @export
@@ -243,11 +243,11 @@ DIC <- function(object, ...){
 #' @title Residual Autocorrelation Test
 #' @description An F-test for serial autocorrelation in the residuals.
 #' @usage residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
-#' @param obj an object of class \code{bgvar}.
-#' @param lag.cor the order of serial correlation to be tested for. Default is set to \code{lag.cor=1}.
-#' @param alpha significance level of test. Default is set to \code{alpha=0.95}.
-#' @param dig1 number of digits to display F-statistics and its critical values.
-#' @param dig2 number of digits to display p-values.
+#' @param obj An object of class \code{bgvar}.
+#' @param lag.cor The order of serial correlation to be tested for. Default is set to \code{lag.cor=1}.
+#' @param alpha Significance level of test. Default is set to \code{alpha=0.95}.
+#' @param dig1 Number of digits to display F-statistics and its critical values.
+#' @param dig2 Number of digits to display p-values.
 #' @details It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey 1978a, 1978b), also known as the 'modified LM' statistic. The null hypothesis is that \eqn{rho}, the autoregressive parameter on the residuals, equals 0 indicating absence of serial autocorrelation. For higher order serial correlation, the null is that all \eqn{rho}'s jointly are 0. The test is implemented as in Vanessa Smith's and Alessandra Galesi's ''GVAR toolbox 2.0 User Guide'', page 129.
 #' @return Returns a list with the following objects \itemize{
 #' \item{\code{Fstat}}{ contains a list of length \code{N} with the associated F-statistic for each variable in each country.}
@@ -351,7 +351,7 @@ residual.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
 #' @description Converts a big input matrix to an appropriate list for use of \code{bgvar}. 
 #' @usage matrix_to_list(datamat)
 #' @details Note the naming convention. Columns should indicate entity and variable name, separated by a dot, e.g. \code{US.y}.
-#' @param datamat a matrix of size T times K, where T are time periods and K total amount of variables.
+#' @param datamat A matrix of size T times K, where T are time periods and K total amount of variables.
 #' @return returns a list of length \code{N} (number of entities).
 #' @author Maximilian Boeck
 #' @seealso \code{\link{bgvar}}
@@ -382,8 +382,8 @@ matrix_to_list <- function(datamat){
 #' @description Converts a list to an appropriate input matrix for use of \code{bgvar}. 
 #' @usage list_to_matrix(datalist)
 #' @details Note the naming convention. Columns should indicate entity and variable name, separated by a dot, e.g. \code{US.y}.
-#' @param datalist a list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity..
-#' @return returns a matrix of size T times K (number of time periods times number of total variables).
+#' @param datalist A list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity.
+#' @return Returns a matrix of size T times K (number of time periods times number of total variables).
 #' @author Maximilian Boeck
 #' @seealso \code{\link{bgvar}}
 #' @importFrom stats time
@@ -404,5 +404,59 @@ list_to_matrix <- function(datalist){
   }
   colnames(datamat)<-cc
   return(datamat)
+}
+
+#' @name excel_to_list
+#' @export
+#' @title Read Data from Excel
+#' @description Reads a spreadsheet from excel and converts it to a list for use of \code{bgvar}.
+#' @usage excel_to_list(file, first_column_as_time=TRUE, skipsheet=NULL, ...)
+#' @details Note that each sheet has to be named for a respective country. Column names are used as variable names. Reader uses the \code{readxl} R package, hence additional arguments can be passed to the function. Furthermore, if \code{first_column_as_time=TRUE} then the column name has also to be time.
+#' @param file A path to the file.
+#' @param first_column_as_time Logical indicating whether the first column indicates the time.
+#' @param skipsheet If one or more sheets should be skipped for reading, this can be provided with this argument. Either a vector of numeric indices or a vector of strings.
+#' @param ... Additional arguments.
+#' @return Returns a list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity.
+#' @author Maximilian Boeck
+#' @seealso \code{\link{bgvar}}
+#' @importFrom readxl excel_sheets excel_format read_xls read_xlsx
+#' @importFrom xts xts
+excel_to_list <- function(file, first_column_as_time=TRUE, skipsheet=NULL, ...){
+  if(!file.exists(file))
+    stop("The provided file does not exist.")
+  if(!grepl("(xls|xlsx)$",file))
+    stop("Please provide a path to an excel filesheet (ending with xls/xlsx).")
+  
+  skiptype <- typeof(skipsheet)
+  if(!(skiptype %in% c("numeric","character","NULL")))
+    stop("Please provide skipsheet argument in right format.")
+  cN <- excel_sheets(file)
+  if(skiptype == "character")
+    cN <- cN[!cN%in%skipsheet]
+  if(skiptype == "numeric")
+    cN <- cN[-skipsheet]
+  
+  format <- excel_format(file)
+  datalist <- list()
+  for(cc in cN){
+    if(format == "xls"){
+      temp <- read_xls(path = file, sheet = cc, col_names = TRUE, ...)
+    }else if(format == "xlsx"){
+      temp <- read_xlsx(path = file, sheet = cc, col_names = TRUE, ...)
+    }
+    if(first_column_as_time){
+      if(typeof(as.matrix(temp[,1])) != "character")
+        stop(paste0("Please provide as first column in sheet ",cc," as time in character format."))
+      time <- as.Date(c(as.matrix(temp[,1])))
+      temp <- as.matrix(temp[,2:ncol(temp)])
+      temp <- xts(temp, order.by=time)
+    }else{
+      temp <- as.matrix(temp)
+    }
+    
+    datalist[[cc]] <- temp
+  }
+  
+  return(datalist)
 }
 
