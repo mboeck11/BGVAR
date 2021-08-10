@@ -1,3 +1,7 @@
+Change in Version 2.3.0
+- added reader function for Excel
+- updated vignette with own section for reading data from excel
+
 Change in Version 2.2.2
 - small fix in BVAR_linear.cpp
 
