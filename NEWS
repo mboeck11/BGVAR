@@ -1,3 +1,6 @@
+Change in Version 2.3.1
+- small adaptions in help files.
+
 Change in Version 2.3.0
 - added reader function for Excel
 - updated vignette with own section for reading data from excel

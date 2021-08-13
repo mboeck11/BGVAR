@@ -125,8 +125,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
 }
 
 #' @name plot
-#' @param global if \code{TRUE} global residuals are plotted, otherwise country residuals.
-#' @param resp default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
+#' @param global If \code{global=TRUE} global residuals are plotted, otherwise country residuals.
+#' @param resp Default to \code{NULL}. Either specify a single country or a group of variables to be plotted.
 #' @export
 #' @examples
 #' \donttest{
@@ -225,8 +225,8 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
 }
 
 #' @name plot
-#' @param resp specify a variable to plot predictions.
-#' @param cut length of series to be plotted before prediction begins.
+#' @param resp Specify a variable to plot predictions.
+#' @param cut Length of series to be plotted before prediction begins.
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.pred'
@@ -358,7 +358,7 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
 #' @name plot
 #' @param resp Specify either a specific variable, a specific country or a specific variable in a specific country which should be plotted. If set to \code{NULL} all countries is plotted.
 #' @param shock Specify the shock which should be plotted.
-#' @param cumulative whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.
+#' @param cumulative Default is set to \code{FALSE}. If \code{cumulative=TRUE} cumulative impulse response functions are plotted.
 #' @examples
 #' \donttest{
 #' # example for class 'bgvar.irf'

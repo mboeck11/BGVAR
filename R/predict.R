@@ -2,11 +2,11 @@
 #' @title Predictions
 #' @description A function that computes predictions and conditional predictions based on a object of class \code{bgvar}.
 #' @details Predictions are performed up to an horizon of \code{n.ahead}. Note that conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
-#' @param object an object of class \code{bgvar}.
-#' @param ... additional arguments.
-#' @param n.ahead the forecast horizon.
-#' @param constr a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.
-#' @param constr_sd a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.
+#' @param object An object of class \code{bgvar}.
+#' @param ... Additional arguments.
+#' @param n.ahead Forecast horizon.
+#' @param constr Matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.
+#' @param constr_sd Matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.
 #' @param quantiles Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.
 #' @param save.store If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
@@ -259,8 +259,8 @@ print.bgvar.pred <- function(x, ...){
 #' @title Compute Log-predictive Scores
 #' @method lps bgvar.pred
 #' @description  Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
-#' @param object an object of class \code{bgvar.predict}.
-#' @param ... additional arguments.
+#' @param object An object of class \code{bgvar.predict}.
+#' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples 
 #' library(BGVAR)
@@ -298,8 +298,8 @@ lps.bgvar.pred <- function(object, ...){
 #' @title Compute Root Mean Squared Errors
 #' @method rmse bgvar.pred
 #' @description  Computes and prints root mean squared errors (RMSEs) of an object of class \code{bgvar.predict}.
-#' @param object an object of class \code{bgvar.predict}.
-#' @param ... additional arguments.
+#' @param object An object of class \code{bgvar.predict}.
+#' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples
 #' library(BGVAR)
