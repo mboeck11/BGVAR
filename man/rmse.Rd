@@ -8,9 +8,9 @@
 \method{rmse}{bgvar.pred}(object, ...)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar.predict}.}
+\item{object}{An object of class \code{bgvar.predict}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 }
 \value{
 Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.

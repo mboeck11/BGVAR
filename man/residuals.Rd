@@ -11,15 +11,15 @@
 \method{resid}{bgvar}(object, ...)
 }
 \arguments{
-\item{object}{a fitted \code{bgvar} object.}
+\item{object}{A fitted \code{bgvar} object.}
 
-\item{...}{other arguments.}
+\item{...}{Additional arguments.}
 }
 \value{
-returns a list with the following arguments \itemize{
-\item{\code{global}}{ is a (T-p) times K times draws/thin array containing the residuals of the global model.}
-\item{\code{country}}{ is a (T-p) times K times draws/thin array containing the residuals of the country models.}
-\item{\code{Data}}{ is a (T-p) times K matrix containing the data of the model.}
+Returns a list with the following arguments \itemize{
+\item{\code{global}}{ A (T-p) times K times draws/thin array containing the residuals of the global model.}
+\item{\code{country}}{ A (T-p) times K times draws/thin array containing the residuals of the country models.}
+\item{\code{Data}}{ A (T-p) times K matrix containing the data of the model.}
 }
 }
 \description{

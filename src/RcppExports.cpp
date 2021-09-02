@@ -9,6 +9,11 @@
 
 using namespace Rcpp;
 
+#ifdef RCPP_USE_GLOBAL_ROSTREAM
+Rcpp::Rostream<true>&  Rcpp::Rcout = Rcpp::Rcpp_cout_get();
+Rcpp::Rostream<false>& Rcpp::Rcerr = Rcpp::Rcpp_cerr_get();
+#endif
+
 // BVAR_linear
 List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, int plag, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam);
 static SEXP _BGVAR_BVAR_linear_try(SEXP YrawSEXP, SEXP WrawSEXP, SEXP ExrawSEXP, SEXP plagSEXP, SEXP drawsSEXP, SEXP burninSEXP, SEXP thinSEXP, SEXP consSEXP, SEXP trendSEXP, SEXP svSEXP, SEXP priorSEXP, SEXP hyperparamSEXP) {

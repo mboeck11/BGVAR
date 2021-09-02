@@ -8,11 +8,11 @@
 \method{fitted}{bgvar}(object, ..., global = TRUE)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 
-\item{global}{if \code{TRUE} global fitted values are returned otherwise country fitted values.}
+\item{global}{If \code{global=TRUE} global fitted values are returned otherwise country fitted values.}
 }
 \value{
 Returns an \code{T} times \code{K} matrix, where \code{T} is the number of observations and \code{K} number of endogenous variables.

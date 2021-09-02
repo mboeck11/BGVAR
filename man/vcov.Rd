@@ -8,11 +8,11 @@
 \method{vcov}{bgvar}(object, ..., quantile = 0.5)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 
-\item{quantile}{reported quantiles. Default is set to median.}
+\item{quantile}{Reported quantiles. Default is set to median.}
 }
 \value{
 Returns an \code{q} times \code{K} times \code{K} array of the global variance-covariance matrix, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}) and  \code{K} the number of endogenous variables.

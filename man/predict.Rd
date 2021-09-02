@@ -17,15 +17,15 @@
 )
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 
-\item{n.ahead}{the forecast horizon.}
+\item{n.ahead}{Forecast horizon.}
 
-\item{constr}{a matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.}
+\item{constr}{Matrix containing the conditional forecasts of size horizon times K, where horizon corresponds to the forecast horizon specified in \code{pred.obj}, while K is the number of variables in the system. The ordering of the variables have to correspond the ordering of the variables in the system. Rest is just set to NA.}
 
-\item{constr_sd}{a matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.}
+\item{constr_sd}{Matrix containing the standard deviations around the conditional forecasts. Must have the same size as \code{constr}.}
 
 \item{quantiles}{Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.}
 

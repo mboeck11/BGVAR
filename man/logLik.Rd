@@ -8,11 +8,11 @@
 \method{logLik}{bgvar}(object, ..., quantile = 0.5)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{additional arguments.}
+\item{...}{Additional arguments.}
 
-\item{quantile}{reported quantiles. Default is set to median.}
+\item{quantile}{Reported quantiles. Default is set to median.}
 }
 \value{
 Returns an vector of dimension \code{q} (number of specified quantiles) of global log-likelihoods.

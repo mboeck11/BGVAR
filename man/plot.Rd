@@ -33,15 +33,15 @@
 
 \item{resp}{Specify either a specific variable, a specific country or a specific variable in a specific country which should be plotted. If set to \code{NULL} all countries is plotted.}
 
-\item{global}{if \code{TRUE} global residuals are plotted, otherwise country residuals.}
+\item{global}{If \code{global=TRUE} global residuals are plotted, otherwise country residuals.}
 
-\item{cut}{length of series to be plotted before prediction begins.}
+\item{cut}{Length of series to be plotted before prediction begins.}
 
 \item{quantiles}{Numeric vector with posterior quantiles. Default is set to plot median along with 68\%/80\% confidence intervals.}
 
 \item{shock}{Specify the shock which should be plotted.}
 
-\item{cumulative}{whether cumulative impulse response functions should be plotted. Default is set to \code{FALSE}.}
+\item{cumulative}{Default is set to \code{FALSE}. If \code{cumulative=TRUE} cumulative impulse response functions are plotted.}
 
 \item{k.max}{plots the k series with the highest for the decomposition of \code{resp}.}
 }

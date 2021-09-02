@@ -8,9 +8,9 @@
 \method{summary}{bgvar}(object, ...)
 }
 \arguments{
-\item{object}{an object of class \code{bgvar}.}
+\item{object}{An object of class \code{bgvar}.}
 
-\item{...}{other arguments.}
+\item{...}{Additional arguments.}
 }
 \value{
 No return value.
