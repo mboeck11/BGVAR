@@ -36,6 +36,7 @@ Geweke, J. (1992) Evaluating the accuracy of sampling-based approaches to calcul
 }
 \seealso{
 \code{\link[coda]{geweke.diag}} in the \code{coda} package.
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
 }
 \author{
 Martin Feldkircher

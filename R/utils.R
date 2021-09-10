@@ -297,10 +297,10 @@
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
   M <- ncol(Y); Mstar <- ncol(Wraw); bigT <- nrow(Y); K <- ncol(X)
-  if(!is.null(Exraw)) Mex <- ncol(Exraw)
+  if(!any(is.na(Exraw))) Mex <- ncol(Exraw)
   xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
               paste(rep("Wexlag",Mstar),rep(seq(1,plag),each=Mstar),sep=""))
-  if(!is.null(Ex)) xnames <- c(xnames,paste(rep("Tex",Mex)))
+  if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
   xnames <- c(xnames,"cons")
   if(trend) xnames <- c(xnames,"trend")
   colnames(X) <- xnames
@@ -313,7 +313,7 @@
   if(trend){
     a1store     <- adrop(A_store[which(dims=="trend"),,,drop=FALSE],drop=1)
   }
-  if(!is.null(Exraw)){
+  if(!any(is.na(Exraw))){
     Exstore     <- A_store[which(dims=="Tex"),,,drop=FALSE]
   }
   Lambda0store  <- A_store[which(dims=="Wex"),,,drop=FALSE]
@@ -387,7 +387,7 @@
   if(trend){
     a1post    <- A_post[which(dims=="trend"),,drop=FALSE]
   }
-  if(!is.null(Exraw)){
+  if(!any(is.na(Exraw))){
     Expost    <- A_post[which(dims=="Tex"),,drop=FALSE]
   }
   Lambda0post <- A_post[which(dims=="Wex"),,drop=FALSE]
@@ -406,7 +406,6 @@
 #' @importFrom MASS ginv mvrnorm
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
-#' @export
 #' @noRd
 .BVAR_linear_R <- function(Yraw,Wraw,Exraw,plag,draws,burnin,thin,cons,trend,sv,prior,hyperpara,verbose){
   #----------------------------------------INPUTS----------------------------------------------------#

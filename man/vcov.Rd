@@ -28,3 +28,6 @@ model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=
 vcov(model.ng)
 }
 }
+\seealso{
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
+}

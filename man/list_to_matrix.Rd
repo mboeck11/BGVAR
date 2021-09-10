@@ -19,7 +19,7 @@ Converts a list to an appropriate input matrix for use of \code{bgvar}.
 Note the naming convention. Columns should indicate entity and variable name, separated by a dot, e.g. \code{US.y}.
 }
 \seealso{
-\code{\link{bgvar}}
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
 }
 \author{
 Maximilian Boeck

@@ -1,5 +1,9 @@
 Change in Version 2.3.1
 - small adaptions in help files.
+- changed some functions to S3 method
+- changed default options of bgvar()
+- renaming of functions
+- bugfix(es) with external variables
 
 Change in Version 2.3.0
 - added reader function for Excel

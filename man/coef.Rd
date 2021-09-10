@@ -34,3 +34,6 @@ coef(model.ng)
 coefficients(model.ng)
 }
 }
+\seealso{
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
+}

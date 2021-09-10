@@ -2,10 +2,9 @@
 % Please edit documentation in R/helpers.R
 \name{resid.corr.test}
 \alias{resid.corr.test}
-\alias{residual.corr.test}
 \title{Residual Autocorrelation Test}
 \usage{
-residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
+resid.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 }
 \arguments{
 \item{obj}{An object of class \code{bgvar}.}
@@ -36,14 +35,17 @@ It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey
 \donttest{
 library(BGVAR)
 data(eerDatasmall)
-model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,prior="MN")
-residual.corr.test(model.mn)
+model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100)
+resid.corr.test(model.ng)
 }
 }
 \references{
 Godfrey, L.G. (1978a) \emph{Testing Against General Autoregressive and Moving Average Error Models When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1293-1302.
 Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
 Smith, L. V. and A. Galesi (2014) \emph{GVAR Toolbox 2.0 User Guide}, available at \url{https://sites.google.com/site/gvarmodelling/gvar-toolbox}.
+}
+\seealso{
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
 }
 \author{
 Martin Feldkircher

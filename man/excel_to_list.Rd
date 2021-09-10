@@ -25,7 +25,7 @@ Reads a spreadsheet from excel and converts it to a list for use of \code{bgvar}
 Note that each sheet has to be named for a respective country. Column names are used as variable names. Reader uses the \code{readxl} R package, hence additional arguments can be passed to the function. Furthermore, if \code{first_column_as_time=TRUE} then the column name has also to be time.
 }
 \seealso{
-\code{\link{bgvar}}
+\code{\link{bgvar}} for estimation of a \code{bgvar} object.
 }
 \author{
 Maximilian Boeck

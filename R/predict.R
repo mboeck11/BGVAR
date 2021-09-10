@@ -256,7 +256,7 @@ print.bgvar.pred <- function(x, ...){
 }
 
 #' @name lps
-#' @title Compute Log-predictive Scores
+#' @title Compute Log-Predictive Scores
 #' @method lps bgvar.pred
 #' @description  Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 #' @param object An object of class \code{bgvar.predict}.

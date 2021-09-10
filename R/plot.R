@@ -1,5 +1,5 @@
 #' @name plot
-#' @title Graphical summary of output created with \code{bgvar}
+#' @title Graphical Summary of Output Created with \code{bgvar}
 #' @description Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
 #' @param x Either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.
 #' @param ... Additional arguments.

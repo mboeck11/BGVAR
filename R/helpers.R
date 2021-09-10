@@ -1,6 +1,6 @@
 #' @name avg.pair.cc
 #' @export
-#' @title Average Pairwise Cross-sectional Correlations
+#' @title Average Pairwise Cross-Sectional Correlations
 #' @description Computes average pairwise cross-sectional correlations of the data and the country models' residuals.
 #' @details If used for analyzing the country models' residuals, \code{avg.pair.cc} computes for each country and a given variable, the average cross-sectional correlation (either for the data or for the residuals). In theory, including foreign variables should soak up cross-sectional residual dependence and  correlation of the residuals should be small. Otherwise dynamic analysis, especially using GIRFs, might lead to invalid results. See Dees et al. (2007) for more details.
 #' @usage avg.pair.cc(object, digits=3)
@@ -144,6 +144,7 @@ avg.pair.cc=function(object, digits=3){
 #' }
 #' @seealso 
 #' \code{\link[coda]{geweke.diag}} in the \code{coda} package.
+#' \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @author Martin Feldkircher
 #' @examples
 #' \donttest{
@@ -188,61 +189,11 @@ print.bgvar.CD <- function(x, ...){
   cat(x$perc)
 }
 
-#' @name DIC
-#' @title Deviance Information Criterion
-#' @description Computes the Deviance information criterion for an object \code{bgvar}.
-#' @param object An object of class \code{bgvar}.
-#' @param ... Additional arguments.
-#' @return Returns a numeric value with the corresponding DIC.
-#' @author Maximilian Boeck
-#' @export
-#' @examples
-#' \donttest{
-#' library(BGVAR)
-#' data(eerDatasmall)
-#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
-#' DIC(model.mn)
-#' }
-#' @references 
-#' Spiegelhalter, D. J. and Best, N. G., Carlin, B. P. and Linde, A. (2002) \emph{Bayesian measures of model complexity and fit.} Journal of the Royal Statistical Society, Series B, Vol. 64(4), pp. 583-639.
-DIC <- function(object, ...){
-  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
-  if(!is.null(object$args$DIC)){
-    out <- object$args$DIC
-  }else{
-    xglobal   <- object$xglobal
-    plag      <- object$args$plag
-    trend     <- object$args$trend
-    bigT      <- nrow(xglobal)
-    bigK      <- ncol(xglobal)
-    thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
-    A_large   <- object$stacked.results$A_large
-    S_large   <- object$stacked.results$S_large
-    Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
-    A_mean     <- apply(A_large,c(1,2),mean)
-    S_mean     <- apply(S_large,c(1,2),mean)
-    Ginv_mean  <- apply(Ginv_large,c(1,2),mean)
-    
-    Dbar <- -2*mean(globalLik,na.rm=TRUE)
-    pD   <- Dbar+2*sum(dmvnrm_arma_fast(Y_large,X_large%*%t(A_mean),Ginv_mean%*%S_mean%*%t(Ginv_mean),TRUE))
-    out <- Dbar+pD
-  }
-  if(is.null(object$args$DIC)){
-    eval.parent(substitute(object$args$DIC<-out))
-  }
-  return(out)
-}
-
 #' @name resid.corr.test
-#' @export
+#' @export resid.corr.test
 #' @title Residual Autocorrelation Test
 #' @description An F-test for serial autocorrelation in the residuals.
-#' @usage residual.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
+#' @usage resid.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 #' @param obj An object of class \code{bgvar}.
 #' @param lag.cor The order of serial correlation to be tested for. Default is set to \code{lag.cor=1}.
 #' @param alpha Significance level of test. Default is set to \code{alpha=0.95}.
@@ -256,6 +207,7 @@ DIC <- function(object, ...){
 #' \item{\code{pL}}{ contains a list of length \code{N} with the associated p-values for each variable in each country.}
 #' }
 #' @author Martin Feldkircher
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @references 
 #' Godfrey, L.G. (1978a) \emph{Testing Against General Autoregressive and Moving Average Error Models When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1293-1302.
 #' Godfrey, L.G. (1978b) \emph{Testing for Higher Order Serial Correlation in Regression Equations When the Regressors Include Lagged Dependent Variables.} Econometrica, 46, pp. 1303-1310.
@@ -264,11 +216,11 @@ DIC <- function(object, ...){
 #' \donttest{
 #' library(BGVAR)
 #' data(eerDatasmall)
-#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,plag=1,prior="MN")
-#' residual.corr.test(model.mn)
+#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100)
+#' resid.corr.test(model.ng)
 #' }
 #' @importFrom stats pf qf
-residual.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
+resid.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
   # Residual correlation test
   # Tests the residuals of the country VECM models for serial autocorrelation
   # Input arguments:
@@ -354,7 +306,7 @@ residual.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
 #' @param datamat A matrix of size T times K, where T are time periods and K total amount of variables.
 #' @return returns a list of length \code{N} (number of entities).
 #' @author Maximilian Boeck
-#' @seealso \code{\link{bgvar}}
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats time
 matrix_to_list <- function(datamat){
   if(any(is.na(datamat))){
@@ -385,7 +337,7 @@ matrix_to_list <- function(datamat){
 #' @param datalist A list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity.
 #' @return Returns a matrix of size T times K (number of time periods times number of total variables).
 #' @author Maximilian Boeck
-#' @seealso \code{\link{bgvar}}
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats time
 list_to_matrix <- function(datalist){
   if(any(unlist(lapply(datalist,function(l)any(is.na(l)))))){
@@ -418,7 +370,7 @@ list_to_matrix <- function(datalist){
 #' @param ... Additional arguments.
 #' @return Returns a list of length \code{N} which contains each a matrix of size T times k, where T are time periods and k variables per entity.
 #' @author Maximilian Boeck
-#' @seealso \code{\link{bgvar}}
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom readxl excel_sheets excel_format read_xls read_xlsx
 #' @importFrom xts xts
 excel_to_list <- function(file, first_column_as_time=TRUE, skipsheet=NULL, ...){

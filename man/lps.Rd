@@ -3,7 +3,7 @@
 \name{lps}
 \alias{lps}
 \alias{lps.bgvar.pred}
-\title{Compute Log-predictive Scores}
+\title{Compute Log-Predictive Scores}
 \usage{
 \method{lps}{bgvar.pred}(object, ...)
 }

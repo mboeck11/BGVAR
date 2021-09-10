@@ -7,7 +7,7 @@
 \alias{plot.bgvar.pred}
 \alias{plot.bgvar.irf}
 \alias{plot.bgvar.fevd}
-\title{Graphical summary of output created with \code{bgvar}}
+\title{Graphical Summary of Output Created with \code{bgvar}}
 \usage{
 \method{plot}{bgvar}(x, ..., resp = NULL, global = TRUE)
 

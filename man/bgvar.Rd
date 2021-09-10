@@ -5,7 +5,7 @@
 \title{Estimation of Bayesian GVAR}
 \usage{
 bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
-      hyperpara=NULL, eigen=FALSE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
+      hyperpara=NULL, eigen=TRUE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 }
 \arguments{
 \item{Data}{Either a \itemize{

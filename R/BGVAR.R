@@ -3,7 +3,7 @@
 #' @title Estimation of Bayesian GVAR
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
 #' @usage bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
-#'       hyperpara=NULL, eigen=FALSE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
+#'       hyperpara=NULL, eigen=TRUE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 #' @param Data Either a \itemize{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
@@ -158,7 +158,7 @@
 #' @importFrom xts is.xts
 #' @importFrom zoo coredata
 bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out=0,thin=1,hyperpara=NULL,
-                eigen=FALSE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
+                eigen=TRUE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
   start.bgvar <- Sys.time()
   #--------------------------------- checks  ------------------------------------------------------#
   if(!is.list(Data) & !is.matrix(Data) & is.data.frame(Data)){
@@ -328,9 +328,10 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       }
       temp <- list()
       for(cc in 1:ExN){
-        temp[[cN[cc]]] <- Ex[,grepl(ExcN[cc],colnames(Ex))]
-        colnames(temp[[ExcN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[ExcN[cc]]]),".",fixed=TRUE),function(l)l[2]))
+        temp[[cc]] <- Ex[,grepl(ExcN[cc],colnames(Ex)),drop=FALSE]
+        colnames(temp[[cc]]) <- unlist(lapply(strsplit(colnames(temp[[cc]]),".",fixed=TRUE),function(l)l[2]))
       }
+      names(temp)<-ExcN
       Ex <- temp
     }else if(is.list(Ex)){
       # check for NAs
@@ -585,7 +586,7 @@ print.bgvar<-function(x, ...){
 #' @export
 summary.bgvar <- function(object, ...){
   CD  <- conv.diag(object)
-  res <- residual.corr.test(object,lag.cor=1,alpha=0.95)
+  res <- resid.corr.test(object,lag.cor=1,alpha=0.95)
   cross.corr <- avg.pair.cc(object)
   LL <- logLik(object)
   out  <- structure(list("object"=object,
@@ -717,6 +718,7 @@ resid.bgvar <- residuals.bgvar
 #' @param quantile reported quantiles. Default is set to the median.
 #' @return Returns an \code{q} times \code{K} times \code{K} times \code{p} array of the global coefficients, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}), \code{K} the number of endogenous variables and \code{p} number of lags.
 #' @export
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @examples
 #' \donttest{
 #' library(BGVAR)
@@ -747,6 +749,7 @@ coefficients.bgvar <- coef.bgvar
 #' @param ... Additional arguments.
 #' @param quantile Reported quantiles. Default is set to median.
 #' @return Returns an \code{q} times \code{K} times \code{K} array of the global variance-covariance matrix, where \code{q} is the number of specified quantiles (this dimension is dropped if \code{q=1}) and  \code{K} the number of endogenous variables.
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats vcov
 #' @examples
 #' \donttest{
@@ -775,6 +778,7 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' @param ... Additional arguments.
 #' @param global If \code{global=TRUE} global fitted values are returned otherwise country fitted values.
 #' @return Returns an \code{T} times \code{K} matrix, where \code{T} is the number of observations and \code{K} number of endogenous variables.
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats fitted
 #' @examples 
 #' \donttest{
@@ -809,6 +813,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' @param ... Additional arguments.
 #' @param quantile Reported quantiles. Default is set to median.
 #' @return Returns an vector of dimension \code{q} (number of specified quantiles) of global log-likelihoods.
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
 #' @importFrom stats logLik
 #' @examples 
 #' \donttest{
@@ -860,5 +865,62 @@ logLik.bgvar<-function(object, ..., quantile=.50){
   }
   attributes(out) <- list(nall=bigT, nobs=bigT, df=bigK)
   class(out) <- "logLik"
+  return(out)
+}
+
+#' @name dic
+#' @export
+"dic" <- function(object, ...){
+  UseMethod("dic", object)
+}
+
+#' @name dic
+#' @method dic bgvar
+#' @title Deviance Information Criterion
+#' @description Computes the Deviance information criterion for an object \code{bgvar}.
+#' @param object An object of class \code{bgvar}.
+#' @param ... Additional arguments.
+#' @return Returns a numeric value with the corresponding DIC.
+#' @seealso \code{\link{bgvar}} for estimation of a \code{bgvar} object.
+#' @author Maximilian Boeck
+#' @export
+#' @examples
+#' \donttest{
+#' library(BGVAR)
+#' data(eerDatasmall)
+#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
+#' dic(model.mn)
+#' }
+#' @references 
+#' Spiegelhalter, D. J. and Best, N. G., Carlin, B. P. and Linde, A. (2002) \emph{Bayesian measures of model complexity and fit.} Journal of the Royal Statistical Society, Series B, Vol. 64(4), pp. 583-639.
+dic.bgvar <- function(object, ...){
+  if(!is.null(object$args$dic)){
+    out <- object$args$dic
+  }else{
+    xglobal   <- object$xglobal
+    plag      <- object$args$plag
+    trend     <- object$args$trend
+    bigT      <- nrow(xglobal)
+    bigK      <- ncol(xglobal)
+    thindraws <- object$args$thindraws
+    X_large   <- cbind(.mlag(xglobal,plag),1)
+    if(trend) X_large <- cbind(X_large,seq(1:bigT))
+    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
+    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
+    A_large   <- object$stacked.results$A_large
+    S_large   <- object$stacked.results$S_large
+    Ginv_large<- object$stacked.results$Ginv_large
+    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
+    A_mean     <- apply(A_large,c(1,2),mean)
+    S_mean     <- apply(S_large,c(1,2),mean)
+    Ginv_mean  <- apply(Ginv_large,c(1,2),mean)
+    
+    Dbar <- -2*mean(globalLik,na.rm=TRUE)
+    pD   <- Dbar+2*sum(dmvnrm_arma_fast(Y_large,X_large%*%t(A_mean),Ginv_mean%*%S_mean%*%t(Ginv_mean),TRUE))
+    out <- Dbar+pD
+  }
+  if(is.null(object$args$dic)){
+    eval.parent(substitute(object$args$dic<-out))
+  }
   return(out)
 }

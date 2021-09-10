@@ -20,7 +20,7 @@ irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL,
 \item{quantiles}{Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.}
 
 \item{expert}{Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
-\item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times.}
+\item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times. Default is set to \code{MaxTries=100}.}
 \item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both, impulses responses and rotation matrices, are returned. Default is set to \code{FALSE} in order to save storage.}
 \item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
 \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
