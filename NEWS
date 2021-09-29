@@ -1,3 +1,6 @@
+Change in Version 2.3.2
+- bugfix in plotting fitted values
+
 Change in Version 2.3.1
 - small adaptions in help files.
 - changed some functions to S3 method

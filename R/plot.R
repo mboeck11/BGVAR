@@ -38,6 +38,7 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   varNames <- dimnames(xglobal)[[2]]
   cN   <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+  bigK <- length(vars)
   Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
     A_post <- apply(x$stacked.results$A_large,c(1,2),median)
@@ -49,8 +50,9 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:bigK){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
         plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
@@ -68,8 +70,9 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:bigK){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         lims <- c(min(fit[,idx],YY[,idx]),max(fit[,idx],YY[,idx]))
         plot.ts(fit[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
