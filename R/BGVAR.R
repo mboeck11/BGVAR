@@ -530,7 +530,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
 #' @export
 #' @importFrom utils object.size
 print.bgvar<-function(x, ...){
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Model Info:")
   cat("\n")
@@ -546,7 +546,7 @@ print.bgvar<-function(x, ...){
   cat("\n")
   cat(x$stacked.results$trim.info)
   cat("\n")
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Model specification:")
   cat("\n")
@@ -600,7 +600,7 @@ summary.bgvar <- function(object, ...){
 #' @method print bgvar.summary
 #' @export
 print.bgvar.summary <- function(x, ...){
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Model Info:")
   cat("\n")
@@ -618,17 +618,17 @@ print.bgvar.summary <- function(x, ...){
   }
   cat(paste("Number of countries: ",length(x$object$gW),sep=""))
   cat("\n")
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Convergence diagnostics")
   cat("\n")
   cat(paste("Geweke statistic:\n",x$CD$perc,sep=""))
   cat("\n")
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat(paste("Global Likelihood: ",round(x$logLik,2),sep=""))
   cat("\n")
-  cat("----------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("F-test, first order serial autocorrelation of cross-country residuals")
   cat("\n")
@@ -638,7 +638,7 @@ print.bgvar.summary <- function(x, ...){
   for(ii in 1:length(temp)){
     cat(paste0(temp[ii],"\n"))
   }
-  cat("-------------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   cat("Average pairwise cross-country correlation of country model residuals")
   cat("\n")
@@ -648,7 +648,7 @@ print.bgvar.summary <- function(x, ...){
   for(ii in 1:length(temp)){
     cat(paste0(temp[ii],"\n"))
   }
-  cat("-------------------------------------------------------------------------------")
+  cat("---------------------------------------------------------------------------")
   cat("\n")
   
   invisible(x)
