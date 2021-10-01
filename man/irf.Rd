@@ -5,15 +5,13 @@
 \alias{irf.bgvar}
 \title{Impulse Response Function}
 \usage{
-irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL, 
+irf(x, n.ahead=24, shockinfo=NULL, quantiles=NULL, 
     expert=NULL, verbose=TRUE)
 }
 \arguments{
 \item{x}{Object of class \code{bgvar}.}
 
 \item{n.ahead}{Forecasting horizon.}
-
-\item{ident}{Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.}
 
 \item{shockinfo}{Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be specified differently. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.}
 
@@ -28,11 +26,12 @@ irf(x, n.ahead=24, ident="chol", shockinfo=NULL, quantiles=NULL,
 }}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
+
+\item{ident}{Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.}
 }
 \value{
 Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
 \item{\code{posterior}}{ Four-dimensional array (K times n.ahead times number of shocks times Q) that contains Q quantiles of the posterior distribution of the impulse response functions.}
-\item{\code{ident}}{ Character showing the chosen identification scheme.}
 \item{\code{shockinfo}}{ Dataframe with details on identification specification.}
 \item{\code{rot.nr}}{ In case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
 \item{\code{struc.obj}}{ List object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
@@ -61,21 +60,28 @@ data(eerDatasmall)
 model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
                  plag=1, prior="SSVS", eigen=TRUE)
 
-# define shock
-shockinfo <- get_shockinfo("chol")
-shockinfo$shock <- "US.stir"; shockinfo$scale <- -100
-
 # generalized impulse responses
-irf.girf.us.mp<-irf(model.eer, n.ahead=20, ident="girf", shockinfo=shockinfo)
+shockinfo<-get_shockinfo("girf")
+shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+
+irf.girf.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 
 # cholesky identification
-irf.chol.us.mp<-irf(model.eer, n.ahead=20, ident="chol", shockinfo=shockinfo)
+shockinfo<-get_shockinfo("chol")
+shockinfo$shock<-"US.stir"; shockinfo$scale<--100
+
+irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+# sign restrictions
+shockinfo <- get_shockinfo("sign")
+shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
+                           sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
+irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 
 # sign restrictions
 shockinfo <- get_shockinfo("sign")
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
 sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
-irf.sign.us.mp<-irf(model.eer, n.ahead=24, ident="sign", shockinfo=shockinfo)
+irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 
 \donttest{
 #' # sign restrictions with relaxed cross-country restrictions
@@ -85,7 +91,7 @@ shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","EA.
                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.Dp","EA.Dp","UK.Dp"),
                            sign=c("<","<","<"), horizon=1, scale=1, prob=c(1,0.75,0.75))
-irf.sign.us.mp<-irf(model.eer, n.ahead=20, ident="sign", shockinfo=shockinfo)
+irf.sign.us.mp<-irf(model.eer, n.ahead=20, shockinfo=shockinfo)
 }
 }
 \references{
