@@ -26,8 +26,6 @@ irf(x, n.ahead=24, shockinfo=NULL, quantiles=NULL,
 }}
 
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
-
-\item{ident}{Character defining type of identification scheme. Default \code{chol} refers to zero restrictions via the Cholesky decomposition while \code{sign} refers to sign-restrictions and \code{girf} to generalized impulse responses.  Details of preferred shock are given via \code{shockinfo}.}
 }
 \value{
 Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
