@@ -17,9 +17,7 @@
 The data loads \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and contains the country-level data as described in Mohaddes and Raissi (2020). \code{EAData} contains the same data but euro area countries (AT, BE, DE, ES, FI, FR, IT, NL) are aggregated into a euro area block using purchasing power parities (\code{ppp}). The countries are abbreviated using ISO-2 codes. Furthermore, we also provide two datasets with first differences of some variables in \code{pesarnDiff} and \code{EAdiff}. \code{dominant} contains data that is considered global. \code{tA} is a three-dimensional array that contains \code{N} times \code{N} annual trade flow matrices over the period from 1980 to 2016. This array can be used to construct weight matrices. For more details, see below:
 \describe{
   \item{\code{W.8016}}{ Weight matrix for the \code{pesaran.level} and \code{pesaran.diff} data sets, based on averaged trade flows covering the period 1980 to 2016 (based on \code{tA}).}
-  \item{\code{W.EA.9916}}{ Weight matrix for the \code{EA.level} and \code{EA.diff} data sets, based on averaged trade flows covering the period 1999 to 2016 (based on \code{tA.EA}).}
   \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.8016}.}
-  \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.EA.9916}.}
   \item{\code{peseranData}}{ List object of length \code{N} containing \itemize{
     \item{\code{y}}{ Real GDP.}
     \item{\code{Dp}}{ Consumer price inflation.}
@@ -28,20 +26,6 @@ The data loads \code{pesaranData}, which is a list object of length \code{N} (i.
     \item{\code{eq}}{ Equity prices.}
     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
  \item{\code{pesaranDiff}}{ List object of length \code{N} containing \itemize{
-    \item{\code{y}}{ Growth rate of real GDP.}
-    \item{\code{Dp}}{ First differences of consumer price inflation.}
-    \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
-    \item{\code{lr}}{ Long-term interest rate.}
-    \item{\code{eq}}{ Equity prices.}
-    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
- \item{\code{EAData}}{ List object of length \code{N} containing \itemize{
-    \item{\code{y}}{ Real GDP.}
-    \item{\code{Dp}}{ Consumer price inflation.}
-    \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
-    \item{\code{lr}}{ Long-term interest rate.}
-    \item{\code{eq}}{ Equity prices.}
-    \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
- \item{\code{EADiff}}{ List object of length \code{N} containing \itemize{
     \item{\code{y}}{ Growth rate of real GDP.}
     \item{\code{Dp}}{ First differences of consumer price inflation.}
     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}

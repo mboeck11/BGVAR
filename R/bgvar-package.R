@@ -28,8 +28,13 @@ NULL
 #'   \item{\code{tb}}{ Trade balance (ratio of real exports to real imports).}
 #'   \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
 #'   }}
+#'   \item{\code{USexpectations}}{ is a time series object containing US expectations data: \itemize{
+#'   \item{\code{y_t+4}}{ Four-quarter ahead expectation of Real GDP growth.}
+#'   \item{\code{Dp_t+4}}{ Four-quarter ahead expectation of consumer price inflation.}
+#'   \item{\code{stir_t+4}}{ Four-quarter ahead expectation of short-term interest rates.}
+#'   }}
 #' }
-#' @aliases W.list W.trade0012
+#' @aliases W.list W.trade0012 USexpectations
 #' @docType data
 "eerData"
 
@@ -37,8 +42,8 @@ NULL
 #' @description This data set is a subset of \code{eerData} containing just three countries with 76 quarterly observations, spanning the period from 1995Q1 to 2013Q4. The country coverage are the United States, the United Kingdom and the Euro area (EA) as a regional aggregate.
 #' @format The data loads two objects \code{eerDatasmall}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerDatasmall} contains the country data, for more details, see below:
 #' \describe{
-#'   \item{\code{W.trade0012.small}}{ Weight matrix based on trade flows, rowsums equal unity.}
-#'   \item{\code{eerDatasmall}}{ List object of length \code{N} containing \itemize{
+#'   \item{\code{W.test}}{ Weight matrix based on trade flows, rowsums equal unity.}
+#'   \item{\code{testdata}}{ List object of length \code{N} containing \itemize{
 #'         \item{\code{y}}{ Real GDP, average of 2005=100. Seasonally adjusted, in logarithms.}
 #'         \item{\code{Dp}}{ Consumer prices (period-on-period). CPI seasonally adjusted, in logarithm.}
 #'         \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
@@ -48,32 +53,9 @@ NULL
 #'         \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
 #'   }}
 #' }
-#' @aliases W.trade0012.small
+#' @aliases W.test
 #' @docType data
-"eerDatasmall"
-
-#' @title eerData extended with expectations data
-#' @description This data set contains 76 quarterly observations by country, spanning the period from 1995Q1 to 2013Q4. The country coverage is 43 countries + the euro area (EA) as a regional aggregate. Additionally, the US country dataset is extended with four quarter ahead expectation data on output, prices and short-term interest rates from the Survey of Professional Forecasters.
-#' @format The data loads two objects \code{eerData}, which is a list object of length \code{N} (i.e, the number of countries) and \code{W.trade0012}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The global variable, oil prices, is included in the US country model as e.g., in Dees et al. (2007). The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual bilateral trade flows (including services) over the period from 2000 to 2012.\code{eerData} contains the country data, for more details, see below:
-#' \describe{
-#'   \item{\code{W.trade0012spf}}{ Weight matrix based on trade flows, rowsums equal unity.}
-#'   \item{\code{eerDataspf}}{ List object of length \code{N} containing \itemize{
-#'   \item{\code{y_t+4}}{ Four-quarter ahead expectation of Real GDP growth.}
-#'   \item{\code{Dp_t+4}}{ Four-quarter ahead expectation of consumer price inflation.}
-#'   \item{\code{stir_t+4}}{ Four-quarter ahead expectation of short-term interest rates.}
-#'   \item{\code{y}}{ Real GDP growth.}
-#'   \item{\code{Dp}}{ Consumer price inflation (period-on-period).}
-#'   \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
-#'   \item{\code{ltir}}{ Long-term interest rates, typically 10-year government bond yields.}
-#'   \item{\code{reer}}{ Real effective exchange rate, deflated by consumer prices.}
-#'   \item{\code{tb}}{ Trade balance (ratio of real exports to real imports).}
-#'   \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
-#'   }}
-#' }
-#' 
-#' @aliases W.trade0012.spf
-#' @docType data
-"eerDataspf"
+"testdata"
 
 #' @title Monthly EU / G8 countries macroeconomic dataset
 #' @description This data set contains monthly observations on industrial production, consumer price indices, short- and long-term interest rates, real effective exchange rates and equity prices. The time period covered is from January 2000 to December 2015 and the country coverage amounts to  28 countries -- roughly corresponding to EU member states + G-8 countries and a country model to model common monetary policy in the euro area.
@@ -101,9 +83,7 @@ NULL
 #' @format The data loads \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and contains the country-level data as described in Mohaddes and Raissi (2020). \code{EAData} contains the same data but euro area countries (AT, BE, DE, ES, FI, FR, IT, NL) are aggregated into a euro area block using purchasing power parities (\code{ppp}). The countries are abbreviated using ISO-2 codes. Furthermore, we also provide two datasets with first differences of some variables in \code{pesarnDiff} and \code{EAdiff}. \code{dominant} contains data that is considered global. \code{tA} is a three-dimensional array that contains \code{N} times \code{N} annual trade flow matrices over the period from 1980 to 2016. This array can be used to construct weight matrices. For more details, see below:
 #' \describe{
 #'   \item{\code{W.8016}}{ Weight matrix for the \code{pesaran.level} and \code{pesaran.diff} data sets, based on averaged trade flows covering the period 1980 to 2016 (based on \code{tA}).}
-#'   \item{\code{W.EA.9916}}{ Weight matrix for the \code{EA.level} and \code{EA.diff} data sets, based on averaged trade flows covering the period 1999 to 2016 (based on \code{tA.EA}).}
 #'   \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.8016}.}
-#'   \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.EA.9916}.}
 #'   \item{\code{peseranData}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Real GDP.}
 #'     \item{\code{Dp}}{ Consumer price inflation.}
@@ -112,20 +92,6 @@ NULL
 #'     \item{\code{eq}}{ Equity prices.}
 #'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
 #'  \item{\code{pesaranDiff}}{ List object of length \code{N} containing \itemize{
-#'     \item{\code{y}}{ Growth rate of real GDP.}
-#'     \item{\code{Dp}}{ First differences of consumer price inflation.}
-#'     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
-#'     \item{\code{lr}}{ Long-term interest rate.}
-#'     \item{\code{eq}}{ Equity prices.}
-#'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
-#'  \item{\code{EAData}}{ List object of length \code{N} containing \itemize{
-#'     \item{\code{y}}{ Real GDP.}
-#'     \item{\code{Dp}}{ Consumer price inflation.}
-#'     \item{\code{r}}{ Short-term interst rate, typically 3-months money market rate.}
-#'     \item{\code{lr}}{ Long-term interest rate.}
-#'     \item{\code{eq}}{ Equity prices.}
-#'     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
-#'  \item{\code{EADiff}}{ List object of length \code{N} containing \itemize{
 #'     \item{\code{y}}{ Growth rate of real GDP.}
 #'     \item{\code{Dp}}{ First differences of consumer price inflation.}
 #'     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}

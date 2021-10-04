@@ -262,7 +262,7 @@
 #' @name .BVAR_linear_wrapper
 #' @noRd
 #' @importFrom utils capture.output
-.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R){
+.BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, plag, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R, setting_store){
   Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
   W    <- gW[[cc]]
   Exraw <- matrix(NA_real_)
@@ -279,13 +279,13 @@
     #Rcpp::sourceCpp("./src/BVAR_linear.cpp")
     invisible(capture.output(bvar<-try(BVAR_linear(Yraw,Wraw,Exraw,as.integer(plag),as.integer(draws),as.integer(burnin),
                                                    as.integer(thin),TRUE,trend,SV,as.integer(prior_in),
-                                                   default_hyperpara)), type="message"))
+                                                   default_hyperpara,setting_store)), type="message"))
   }else{
     bvar <- structure("message",class=c("try-error","character"))
   }
   if(is(bvar,"try-error")){
     bvar<-try(.BVAR_linear_R(Yraw,Wraw,Exraw,plag,draws,burnin,thin,TRUE,trend,SV,
-                             prior_in,default_hyperpara,TRUE), silent=TRUE)
+                             prior_in,default_hyperpara,TRUE,setting_store), silent=TRUE)
   }
   # error handling
   if(inherits(bvar,"try-error")){
@@ -335,26 +335,30 @@
     }
   }
   SIGMAmed_store <- apply(SIGMA_store,c(2,3,4),median)
-  theta_store   <- bvar$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
+  res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,colnames(Y),NULL)
   if(SV){
     vola_store  <- bvar$Sv_store; dimnames(vola_store) <- list(NULL,colnames(Y),NULL)
-    pars_store  <- bvar$pars_store
     vola_post   <- apply(vola_store,c(1,2),median)
+  }else{
+    vola_store  <- bvar$Sv_store; 
+    vola_post   <- apply(vola_store,c(1,2),median)
+  }
+  # additional stuff
+  if(SV & setting_store$vola_pars){
+    pars_store  <- bvar$pars_store
     pars_post   <- apply(pars_store,c(1,2),median)
   }else{
-    vola_store  <- bvar$Sv_store; pars_store <- NULL;
-    vola_post   <- apply(vola_store,c(1,2),median); pars_post <- NULL
+    pars_store <- pars_post <- NULL 
   }
-  res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,colnames(Y),NULL)
   # MN
-  if(prior=="MN"){
+  if(prior=="MN" & setting_store$shrink_MN){
     shrink_store  <- bvar$shrink_store; dimnames(shrink_store) <- list(c("shrink1","shrink2","shrink4"),NULL,NULL)
     shrink_post   <- apply(shrink_store,c(1,2),median)
   }else{
     shrink_store  <- shrink_post <- NULL
   }
   # SSVS
-  if(prior=="SSVS"){
+  if(prior=="SSVS" & setting_store$shrink_SSVS){
     gamma_store <- bvar$gamma_store; dimnames(gamma_store) <- list(colnames(X),colnames(Y),NULL)
     omega_store <- bvar$omega_store; dimnames(omega_store) <- list(colnames(Y),colnames(Y),NULL)
     PIP         <- apply(gamma_store,c(1,2),mean)
@@ -363,15 +367,17 @@
     gamma_store <- omega_store <- PIP <- PIP_omega <- NULL
   }
   # NG
-  if(prior=="NG"){
+  if(prior=="NG" & setting_store$shrink_NG){
+    theta_store   <- bvar$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
     lambda2_store <- bvar$lambda2_store
     tau_store     <- bvar$tau_store
     dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
     dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
+    theta_post  <- apply(theta_store,c(1,2),median)
     lambda2_post  <- apply(lambda2_store,c(1,2),median)
     tau_post      <- apply(tau_store,c(1,2),median)
   }else{
-    lambda2_store <- tau_store <- lambda2_post <- tau_post <- NULL
+    theta_store <- lambda2_store <- tau_store <- theta_post <- lambda2_post <- tau_post <- NULL
   }
   store <- list(A_store=A_store,a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,Phistore=Phistore,Exstore=Exstore,SIGMA_store=SIGMA_store,SIGMAmed_store=SIGMAmed_store,L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,lambda2_store=lambda2_store,tau_store=tau_store)
   #------------------------------------ compute posteriors -------------------------------------------#
@@ -379,7 +385,6 @@
   SIGMA_post  <- apply(SIGMA_store,c(1,2,3),median)
   S_post      <- apply(SIGMA_post,c(1,2),mean)
   Sig         <- S_post/(bigT-K)
-  theta_post  <- apply(theta_store,c(1,2),median)
   res_post    <- apply(res_store,c(1,2),median)
   # splitting up posteriors
   a0post      <- A_post[which(dims=="cons"),,drop=FALSE]
@@ -407,7 +412,7 @@
 #' @importFrom methods is
 #' @importFrom stats rnorm rgamma runif dnorm
 #' @noRd
-.BVAR_linear_R <- function(Yraw,Wraw,Exraw,plag,draws,burnin,thin,cons,trend,sv,prior,hyperpara,verbose){
+.BVAR_linear_R <- function(Yraw,Wraw,Exraw,plag,draws,burnin,thin,cons,trend,sv,prior,hyperpara,verbose,setting_store){
   #----------------------------------------INPUTS----------------------------------------------------#
   Traw  <- nrow(Yraw)
   M     <- ncol(Yraw)
@@ -480,6 +485,13 @@
   e_lambda    <- hyperpara$e_lambda
   tau_theta   <- hyperpara$tau_theta
   sample_tau  <- hyperpara$sample_tau
+  #---------------------------------------------------------------------------------------------------------
+  # STORE SETTINGS
+  #---------------------------------------------------------------------------------------------------------
+  save_shrink_MN   <- setting_store$shrink_MN
+  save_shrink_SSVS <- setting_store$shrink_SSVS
+  save_shrink_NG   <- setting_store$shrink_NG
+  save_vola_pars   <- setting_store$vola_pars
   #---------------------------------------------------------------------------------------------------------
   # OLS Quantitites
   #---------------------------------------------------------------------------------------------------------
@@ -605,16 +617,32 @@
   res_store    <- array(NA,c(bigT,M,thindraws))
   # SV
   Sv_store     <- array(NA,c(bigT,M,thindraws))
-  pars_store   <- array(NA,c(4,M,thindraws))
+  if(save_vola_pars){
+    pars_store <- array(NA,c(4,M,thindraws))
+  }else{
+    pars_store <- NULL
+  }
   # MN
-  shrink_store <- array(NA,c(3,1,thindraws))
+  if(save_shrink_MN){
+    shrink_store <- array(NA,c(3,1,thindraws))
+  }else{
+    shrink_store <- NULL
+  }
   # SSVS
-  gamma_store  <- array(NA,c(k,M,thindraws))
-  omega_store  <- array(NA,c(M,M,thindraws))
+  if(save_shrink_SSVS){
+    gamma_store  <- array(NA,c(k,M,thindraws))
+    omega_store  <- array(NA,c(M,M,thindraws))
+  }else{
+    gamma_store <- omega_store <- NULL
+  }
   # NG
-  theta_store  <- array(NA,c(k,M,thindraws))
-  lambda2_store<- array(NA,c(plag+1,3,thindraws))
-  tau_store    <- array(NA,c(plag+1,3,thindraws))
+  if(save_shrink_NG){
+    theta_store  <- array(NA,c(k,M,thindraws))
+    lambda2_store<- array(NA,c(plag+1,3,thindraws))
+    tau_store    <- array(NA,c(plag+1,3,thindraws))
+  }else{
+    theta_store <- lambda2_store <- tau_store <- NULL
+  }
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
   #---------------------------------------------------------------------------------------------------------
@@ -893,18 +921,26 @@
       res_store[,,count] <- Y-X%*%A_draw
       # SV
       Sv_store[,,count]   <- Sv_draw
-      pars_store[,,count] <- pars_var
+      if(save_vola_pars){
+        pars_store[,,count] <- pars_var
+      }
       # MN
-      shrink_store[,,count] <- c(shrink1,shrink2,shrink4)
+      if(save_shrink_MN){
+        shrink_store[,,count] <- c(shrink1,shrink2,shrink4)
+      }
       # SSVS
-      gamma_store[,,count] <- gamma
-      omega_store[,,count] <- omega
+      if(save_shrink_SSVS){
+        gamma_store[,,count] <- gamma
+        omega_store[,,count] <- omega
+      }
       # NG
-      theta_store[,,count]     <- theta
-      lambda2_store[1,3,count] <- lambda2_L
-      lambda2_store[1:(plag+1),1:2,count] <- lambda2_A
-      tau_store[1,3,count]             <- L_tau
-      tau_store[1:(plag+1),1:2,count]     <- A_tau
+      if(save_shrink_NG){
+        theta_store[,,count]     <- theta
+        lambda2_store[1,3,count] <- lambda2_L
+        lambda2_store[1:(plag+1),1:2,count] <- lambda2_A
+        tau_store[1,3,count]             <- L_tau
+        tau_store[1:(plag+1),1:2,count]     <- A_tau
+      }
     }
   }
   #---------------------------------------------------------------------------------------------------------

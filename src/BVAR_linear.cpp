@@ -40,7 +40,8 @@ List BVAR_linear(arma::mat Yraw,
                  bool trend,
                  bool sv,
                  int prior,
-                 Rcpp::List hyperparam) {
+                 Rcpp::List hyperparam,
+                 Rcpp::List setting_store) {
   //----------------------------------------------------------------------------------------------------------------------
   // CONSTRUCT DATA
   //----------------------------------------------------------------------------------------------------------------------
@@ -105,6 +106,13 @@ List BVAR_linear(arma::mat Yraw,
   const double b0 = hyperparam["b0"];
   const double bmu = hyperparam["bmu"];
   const double Bmu = hyperparam["Bmu"];
+  //----------------------------------------------------------------------------------------------------------------------
+  // STORE SETTINGS
+  //----------------------------------------------------------------------------------------------------------------------
+  const bool save_shrink_MN   = setting_store["shrink_MN"];
+  const bool save_shrink_SSVS = setting_store["shrink_SSVS"];
+  const bool save_shrink_NG   = setting_store["shrink_NG"];
+  const bool save_vola_pars   = setting_store["vola_pars"];
   //----------------------------------------------------------------------------------------------------------------------
   // OLS QUANTITIES
   //----------------------------------------------------------------------------------------------------------------------
@@ -220,7 +228,7 @@ List BVAR_linear(arma::mat Yraw,
     Sv_para(3,mm) = -10;
   }
   uvec rec(T); rec.fill(5);
-  const double offset = 0;  // maybe want to change to 1e-40 or so to be on the safe side? I have got random NAs because of log(0) for real data inputs
+  const double offset = 1e-40;  // maybe want to change to 1e-40 or so to be on the safe side? I have got random NAs because of log(0) for real data inputs
   using stochvol::PriorSpec;
   const PriorSpec prior_spec = {  // prior specification object for the update_*_sv functions
     PriorSpec::Latent0(),  // stationary prior distribution on priorlatent0
@@ -260,16 +268,31 @@ List BVAR_linear(arma::mat Yraw,
   arma::cube res_store(T,M,thindraws);
   // SV
   arma::cube Sv_store(T,M,thindraws);
-  arma::cube pars_store(4,M,thindraws);
-  // SIMS
-  arma::cube shrink_store(3,1,thindraws, fill::zeros);
+  arma::ivec size_of_cube = {0, 0, 0};
+  if(save_vola_pars == true){
+    size_of_cube = {4, M, thindraws};
+  }
+  arma::cube pars_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  // MN
+  if(save_shrink_MN == true){
+    size_of_cube = {3, 1, thindraws};
+  }
+  arma::cube shrink_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
   // SSVS
-  arma::cube gamma_store(k,M,thindraws, fill::zeros);
-  arma::cube omega_store(M,M,thindraws, fill::zeros);
+  if(save_shrink_SSVS == true){
+    size_of_cube = {k, M, thindraws};
+  }
+  arma::cube gamma_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  arma::cube omega_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
   // NG
-  arma::cube theta_store(k,M,thindraws, fill::zeros);
-  arma::cube lambda2_store(plag+1,3,thindraws, fill::zeros);
-  arma::cube tau_store(plag+1,3,thindraws, fill::zeros);
+  arma::ivec size_of_cube_add = {0, 0, 0};
+  if(save_shrink_NG){
+    size_of_cube = {k, M, thindraws};
+    size_of_cube_add = {plag+1, 3, thindraws};
+  }
+  arma::cube theta_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  arma::cube lambda2_store(size_of_cube_add(0), size_of_cube_add(1), size_of_cube_add(2));
+  arma::cube tau_store(size_of_cube_add(0), size_of_cube_add(1), size_of_cube_add(2));
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
@@ -674,18 +697,20 @@ List BVAR_linear(arma::mat Yraw,
         L_store.slice((irep-burnin)/thin) = L_draw;
         res_store.slice((irep-burnin)/thin) = Y - X * A_draw;
         Sv_store.slice((irep-burnin)/thin) = Sv_draw;
-        pars_store.slice((irep-burnin)/thin) = Sv_para;
-        theta_store.slice((irep-burnin)/thin) = V_prior;
-        if(prior==1){
+        if(save_vola_pars == true){
+          pars_store.slice((irep-burnin)/thin) = Sv_para;
+        }
+        if(save_shrink_MN == true){
          shrink_store(0,0,(irep-burnin)/thin) = shrink1;
          shrink_store(1,0,(irep-burnin)/thin) = shrink2;
          shrink_store(2,0,(irep-burnin)/thin) = shrink4;
         }
-        if(prior==2){
+        if(save_shrink_SSVS == true){
           gamma_store.slice((irep-burnin)/thin) = gamma;
           omega_store.slice((irep-burnin)/thin) = omega;
         }
-        if(prior==3){
+        if(save_shrink_NG == true){
+          theta_store.slice((irep-burnin)/thin) = V_prior;
           lambda2_Lmat(0,0) = lambda2_L;
           lambda2_store.slice((irep-burnin)/thin) = join_rows(lambda2_A,lambda2_Lmat);
           L_taumat(0,0) = L_tau;

@@ -61,6 +61,8 @@
 #' }}
 #' \item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 #' \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
+#' \item{\code{save.shrink.store}}{If set to \code{TRUE} the function also inspects posterior output of shrinkage coefficients. Default set to \code{FALSE}.}
+#' \item{\code{save.vola.store}}{If set to \code{TRUE} the function also inspects posterior output of coefficients associated with the volatility process. Default set to \code{FALSE}.}
 #' \item{\code{use_R}}{ Boolean whether estimation should fall back on \code{R} version, otherwise \code{Rcpp} version is used (default).}
 #' \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
 #' \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
@@ -95,9 +97,9 @@
 #' }}}
 #' @examples
 #' library(BGVAR)
-#' data(eerDatasmall)
+#' data(testdata)
 #' hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+#' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 #' \dontrun{
 #' library(BGVAR)
@@ -189,7 +191,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   #-------------------------- expert settings -------------------------------------------------------#
   # expert settings
-  expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
+  expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, save.shrink.store = FALSE, save.vola.store = FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
     if(!(is.null(expert$cores) || is.numeric(expert$cores))){
       stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
@@ -204,6 +206,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   applyfun      <- expert.list$applyfun
   cores         <- expert.list$cores
   save.country.store <- expert.list$save.country.store
+  save.shrink.store  <- expert.list$save.shrink.store
+  save.vola.store    <- expert.list$save.vola.store
   #-------------------------- construct arglist ----------------------------------------------------#
   args <- .construct.arglist(bgvar)
   if(verbose){
@@ -412,6 +416,13 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }
+  # store setting
+  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE,
+                        vola_pars = FALSE)
+  if(expert.list$save.shrink.store)
+    setting_store[[paste0("shrink_",prior)]] <- TRUE
+  if(expert.list$save.vola.store)
+    setting_store[["vola_pars"]] <- TRUE
   #------------------------------ get weights -----------------------------------------------------------------#
   xglobal <- .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)
   exo.countries<-xglobal$exo.countries
@@ -444,7 +455,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   # Rcpp::sourceCpp("./src/BVAR_linear.cpp")
   start.estim <- Sys.time()
   globalpost <- applyfun(1:N, function(cc){
-    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R)
+    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
   })
   names(globalpost) <- cN
   end.estim <- Sys.time()
@@ -501,14 +512,26 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   cc.results <- list(coeffs=country.coeffs,sig=country.sig,theta=country.theta,res=country.res)
   if(prior=="MN"){
-    cc.results$shrink <- lapply(globalpost,function(l) l$post$shrink)
+    if(setting_store$shrink_MN){
+      cc.results$shrink <- lapply(globalpost,function(l) l$post$shrink)
+    }else{
+      cc.results$shrink <- NULL
+    }
   }else if(prior=="SSVS"){
-    country.shrink <- lapply(globalpost,function(l) l$post$PIP)
-    for(cc in 1:N) rownames(country.shrink[[cc]]) <- rownames(country.coeffs[[cc]])
-    cc.results$PIP <- .avg.shrink(country.shrink,prior="SSVS")
+    if(setting_store$shrink_SSVS){
+      country.shrink <- lapply(globalpost,function(l) l$post$PIP)
+      for(cc in 1:N) rownames(country.shrink[[cc]]) <- rownames(country.coeffs[[cc]])
+      cc.results$PIP <- .avg.shrink(country.shrink,prior="SSVS")
+    }else{
+      cc.results$PIP <- NULL
+    }
   }else if(prior=="NG"){
-    cc.results$lambda2 <- lapply(globalpost,function(l) l$post$lambda2_post)
-    cc.results$tau     <- lapply(globalpost,function(l) l$post$tau_post)
+    if(setting_store$shrink_NG){
+      cc.results$lambda2 <- lapply(globalpost,function(l) l$post$lambda2_post)
+      cc.results$tau     <- lapply(globalpost,function(l) l$post$tau_post)
+    }else{
+      cc.results$lambda2 <- cc.results$tau <- NULL
+    }
   }
   if(save.country.store){
     cc.results$store <- lapply(globalpost,function(l) l$store)
@@ -673,8 +696,8 @@ print.bgvar.summary <- function(x, ...){
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 #' resid(model.ng)
 #' }
 residuals.bgvar <- function(object, ...){
@@ -722,8 +745,8 @@ resid.bgvar <- residuals.bgvar
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 #' coef(model.ng)
 #' }
 #' @importFrom stats quantile
@@ -754,8 +777,8 @@ coefficients.bgvar <- coef.bgvar
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 #' vcov(model.ng)
 #' }
 #' @export
@@ -783,8 +806,8 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' @examples 
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 #' fitted(model.ng)
 #' }
 #' @export
@@ -818,8 +841,8 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' @examples 
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 #' logLik(model.ng)
 #' }
 #' @export
@@ -887,8 +910,8 @@ logLik.bgvar<-function(object, ..., quantile=.50){
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
+#' data(testdata)
+#' model.mn <- bgvar(Data=testdata,W=W.test,plag=2,draws=100,burnin=100,prior="MN")
 #' dic(model.mn)
 #' }
 #' @references 

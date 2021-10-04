@@ -54,8 +54,8 @@ Plotting function for fitted values, residuals, predictions, impulse responses a
 \examples{
 \dontshow{
 library(BGVAR)
-data(eerDatasmall)
-model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+data(testdata)
+model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
                     prior="SSVS",eigen=TRUE)
 }
 \donttest{
@@ -76,7 +76,7 @@ plot(fcast, resp="y", cut=20)
 # example for class 'bgvar.irf'
 shockinfo <- get_shockinfo("chol")
 shockinfo$shock <- "US.stir"; shockinfo$scale <- +1
-irf.chol<-irf(model.ssvs, n.ahead=24, ident="chol", shockinfo=shockinfo)
+irf.chol<-irf(model.ssvs, n.ahead=24, shockinfo=shockinfo)
 plot(irf.chol, resp="US")
 }
 \donttest{

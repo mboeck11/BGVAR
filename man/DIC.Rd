@@ -23,8 +23,8 @@ Computes the Deviance information criterion for an object \code{bgvar}.
 \examples{
 \donttest{
 library(BGVAR)
-data(eerDatasmall)
-model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=2,draws=100,burnin=100,prior="MN")
+data(testdata)
+model.mn <- bgvar(Data=testdata,W=W.test,plag=2,draws=100,burnin=100,prior="MN")
 dic(model.mn)
 }
 }

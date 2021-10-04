@@ -12,8 +12,8 @@
 #' @examples
 #' \dontshow{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+#' data(testdata)
+#' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",eigen=TRUE)
 #' }
 #' \donttest{
@@ -146,6 +146,7 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
   varNames <- dimnames(x$Data)[[2]]
   cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+  bigK     <- length(vars)
   Ki       <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
     res <- apply(x$global,c(2,3),median)
@@ -156,8 +157,9 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:bigK){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         lims <- c(min(res[,idx]),max(res[,idx]))
         plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
@@ -174,8 +176,9 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:bigK){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         lims <- c(min(res[,idx]),max(res[,idx]))
         plot.ts(res[,idx], type="l", xlab="", ylab="", main = varNames[idx], ylim=lims,
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
@@ -254,7 +257,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
   varNames  <- colnames(Xdata)
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  K         <- length(vars)
+  Ki        <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
   Q         <- length(quantiles)
   if((Q %% 2) == 0){
     stop("Please provide odd numbers of quantiles: median along with intervals.")
@@ -263,8 +267,9 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:K){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
         b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
@@ -287,8 +292,9 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:K){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
         b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
@@ -367,7 +373,7 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
 #' # example for class 'bgvar.irf'
 #' shockinfo <- get_shockinfo("chol")
 #' shockinfo$shock <- "US.stir"; shockinfo$scale <- +1
-#' irf.chol<-irf(model.ssvs, n.ahead=24, ident="chol", shockinfo=shockinfo)
+#' irf.chol<-irf(model.ssvs, n.ahead=24, shockinfo=shockinfo)
 #' plot(irf.chol, resp="US")
 #' }
 #' @export
@@ -386,6 +392,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
   Ki        <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  K         <- length(vars)
   Q         <- length(quantiles)
   if((Q %% 2) == 0){
     stop("Please provide odd numbers of quantiles: median along with intervals.")
@@ -394,9 +401,9 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
-      vars.cc <- sapply(strsplit(varNames[grep(cN[cc],varNames)],".",fixed=TRUE),function(x) x[2])
-      for(kk in 1:Ki[cc]){
-        idx <- which(paste0(cN[cc],".",vars.cc[kk])==varNames)
+      for(kk in 1:K){
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
@@ -421,8 +428,10 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
       vars.cc <- sapply(strsplit(varNames[grep(cN[cc],varNames)],".",fixed=TRUE),function(x) x[2])
-      for(kk in 1:Ki[cc]){
+      for(kk in 1:K){
         idx <- which(paste0(cN[cc],".",vars.cc[kk])==varNames)
+        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]

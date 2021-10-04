@@ -26,8 +26,8 @@ Extracts the global model coefficients for \code{bgvar} for certain quantiles of
 \examples{
 \donttest{
 library(BGVAR)
-data(eerDatasmall)
-model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+data(testdata)
+model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 coef(model.ng)
 }
 \donttest{

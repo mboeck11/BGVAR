@@ -19,8 +19,8 @@
 #' }
 #' @examples
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+#' data(testdata)
+#' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS")
 #' fcast <- predict(model.ssvs, n.ahead=8)
 #' 
@@ -264,8 +264,8 @@ print.bgvar.pred <- function(x, ...){
 #' @return Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples 
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#' data(testdata)
+#' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
@@ -303,8 +303,8 @@ lps.bgvar.pred <- function(object, ...){
 #' @return Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ssvs.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100,
+#' data(testdata)
+#' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)

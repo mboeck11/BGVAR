@@ -49,9 +49,9 @@
 #' oldpar <- par(no.readonly = TRUE)
 #' # First example, a US monetary policy shock, quarterly data
 #' library(BGVAR)
-#' data(eerDatasmall)
+#' data(testdata)
 #' # US monetary policy shock
-#' model.eer<-bgvar(Data=eerDatasmall, W=W.trade0012.small, draws=100, burnin=100, 
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'
 #' # generalized impulse responses

@@ -31,8 +31,8 @@ Since the calculations are very time consuming, the FEVDs are based on the poste
 \examples{
 \dontshow{
 library(BGVAR)
-data(eerDatasmall)
-model.eer<-bgvar(Data=eerDatasmall,W=W.trade0012.small,prior="MN",
+data(testdata)
+model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
                  draws=100,burnin=50,plag=1,eigen=TRUE)
                       
 # US monetary policy shock

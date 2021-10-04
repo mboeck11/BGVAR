@@ -50,8 +50,8 @@ Predictions are performed up to an horizon of \code{n.ahead}. Note that conditio
 }
 \examples{
 library(BGVAR)
-data(eerDatasmall)
-model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+data(testdata)
+model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
                     prior="SSVS")
 fcast <- predict(model.ssvs, n.ahead=8)
 

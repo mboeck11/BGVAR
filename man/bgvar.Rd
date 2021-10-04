@@ -78,6 +78,8 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 }}
 \item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
+\item{\code{save.shrink.store}}{If set to \code{TRUE} the function also inspects posterior output of shrinkage coefficients. Default set to \code{FALSE}.}
+\item{\code{save.vola.store}}{If set to \code{TRUE} the function also inspects posterior output of coefficients associated with the volatility process. Default set to \code{FALSE}.}
 \item{\code{use_R}}{ Boolean whether estimation should fall back on \code{R} version, otherwise \code{Rcpp} version is used (default).}
 \item{\code{applyfun}}{ In case \code{use_R=TRUE}, this allows for user-specific apply function, which has to have the same interface than \code{lapply}. If \code{cores=NULL} then \code{lapply} is used, if set to a numeric either \code{parallel::parLapply()} is used on Windows platforms and \code{parallel::mclapply()} on non-Windows platforms.}
 \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
@@ -120,9 +122,9 @@ We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search 
 }
 \examples{
 library(BGVAR)
-data(eerDatasmall)
+data(testdata)
 hyperpara <- list(tau0=0.1,tau1=3,kappa0=0.1,kappa1=7,a_1=0.01,b_1=0.01,p_i=0.5,q_ij=0.5)
-model.ssvs <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100,
+model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
                     prior="SSVS",SV=FALSE,hyperpara=hyperpara,thin=1)
 \dontrun{
 library(BGVAR)

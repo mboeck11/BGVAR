@@ -31,8 +31,8 @@ This function calculates residuals of the global and the country models based on
 \examples{
 \donttest{
 library(BGVAR)
-data(eerDatasmall)
-model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=100,burnin=100)
+data(testdata)
+model.ng <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100)
 resid(model.ng)
 }
 \donttest{

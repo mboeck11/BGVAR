@@ -150,6 +150,8 @@ W.trade0012<-apply(W.trade0012,2,function(x)x/rowSums(W.trade0012))
 W.list<-lapply(W.list,function(l){l<-apply(l[cN,cN],2,function(x)x/rowSums(l[cN,cN]))})
 ```
 
+This results in the same dataset as available in `testdata`.
+
 \section{Reading Data from Excel}
 # Reading Data from Excel
 <p align=justify>
@@ -1021,6 +1023,8 @@ Main arguments and description of the function `bgvar`.
             + `exo` a vector of variable names that should be fed into the other countries as (weakly) exogenous variables.
         + `Wex.restr`	A character vector that contains variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is `NULL` in which case all weakly exogenous variables are treated symmetrically. See function getweights for more details.
         + `save.country.store` If set to `TRUE` then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to `FALSE`.
+        + `save.shrink.store` If set to `TRUE` the function also inspects posterior output of shrinkage coefficients. Default set to `FALSE`.
+        + `save.vola.store` If set to `TRUE` the function also inspects posterior output of coefficients associated with the volatility process. Default set to `FALSE`.
         + `use_R` Boolean whether estimation should fall back on `R` version, otherwise `Rcpp` version is used (default).
         + `applyfun` applyfun Allows for user-specific apply function, which has to have the same interface than \code{lapply}. If `cores=NULL` then `lapply` is used, if set to a numeric either `parallel::parLapply()` is used on Windows platforms and `parallel::mclapply()` on non-Windows platforms.
         + `cores` Specifies the number of cores which should be used. Default is set to \code{NULL} and \code{applyfun} is used.

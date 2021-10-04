@@ -34,8 +34,8 @@ It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey
 \examples{
 \donttest{
 library(BGVAR)
-data(eerDatasmall)
-model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100)
+data(testdata)
+model.ng <- bgvar(Data=testdata,W=W.test,draws=100,burnin=100)
 resid.corr.test(model.ng)
 }
 }

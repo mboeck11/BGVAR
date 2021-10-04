@@ -25,17 +25,17 @@ namespace BGVAR {
         }
     }
 
-    inline List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, int plag, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam) {
-        typedef SEXP(*Ptr_BVAR_linear)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
+    inline List BVAR_linear(arma::mat Yraw, arma::mat Wraw, arma::mat Exraw, int plag, int draws, int burnin, int thin, bool cons, bool trend, bool sv, int prior, Rcpp::List hyperparam, Rcpp::List setting_store) {
+        typedef SEXP(*Ptr_BVAR_linear)(SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP,SEXP);
         static Ptr_BVAR_linear p_BVAR_linear = NULL;
         if (p_BVAR_linear == NULL) {
-            validateSignature("List(*BVAR_linear)(arma::mat,arma::mat,arma::mat,int,int,int,int,bool,bool,bool,int,Rcpp::List)");
+            validateSignature("List(*BVAR_linear)(arma::mat,arma::mat,arma::mat,int,int,int,int,bool,bool,bool,int,Rcpp::List,Rcpp::List)");
             p_BVAR_linear = (Ptr_BVAR_linear)R_GetCCallable("BGVAR", "_BGVAR_BVAR_linear");
         }
         RObject rcpp_result_gen;
         {
             RNGScope RCPP_rngScope_gen;
-            rcpp_result_gen = p_BVAR_linear(Shield<SEXP>(Rcpp::wrap(Yraw)), Shield<SEXP>(Rcpp::wrap(Wraw)), Shield<SEXP>(Rcpp::wrap(Exraw)), Shield<SEXP>(Rcpp::wrap(plag)), Shield<SEXP>(Rcpp::wrap(draws)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thin)), Shield<SEXP>(Rcpp::wrap(cons)), Shield<SEXP>(Rcpp::wrap(trend)), Shield<SEXP>(Rcpp::wrap(sv)), Shield<SEXP>(Rcpp::wrap(prior)), Shield<SEXP>(Rcpp::wrap(hyperparam)));
+            rcpp_result_gen = p_BVAR_linear(Shield<SEXP>(Rcpp::wrap(Yraw)), Shield<SEXP>(Rcpp::wrap(Wraw)), Shield<SEXP>(Rcpp::wrap(Exraw)), Shield<SEXP>(Rcpp::wrap(plag)), Shield<SEXP>(Rcpp::wrap(draws)), Shield<SEXP>(Rcpp::wrap(burnin)), Shield<SEXP>(Rcpp::wrap(thin)), Shield<SEXP>(Rcpp::wrap(cons)), Shield<SEXP>(Rcpp::wrap(trend)), Shield<SEXP>(Rcpp::wrap(sv)), Shield<SEXP>(Rcpp::wrap(prior)), Shield<SEXP>(Rcpp::wrap(hyperparam)), Shield<SEXP>(Rcpp::wrap(setting_store)));
         }
         if (rcpp_result_gen.inherits("interrupted-error"))
             throw Rcpp::internal::InterruptedException();

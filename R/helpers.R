@@ -22,8 +22,8 @@
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,SV=TRUE,
+#' data(testdata)
+#' model.mn <- bgvar(Data=testdata,W=W.test,plag=1,SV=TRUE,
 #'                   draws=100,burnin=100,prior="MN")
 #' avg.pair.cc(model.mn)
 #' 
@@ -149,8 +149,8 @@ avg.pair.cc=function(object, digits=3){
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.mn <- bgvar(Data=eerDatasmall,W=W.trade0012.small,plag=1,draws=200,burnin=200,prior="MN")
+#' data(testdata)
+#' model.mn <- bgvar(Data=testdata,W=W.test,plag=1,draws=200,burnin=200,prior="MN")
 #' geweke <- conv.diag(model.mn)
 #' }
 #' @references 
@@ -215,8 +215,8 @@ print.bgvar.CD <- function(x, ...){
 #' @examples
 #' \donttest{
 #' library(BGVAR)
-#' data(eerDatasmall)
-#' model.ng <- bgvar(Data=eerDatasmall,W=W.trade0012.small,draws=100,burnin=100)
+#' data(testdata)
+#' model.ng <- bgvar(Data=testdata,W=W.test,draws=100,burnin=100)
 #' resid.corr.test(model.ng)
 #' }
 #' @importFrom stats pf qf
