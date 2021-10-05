@@ -309,7 +309,6 @@ lps.bgvar.pred <- function(object, ...){
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
 #' @author Maximilian Boeck, Martin Feldkircher
-#' @importFrom knitr kable
 #' @importFrom stats dnorm
 #' @export
 rmse.bgvar.pred <- function(object, ...){
@@ -331,134 +330,48 @@ rmse.bgvar.pred <- function(object, ...){
 
 #' @method print bgvar.lps
 #' @export
-#' @importFrom knitr kable
-print.bgvar.lps<-function(x, ...){
-  h    <- dim(x)[1]
-  cN   <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[1]))
-  vars <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[2]))
-  cntry <- round(sapply(cN,function(y)mean(x[grepl(y,colnames(x))])),2)
-  K     <- ceiling(length(cntry)/10)
-  mat.c <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.c[(i-1)*2+1,] <- names(cntry)[((i-1)*10+1):(i*10)]
-      mat.c[(i-1)*2+2,] <- as.numeric(cntry)[((i-1)*10+1):(i*10)]
-    }else{
-      mat.c[(i-1)*2+1,1:(length(cntry)-(i-1)*10)] <- names(cntry)[((i-1)*10+1):length(cntry)]
-      mat.c[(i-1)*2+2,1:(length(cntry)-(i-1)*10)] <- as.numeric(cntry)[((i-1)*10+1):length(cntry)]
-    }
-  }
-  mat.c[is.na(mat.c)] <- ""
-  colnames(mat.c) <- rep("",10)
-  vars  <- round(sapply(vars,function(y)mean(x[grepl(y,colnames(x))])),2)
-  K     <- ceiling(length(vars)/10)
-  mat.v <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.v[(i-1)*2+1,] <- names(vars)[((i-1)*10+1):(i*10)]
-      mat.v[(i-1)*2+2,] <- as.numeric(vars)[((i-1)*10+1):(i*10)]
-    }else{
-      mat.v[(i-1)*2+1,1:(length(vars)-(i-1)*10)] <- names(vars)[((i-1)*10+1):length(vars)]
-      mat.v[(i-1)*2+2,1:(length(vars)-(i-1)*10)] <- as.numeric(vars)[((i-1)*10+1):length(vars)]
-    }
-  }
-  mat.v[is.na(mat.v)] <- ""
-  colnames(mat.v) <- rep("",10)
-  K     <- ceiling(h/10)
-  mat.h <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.h[(i-1)*2+1,] <- paste("h=",seq(((i-1)*10+1),(i*10),by=1),sep="")
-      mat.h[(i-1)*2+2,] <- round(rowSums(x[((i-1)*10+1):(i*10),]),2)
-    }else{
-      mat.h[(i-1)*2+1,1:(h-(i-1)*10)] <- paste("h=",seq(((i-1)*10+1),h,by=1),sep="")
-      mat.h[(i-1)*2+2,1:(h-(i-1)*10)] <- round(rowSums(x[((i-1)*10+1):h,]),2)
-    }
-  }
-  mat.h[is.na(mat.h)] <- ""
-  colnames(mat.h) <- rep("",10)
+print.bgvar.lps<-function(x, ..., resp=NULL){
+  h        <- dim(x)[1]
+  varNames <- colnames(x)
+  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(y)y[1]))
+  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(y)y[2]))
+  cntry    <- round(sapply(cN,function(y)mean(x[grepl(y,colnames(x))])),2)
+  Ki       <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  bigK     <- length(vars)
   
   cat("---------------------------------------------------------------------------")
   cat("\n")
-  cat("Log-predictive scores per country")
-  cat(kable(mat.c), "rst")
+  cat("Log-Predictive Density Scores")
+  cat("\n")
+  cat(paste0("Available for hold.out times K: ",h," times ",bigK))
+  cat("\n")
+  cat(paste0("Total: ", round(sum(x),2)))
   cat("\n")
   cat("---------------------------------------------------------------------------")
-  cat("\n")
-  cat("Log-predictive scores per variable")
-  cat(kable(mat.v), "rst")
-  cat("\n")
-  cat("---------------------------------------------------------------------------")
-  cat("\n")
-  cat("Log-predictive scores per horizon")
-  cat(kable(mat.h), "rst")
-  cat("\n")
-  cat("---------------------------------------------------------------------------")
+  
+  return(invisible(x))
 }
 
 #' @method print bgvar.rmse
 #' @export
-#' @importFrom knitr kable
-print.bgvar.rmse<-function(x, ...){
-  h    <- dim(x)[1]
-  cN   <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[1]))
-  vars <- unique(sapply(strsplit(colnames(x),".",fixed=TRUE),function(y)y[2]))
-  cntry <- round(sapply(cN,function(y)mean(x[grepl(y,colnames(x))])),2)
-  K     <- ceiling(length(cntry)/10)
-  mat.c <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.c[(i-1)*2+1,] <- names(cntry)[((i-1)*10+1):(i*10)]
-      mat.c[(i-1)*2+2,] <- as.numeric(cntry)[((i-1)*10+1):(i*10)]
-    }else{
-      mat.c[(i-1)*2+1,1:(length(cntry)-(i-1)*10)] <- names(cntry)[((i-1)*10+1):length(cntry)]
-      mat.c[(i-1)*2+2,1:(length(cntry)-(i-1)*10)] <- as.numeric(cntry)[((i-1)*10+1):length(cntry)]
-    }
-  }
-  mat.c[is.na(mat.c)] <- ""
-  colnames(mat.c) <- rep("",10)
-  vars  <- round(sapply(vars,function(y)mean(x[grepl(y,colnames(x))])),2)
-  K     <- ceiling(length(vars)/10)
-  mat.v <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.v[(i-1)*2+1,] <- names(vars)[((i-1)*10+1):(i*10)]
-      mat.v[(i-1)*2+2,] <- as.numeric(vars)[((i-1)*10+1):(i*10)]
-    }else{
-      mat.v[(i-1)*2+1,1:(length(vars)-(i-1)*10)] <- names(vars)[((i-1)*10+1):length(vars)]
-      mat.v[(i-1)*2+2,1:(length(vars)-(i-1)*10)] <- as.numeric(vars)[((i-1)*10+1):length(vars)]
-    }
-  }
-  mat.v[is.na(mat.v)] <- ""
-  colnames(mat.v) <- rep("",10)
-  K     <- ceiling(h/10)
-  mat.h <- matrix(NA,nrow=2*K,ncol=10)
-  for(i in 1:K){
-    if(i<K) {
-      mat.h[(i-1)*2+1,] <- paste("h=",seq(((i-1)*10+1),(i*10),by=1),sep="")
-      mat.h[(i-1)*2+2,] <- round(rowSums(x[((i-1)*10+1):(i*10),]),2)
-    }else{
-      mat.h[(i-1)*2+1,1:(h-(i-1)*10)] <- paste("h=",seq(((i-1)*10+1),h,by=1),sep="")
-      mat.h[(i-1)*2+2,1:(h-(i-1)*10)] <- round(rowSums(x[((i-1)*10+1):h,]),2)
-    }
-  }
-  mat.h[is.na(mat.h)] <- ""
-  colnames(mat.h) <- rep("",10)
+print.bgvar.rmse<-function(x, ..., resp=NULL){
+  h        <- dim(x)[1]
+  varNames <- colnames(x)
+  cN       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(y)y[1]))
+  vars     <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(y)y[2]))
+  cntry    <- round(sapply(cN,function(y)mean(x[grepl(y,colnames(x))])),2)
+  Ki       <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  bigK     <- length(vars)
   
   cat("---------------------------------------------------------------------------")
   cat("\n")
-  cat("Root-mean squared error per country")
-  cat(kable(mat.c), "rst")
+  cat("Root-Mean Squared Error")
+  cat("\n")
+  cat(paste0("Available for hold.out times K: ",h," times ",bigK))
+  cat("\n")
+  cat(paste0("Total: ", round(sum(x),2)))
   cat("\n")
   cat("---------------------------------------------------------------------------")
-  cat("\n")
-  cat("Root-mean squared error per variable")
-  cat(kable(mat.v), "rst")
-  cat("\n")
-  cat("---------------------------------------------------------------------------")
-  cat("\n")
-  cat("Root-mean squared error per horizon")
-  cat(kable(mat.h), "rst")
-  cat("\n")
-  cat("---------------------------------------------------------------------------")
+  
+  return(invisible(x))
 }

@@ -621,6 +621,7 @@ summary.bgvar <- function(object, ...){
 }
 
 #' @method print bgvar.summary
+#' @importFrom knitr kable
 #' @export
 print.bgvar.summary <- function(x, ...){
   cat("---------------------------------------------------------------------------")
