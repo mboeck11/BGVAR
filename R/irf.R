@@ -71,13 +71,13 @@
 #'                            sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #' 
+#' \donttest{
 #' # sign restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 
 #' sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 #' irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 #' 
-#' \donttest{
 #' #' # sign restrictions with relaxed cross-country restrictions
 #' shockinfo <- get_shockinfo("sign")
 #' # restriction for other countries holds to 75\%
