@@ -611,12 +611,10 @@ summary.bgvar <- function(object, ...){
   CD  <- conv.diag(object)
   res <- resid.corr.test(object,lag.cor=1,alpha=0.95)
   cross.corr <- avg.pair.cc(object)
-  LL <- logLik(object)
   out  <- structure(list("object"=object,
                          "CD"=CD,
                          "res"=res,
-                         "cross.corr"=cross.corr,
-                         "logLik"=LL), class = "bgvar.summary")
+                         "cross.corr"=cross.corr), class = "bgvar.summary")
   return(out)
 }
 
@@ -647,10 +645,6 @@ print.bgvar.summary <- function(x, ...){
   cat("Convergence diagnostics")
   cat("\n")
   cat(paste("Geweke statistic:\n",x$CD$perc,sep=""))
-  cat("\n")
-  cat("---------------------------------------------------------------------------")
-  cat("\n")
-  cat(paste("Global Likelihood: ",round(x$logLik,2),sep=""))
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
