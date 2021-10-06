@@ -1,4 +1,4 @@
-Change in Version 2.4
+Change in Version 2.4.0
 - bugfix in plotting fitted values
 - per default no save of containers of shrinkage parameter - decreases significantly memory usage
 - restructure of example data sets
