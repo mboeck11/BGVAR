@@ -317,23 +317,26 @@ plot(model.1, global=FALSE, resp="EA")
 
 We can estimate the model with two further priors on the unit models, the SSVS prior and the Minnesota prior. To give a concrete example, the SSVS prior can be invoked by typing:
 ```{r "ssvs.1",echo=TRUE, results="hide"}
- model.ssvs.1<-bgvar(Data=eerData,
-                     W=W.trade0012,
-                     draws=100,
-                     burnin=100,
-                     plag=1,
-                     prior="SSVS",
-                     hyperpara=NULL, 
-                     SV=TRUE,
-                     thin=1,
-                     trend=TRUE,
-                     hold.out=0,
-                     eigen=1
-                     )
+model.ssvs.1<-bgvar(Data=eerData,
+                    W=W.trade0012,
+                    draws=100,
+                    burnin=100,
+                    plag=1,
+                    prior="SSVS",
+                    hyperpara=NULL, 
+                    SV=TRUE,
+                    thin=1,
+                    Ex=NULL,
+                    trend=TRUE,
+                    expert=list(save.shrink.store=TRUE),
+                    hold.out=0,
+                    eigen=1,
+                    verbose=TRUE
+                    )
 ```
 
 <p align="justify">
-One feature of the SSVS prior is that it allows us to look at the posterior inclusion probabilities to gauge the importance of particular variables. For example, we can have a look at the PIPs of the euro area model by typing:
+One feature of the SSVS prior is that it allows us to look at the posterior inclusion probabilities to gauge the importance of particular variables. Per default, `bgvar` does not save the volatilities of the coefficients to save memory. If we set `expert=list(save.shrink.store=TRUE)` to `TRUE` (default is `FALSE`) then those probabilities are saved and posterior inclusion probabilities (PIPs) are computed. For example, we can have a look at the PIPs of the euro area model by typing:
 </p>
 
 ```{r "Pips"}
@@ -383,7 +386,7 @@ model.ssvs.2<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(variable.list=variable.list),
+                    expert=list(variable.list=variable.list,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 ```
@@ -403,7 +406,7 @@ model.ssvs.3<-bgvar(Data=eerData,
                     prior="SSVS",
                     SV=TRUE,
                     eigen=1,
-                    expert=list(Wex.restr="ltir"),
+                    expert=list(Wex.restr="ltir",save.shrink.store=TRUE),
                     trend=TRUE,
                     )
 ```
@@ -464,7 +467,7 @@ model.ssvs.4<-bgvar(Data=eerData2,
                     burnin=100,
                     prior="SSVS",
                     SV=TRUE,
-                    expert=list(OE.weights=OE.weights),
+                    expert=list(OE.weights=OE.weights,save.shrink.store=TRUE),
                     trend=TRUE
                     )
 ```
@@ -882,7 +885,6 @@ Since the GVAR framework was developed to capture cross-country dependencies, it
 To compute forecasts with the `BGVAR` package, we use the command `predict`. To be able to evaluate the forecast, we have to specify the size of the hold-out sample when estimating the model. Here, we choose a hold-out-sample of 8 observations by setting `h=8` (the default values is `h=0`):   
 </p>
 ```{r,"fcast.est", results="hide"}
-browser()
 model.ssvs.h8<-bgvar(Data=eerData,
                      W=W.trade0012,
                      draws=500,
@@ -932,7 +934,7 @@ Similar to structural analysis, it is possible to use conditional forecasts, ide
 
 ```{r "cond.predict",results="hide"}
 # matrix with constraints
-constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.1$xglobal))
+constr <- matrix(NA,nrow=fcast$n.ahead,ncol=ncol(model.ssvs.h8$xglobal))
 colnames(constr) <- colnames(model.ssvs.h8$xglobal)
 # set "US.Dp" for five periods on its last value
 constr[1:5,"US.Dp"] <-model.ssvs.h8$xglobal[nrow(model.ssvs.h8$xglobal),"US.Dp"]

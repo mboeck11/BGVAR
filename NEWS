@@ -1,3 +1,7 @@
+Change in Version 2.4.1
+- bugfix in Rcpp code (occured when using SSVS prior and save.shrink.store=TRUE)
+- bugfixes in vignette
+
 Change in Version 2.4.0
 - bugfix in plotting fitted values
 - per default no save of containers of shrinkage parameter - decreases significantly memory usage

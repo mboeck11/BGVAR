@@ -268,31 +268,34 @@ List BVAR_linear(arma::mat Yraw,
   arma::cube res_store(T,M,thindraws);
   // SV
   arma::cube Sv_store(T,M,thindraws);
-  arma::ivec size_of_cube = {0, 0, 0};
+  arma::ivec size_of_cube1 = {0, 0, 0};
+  arma::ivec size_of_cube2 = {0, 0, 0};
   if(save_vola_pars == true){
-    size_of_cube = {4, M, thindraws};
+    size_of_cube1 = {4, M, thindraws};
   }
-  arma::cube pars_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  arma::cube pars_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
   // MN
   if(save_shrink_MN == true){
-    size_of_cube = {3, 1, thindraws};
+    size_of_cube2 = {3, 1, thindraws};
   }
-  arma::cube shrink_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  arma::cube shrink_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
   // SSVS
+  size_of_cube1 = {0, 0, 0};
+  size_of_cube2 = {0, 0, 0};
   if(save_shrink_SSVS == true){
-    size_of_cube = {k, M, thindraws};
+    size_of_cube1 = {k, M, thindraws};
+    size_of_cube2 = {M, M, thindraws};
   }
-  arma::cube gamma_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
-  arma::cube omega_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
+  arma::cube gamma_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
+  arma::cube omega_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
   // NG
-  arma::ivec size_of_cube_add = {0, 0, 0};
   if(save_shrink_NG){
-    size_of_cube = {k, M, thindraws};
-    size_of_cube_add = {plag+1, 3, thindraws};
+    size_of_cube1 = {k, M, thindraws};
+    size_of_cube2 = {plag+1, 3, thindraws};
   }
-  arma::cube theta_store(size_of_cube(0), size_of_cube(1), size_of_cube(2));
-  arma::cube lambda2_store(size_of_cube_add(0), size_of_cube_add(1), size_of_cube_add(2));
-  arma::cube tau_store(size_of_cube_add(0), size_of_cube_add(1), size_of_cube_add(2));
+  arma::cube theta_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
+  arma::cube lambda2_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
+  arma::cube tau_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
