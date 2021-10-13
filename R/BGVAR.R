@@ -626,8 +626,8 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat("Model Info:")
   cat("\n")
-  cat(paste("Prior: ",ifelse(x$args$prior=="MN","Minnesota prior (MN)",
-                             ifelse(x$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
+  cat(paste("Prior: ",ifelse(x$object$args$prior=="MN","Minnesota prior (MN)",
+                             ifelse(x$object$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
                                     "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
   cat(paste("Number of lags: ",x$object$args$plag,sep=""))
@@ -638,7 +638,7 @@ print.bgvar.summary <- function(x, ...){
     cat("Number of stable posterior draws: ",length(x$object$stacked.results$F.eigen))
     cat("\n")
   }
-  cat(paste("Number of countries: ",length(x$object$gW),sep=""))
+  cat(paste("Number of cross-sectional units: ",length(x$object$gW),sep=""))
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
@@ -648,7 +648,7 @@ print.bgvar.summary <- function(x, ...){
   cat("\n")
   cat("---------------------------------------------------------------------------")
   cat("\n")
-  cat("F-test, first order serial autocorrelation of cross-country residuals")
+  cat("F-test, first order serial autocorrelation of cross-unit residuals")
   cat("\n")
   cat("Summary statistics:")
   cat("\n")
@@ -658,7 +658,7 @@ print.bgvar.summary <- function(x, ...){
   }
   cat("---------------------------------------------------------------------------")
   cat("\n")
-  cat("Average pairwise cross-country correlation of country model residuals")
+  cat("Average pairwise cross-unit correlation of unit-model residuals")
   cat("\n")
   cat("Summary statistics:")
   cat("\n")
