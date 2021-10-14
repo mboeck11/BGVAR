@@ -19,6 +19,8 @@ Description: Estimation of Bayesian Global Vector Autoregressions (BGVAR) with d
 Encoding: UTF-8
 License: GPL-3
 Language: en-US
+URL: https://github.com/mboeck11/BGVAR
+BugReports: https://github.com/mboeck11/BGVAR/issues
 Depends: R (>= 3.5.0)
 SystemRequirements: C++11, GNU make
 Imports:

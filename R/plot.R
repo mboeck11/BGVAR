@@ -405,7 +405,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -433,7 +433,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -459,7 +459,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
         if(length(idx)==0) next
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-        if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+        if(cumulative){x<-apply(x,2,cumsum)}
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -483,7 +483,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     for(kk in 1:Ki){
       idx <- ridx[kk]
       x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
-      if(cumulative){x<-apply(x,2,cumsum);y<-apply(y,2,cumsum)}
+      if(cumulative){x<-apply(x,2,cumsum)}
       b <- range(x);b1<-b[1];b2<-rev(b)[1]
       plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
               lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
