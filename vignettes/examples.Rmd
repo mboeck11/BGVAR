@@ -769,7 +769,7 @@ We can now impose a joint shock on long-term interest rates for selected countri
 shockinfo<-get_shockinfo("sign")
 for(cc in c("AT","BE","FR")){
   shockinfo<-add_shockinfo(shockinfo, shock=paste0(cc,".ltir"),
-                           restriction=paste0(cc,c(".y",".p")),
+                           restriction=paste0(cc,c(".ip",".p")),
                            sign=c("<","<"), horizon=c(1,1), 
                            prob=c(0.5,0.5), scale=c(-100,-100),
                            global=TRUE)
