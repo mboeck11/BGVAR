@@ -733,7 +733,7 @@ We can look at the data by typing:
 data(monthlyData);monthlyData$OC<-NULL
 names(monthlyData)
 # list of weights of other entities with same name as additional country model
-OE.weights = list(EB=EA.weights)
+OE.weights = list(EB=EB.weights)
 EA_countries <- c("AT", "BE", "DE","ES", "FI","FR")
                   # "IE", "IT", "NL", "PT","GR","SK","MT","CY","EE","LT","LV")
 ```
