@@ -794,7 +794,7 @@ To verify the sign restrictions, type:
 
 ```{r,"ea.sign.verify"}
 irf.sign.ssvs$posterior[paste0(EA_countries[-c(3,12)],".ltir"),1,1,"Q50"]
-irf.sign.ssvs$posterior[paste0(EA_countries,".y"),1,1,"Q50"]
+irf.sign.ssvs$posterior[paste0(EA_countries,".ip"),1,1,"Q50"]
 irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 ```
 
