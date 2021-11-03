@@ -17,7 +17,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.}
 
-\item{draws}{Number of draws saved. Default set to \code{draws=5000}.}
+\item{draws}{Number of retained draws. Default set to \code{draws=5000}.}
 
 \item{burnin}{Number of burn-ins. Default set to \code{burnin=5000}.}
 

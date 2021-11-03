@@ -58,23 +58,27 @@ NULL
 "testdata"
 
 #' @title Monthly EU / G8 countries macroeconomic dataset
-#' @description This data set contains monthly observations on industrial production, consumer price indices, short- and long-term interest rates, real effective exchange rates and equity prices. The time period covered is from January 2000 to December 2015 and the country coverage amounts to  28 countries -- roughly corresponding to EU member states + G-8 countries and a country model to model common monetary policy in the euro area.
-#' @format The data loads three objects \code{monthlyData}, which is a list object of length \code{N+1} (i.e, the number of countries + the ECB country model), \code{W}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual input output flows for the \code{N} countries over the period from 2000 to 2014. The data are from the world input output table database (\url{http://www.wiod.org/home}) and are fully described in Timmerman et al. (2015). \code{monthlyData} contains the country data. Per default, variables that should affect all countries (global variables) are treated as endogenous variables in the US country model (\code{poil}, \code{pcom}, \code{vix}). Akin to Georgiadis (2015), interest setting in the euro area is modeled by a Taylor rule that includes ppp-weighted output and prices of euro area countries. The euro area interest rate enters other country models as an additional exogenous variable. For more details, see below:
+#' @description This data set contains monthly observations on industrial production, consumer price indices, short- and long-term interest rates, the nominal exchange rate against the euro and equity prices. The time period covered is from January 2001 to June 2021 and the country coverage amounts to  31 countries -- roughly corresponding to EU member states + G-8 countries, a country model to model common monetary policy in the euro area and an oil price model.
+#' @format The data loads four objects \code{monthly.data}, which is a list object of length \code{N+2} (i.e, the number of countries, the ECB country model and an oil price model), \code{W}, which is an \code{N} times \code{N} weight matrix with rowsums summing up to unity and zero elements on its diagonal. The countries are abbreviated using ISO-2 codes. The weight matrix corresponds to average annual input output flows for the \code{N} countries over the period from 2000 to 2014. The data are from the world input output table database (\url{www.wiod.org}) and are fully described in Timmerman et al. (2015). Akin to Georgiadis (2015), interest setting in the euro area is modeled by a Taylor rule that includes ppp-weighted output and prices of euro area countries. The euro area interest rate enters other country models as an additional exogeneous variable. For more details, see below:
 #' \itemize{
-#' \item{W} {Weight matrix, rowsums equal unity.}
-#' \item{monthlyData} { List object containing \itemize{
+#' \item{W} {\code{N} times \code{N} weight matrix, rowsums equal unity and the \code{i,jth} element reflecting flows from unit \code{i} to unit  \code{j}.}
+#' \item{EB.weights} {To model the common monetary policy in the euro area, it is possible to augment the GVAR countries by a country model for the ECB. It is important that this country model is labeled 'EB'. Akin to Georgidas (2015) we use a Taylor rule to determine interest rates in the euro area. The Taylor rule typically relates short-term interest rates to a weighted average of output (\code{ip} and prices \code{p}). \code{ea.weights} is a list whith the first slot containing a vector of weights to aggregate single euro area countrys' output and price figures. In the example using the \code{monthlyData} set, we use purchasing power parity weights, averaged over the sample period. The second slot contains a character vector that specifies the variables which should enter the Taylor rule (typicall output and prices).}
+#' \item{OC.weights} {This feature is very similar to \code{EB.weights} above and should be specified if an own-standing unit model for the oil price should be included -- as opposed to having oil prices attached to a particular country model, as is standard in the literature. It is important that the country model is labeled 'OC'. Again,  \code{OC.weights} is a list of length 2, the first slot should be a vector of weights to aggregate variables, second one the variables to aggregate. The vector of weights should have country names attached to it. In the example using the \code{monthlyData} set, we use purchasing power parity weights to aggregate world output to resemble demand for oil.}
+#' \item{monthlyData} { is a list object of length \code{N} containing \itemize{
 #' \item{\code{y}}{ Industrial production index, in real terms, logarithmic transform and seasonally adjusted.}
 #' \item{\code{p}}{ Harmonized Consumer Price Index (HCPI) for EU member states, for other countries Consumer Price Index. Data in logarithmic transform and seasonally adjusted.}
 #' \item{\code{stir}}{ Short-term interest rate, typically 3 months money market rate.}
 #' \item{\code{EAstir}}{ Short-term interest rate, typically 3 months money market rate (3 months euribor).}
 #' \item{\code{ltir}}{ Long term interest rates, typically 10-year government bond yields.}
-#' \item{\code{er}}{ Real effective exchange rate index, deflated by consumer prices.}
+#' \item{\code{eur_er}}{ Nominal exchange rate against the euro in logarithmic transform. An increase implies an appreciation of the euro. }
 #' \item{\code{eq}}{ Equity price index, in logarithmic transform.}
 #' \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
-#' \item{\code{pcom}}{ Commodity price index, seasonally adjusted, in logarithms.}
-#' \item{\code{vix}}{ Volatility index, in logarithms.}
+#' \item{\code{qoil}}{ World oil production of crude oil, in thousands of barrels per day, in logarithms.}
 #' }}}
-#' @aliases EA.weights OC.weights W
+#' @aliases EB.weights OC.weights W
+#' @references 
+#' Georgiadis, G. (2015) Examining asymmetries in the transmission of monetary policy in the euro area: Evidence from a mixed cross-section global VAR model. In: European Economic Review, Vol. 75, pp. 195-215.
+#' Timmer, M. P., Dietzenbacher, E., Los, B., Stehrer, R. and de Vries, G. J. (2015) An Illustrated User Guide to the World Input–Output Database: the Case of Global Automotive Production. In: Review of International Economics, Vol. 23, pp. 575–605.
 #' @docType data
 "monthlyData"
 

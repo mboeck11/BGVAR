@@ -64,9 +64,9 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
     for(int pp=1; pp <= p; pp++){
       for(int j=0; j < M; j++){ // variable - row
         if(i==j){ // own lag
-          V(j+M*(pp-1),i) = shrink1/pow(static_cast<double>(pp),2.0);
+          V(j+M*(pp-1),i) = pow(shrink1/static_cast<double>(pp),2.0);
         }else{
-          V(j+M*(pp-1),i) = (shrink2 * sigmas(i))/(pow(static_cast<double>(pp),2.0)*sigmas(j));
+          V(j+M*(pp-1),i) = pow((shrink1 * shrink2)/(static_cast<double>(pp)),2.0) * (sigmas(i)/sigmas(j));
         }
       }
     }
@@ -76,7 +76,7 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
     for(int i=0; i < M; i++){ // equation - column
       for(int pp=0; pp <= p; pp++){
         for(int j=0; j < Mstar; j++){
-          V(M*p+pp*Mstar+j,i) = shrink4 * sigmas(i)/(sigmas(M+j)*(pp+1));
+          V(M*p+pp*Mstar+j,i) = pow((shrink1 * shrink4)/static_cast<double>(pp+1),2.0) * sigmas(i)/(sigmas(M+j));
         }
       }
     }

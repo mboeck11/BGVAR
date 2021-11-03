@@ -18,7 +18,7 @@
 Returns an vector of dimension \code{q} (number of specified quantiles) of global log-likelihoods.
 }
 \description{
-Extract Log-Likelihood for \code{bgvar}.
+Extracts Log-Likelihood for \code{bgvar}.
 }
 \examples{
 \donttest{

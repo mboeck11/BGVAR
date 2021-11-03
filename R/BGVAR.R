@@ -10,7 +10,7 @@
 #' }
 #' @param W An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. 
 #' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.
-#' @param draws Number of draws saved. Default set to \code{draws=5000}.
+#' @param draws Number of retained draws. Default set to \code{draws=5000}.
 #' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
 #' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
@@ -395,7 +395,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   args$thindraws <- draws/thin
   # set default
   if(verbose) cat("Hyperparameter setup: \n")
-  default_hyperpara <- list(a_1=0.01,b_1=0.01, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
+  default_hyperpara <- list(a_1=3,b_1=0.3, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
                             shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
@@ -826,7 +826,7 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 
 #' @name logLik
 #' @title Extract Log-likelihood of Bayesian GVAR
-#' @description Extract Log-Likelihood for \code{bgvar}.
+#' @description Extracts Log-Likelihood for \code{bgvar}.
 #' @param object An object of class \code{bgvar}.
 #' @param ... Additional arguments.
 #' @param quantile Reported quantiles. Default is set to median.

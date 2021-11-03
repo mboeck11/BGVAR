@@ -203,7 +203,7 @@
           V_i[j+M*(pp-1),i] <- (a_bar_1/pp)^2
         }else{
           #V_i[j+M*(pp-1),i] <- (a_bar_2 * sigma_sq[i])/(pp^2*sigma_sq[j]) #####
-          V_i[j+M*(pp-1),i] <- (a_bar_2/pp)^2 * (sigma_sq[i]/sigma_sq[j])
+          V_i[j+M*(pp-1),i] <- (a_bar_1*a_bar_2/pp)^2 * (sigma_sq[i]/sigma_sq[j])
         }
       }
     }
@@ -213,7 +213,7 @@
     for(pp in 0:p){
       for(j in 1:Mstar){
         #V_i[M*p+pp*Mstar+j,i] <- a_bar_4 * sigma_sq[i]/(sigma_wex[j]*(pp+1)) #####
-        V_i[M*p+pp*Mstar+j,i] <- (a_bar_4/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
+        V_i[M*p+pp*Mstar+j,i] <- (a_bar_1*a_bar_4/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
       }
     }
   }
