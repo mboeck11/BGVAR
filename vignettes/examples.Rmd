@@ -800,10 +800,10 @@ irf.sign.ssvs$posterior[paste0(EA_countries,".p"),1,1,"Q50"]
 
 The following plots the output responses for selected euro area countries.
 ```{r, "ea.sign.plots",fig.show="hold",out.width="25%",fig.cap="Output responses of selected euro area countries."}
-plot(irf.sign.ssvs, resp=c("AT.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("BE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("DE.y"), shock="Global.ltir")
-plot(irf.sign.ssvs, resp=c("ES.y"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("AT.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("BE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("DE.ip"), shock="Global.ltir")
+plot(irf.sign.ssvs, resp=c("ES.ip"), shock="Global.ltir")
 ```
   
 
