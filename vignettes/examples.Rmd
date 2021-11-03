@@ -491,7 +491,7 @@ heatmap(aux4,Rowv=NA,Colv=NA, main="Model 4")
 We could also compare the models based on their fit, the likelihood, information criteria such as the DIC, residual properties or their forecasting performance. 
 </p>
 
-\section{Impulse response functions}
+\section{Impulse Response Functions}
 # Impulse response functions
 <p align="justify">
 The package allows to calculate three different ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in @Pesaran1998, orthogonalized impulse response functions using a Cholesky decomposition of the variance covariance matrix and finally impulse response functions given a set of user-specified sign restrictions.
@@ -868,8 +868,6 @@ matplot(cbind(HD$x[,1],org.ts[,1]),type="l",ylab="",lwd=2)
 legend("bottomright",c("hd series","original"),col=c("black","red"),lty=c(1,2),bty="n",cex=2)
 ```
 
-
-
 \section{Unconditional and Conditional Forecasts}
 # Unconditional and Conditional Forecasts
 <p align="justify">
@@ -966,7 +964,7 @@ with `Cut` denoting the number of realized data points that should be shown in t
 
 \section{Appendix}
 # Appendix
-\subsection{Main Function bgvar}
+\subsection{Main Function: `bgvar`}
 ## Function Arguments `bgvar`
 Main arguments and description of the function `bgvar`.
 
@@ -1116,8 +1114,8 @@ model.ng<-bgvar(Data=monthlyData,
 ```
 
 
-\subsection{irf() Function}
-## Function Arguments `irf()` 
+\subsection{Main Function `irf`}
+## Function Arguments `irf` 
 
 * `x`: An objected fitted by function `bgvar`.
 
