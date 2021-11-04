@@ -1,3 +1,6 @@
+Change in Version 2.4.2
+- bugfix in fevd; added additional check
+
 Change in Version 2.4.1
 - bugfix in Rcpp code (occured when using SSVS prior and save.shrink.store=TRUE)
 - bugfixes in vignette

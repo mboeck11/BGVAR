@@ -1,7 +1,7 @@
 Package: BGVAR
 Type: Package
 Title: Bayesian Global Vector Autoregressions
-Version: 2.4.1
+Version: 2.4.2
 Author: Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
     Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),

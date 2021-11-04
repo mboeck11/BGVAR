@@ -91,6 +91,9 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
     if(verbose) cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
   }
   if(ident=="sign" && is.null(rotation.matrix)){
+    if(is.null(x$struc.obj$Rmed)){
+      stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
+    }
     rotation.matrix <- x$struc.obj$Rmed
   }else if(ident=="chol"){
     rotation.matrix<-diag(bigK)
