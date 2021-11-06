@@ -20,6 +20,7 @@
 #' @seealso \code{\link{bgvar}}, \code{\link{irf}}
 #' @examples
 #' \dontshow{
+#' set.seed(123)
 #' library(BGVAR)
 #' data(testdata)
 #' model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
@@ -82,6 +83,9 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
       stop("One of the variables you want to decompose is not contained in the system. Please re-specify!")
     }
   }
+  if(is.null(x$struc.obj$Rmed) && ident == "sign"){
+    stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
+  }
   if(is.null(var.slct)){
     if(verbose) cat("FEVD computed for all variables.\n\n")
     var.slct<-varNames
@@ -91,9 +95,6 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
     if(verbose) cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
   }
   if(ident=="sign" && is.null(rotation.matrix)){
-    if(is.null(x$struc.obj$Rmed)){
-      stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
-    }
     rotation.matrix <- x$struc.obj$Rmed
   }else if(ident=="chol"){
     rotation.matrix<-diag(bigK)

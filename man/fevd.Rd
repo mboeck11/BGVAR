@@ -30,6 +30,7 @@ Since the calculations are very time consuming, the FEVDs are based on the poste
 }
 \examples{
 \dontshow{
+set.seed(123)
 library(BGVAR)
 data(testdata)
 model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
