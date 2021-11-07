@@ -1,4 +1,7 @@
-Change in Version 2.4.2
+Change in Version 2.4.4
+- bugfix in Ex argument in `bgvar`
+
+Change in Version 2.4.2/3
 - bugfix in fevd; added additional check
 
 Change in Version 2.4.1

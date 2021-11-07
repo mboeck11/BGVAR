@@ -439,7 +439,7 @@
   }
   
   Xraw <- cbind(Ylag,Wraw,Wexlag)
-  if(texo) Xraw <- cbind(X,Exraw)
+  if(texo) Xraw <- cbind(Xraw,Exraw)
   X <- Xraw[(plag+1):nrow(Xraw),,drop=FALSE]
   Y <- Yraw[(plag+1):Traw,,drop=FALSE]
   bigT  <- nrow(X)
