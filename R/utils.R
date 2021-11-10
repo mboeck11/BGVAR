@@ -1144,15 +1144,17 @@
   colNames <- lapply(country.shrink,colnames)
   varNames <- lapply(country.shrink,rownames)
   for(cc in 1:N) {
-    colNames[[cc]] <- gsub(paste(cN[cc],".",sep=""),"",colNames[[cc]])
-    varNames[[cc]] <- gsub(paste(cN[cc],".",sep=""),"",varNames[[cc]])
+    colNames[[cc]] <- gsub(paste(cN[cc],"\\.",sep=""),"",colNames[[cc]])
+    varNames[[cc]] <- gsub(paste(cN[cc],"\\.",sep=""),"",varNames[[cc]])
   }
   colNames <- unique(unlist(colNames))
   varNames <- unique(unlist(varNames))
   shrink <- array(NA,dim=c(length(varNames),length(colNames),N))
   dimnames(shrink)[[1]] <- varNames; dimnames(shrink)[[2]] <- colNames; dimnames(shrink)[[3]] <- cN
   for(cc in 1:N){
-    aux <- country.shrink[[cc]];rownames(aux)<-gsub(paste(cN[cc],".",sep=""),"",rownames(aux));colnames(aux)<-gsub(paste(cN[cc],".",sep=""),"",colnames(aux))
+    aux <- country.shrink[[cc]]
+    rownames(aux)<-gsub(paste(cN[cc],"\\.",sep=""),"",rownames(aux))
+    colnames(aux)<-gsub(paste(cN[cc],"\\.",sep=""),"",colnames(aux))
     for(z in 1:ncol(aux)){
       shrink[rownames(aux),colnames(aux)[z],cc] <- aux[,z]
     }
