@@ -248,7 +248,7 @@ resid.corr.test=function(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3){
   # Calculate F-Statistic in a loop
   Fstat<-critL<-pL<-dofL<-list() # list objects since not for every country some nr. of regressors
   for(cc in 1:length(cN)){
-    idx   <- grep(paste(cN[cc],".",sep=""),varNames) 
+    idx   <- grep(paste("^",cN[cc],".",sep=""),varNames) 
     X.dat <- xglobal[-c(1:plag),idx,drop=FALSE]
     r.dat <- res[[cN[cc]]]
     ki    <- ncol(X.dat)
