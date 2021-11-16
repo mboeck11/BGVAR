@@ -51,15 +51,6 @@
     }
   }
   #------------------------------------- build W matrix -----------------------------------------------------#
-  gW<-list()
-  # exclusion specification 
-  if(!is.null(Wex.restr)){
-    er.idx<-!sapply(nn,function(x) Wex.restr %in% x)
-    #er.idx<-which(!er.idx)
-  }else{
-    er.idx<-c()
-  }
-  
   #make sure that W and Data names are in the same order
   cnames <- names(Data)
   W      <- lapply(W,function(x) x[cnames,cnames])
@@ -75,18 +66,16 @@
   Max.char<-max(nchar(colnames(xglobal)))
   cnt.char<-max(nchar(cnames))
   # for each country
+  gW<-list()
   for(cc in 1:length(cnames)){
     xglobal <- xglobal[,!duplicated(colnames(xglobal))]
     #creates a dynamic list of variables
     varnames <- substr(colnames(xglobal),cnt.char+2,Max.char); varnames <- varnames[!duplicated(varnames)] 
     
-    if(length(er.idx)>0){
-      if(cc%in%er.idx){
-        varnames <- varnames
-      }else{
-        varnames <- varnames[-charmatch(Wex.restr,varnames)]
-      }
+    if(!is.null(Wex.restr)){
+      varnames = varnames[-charmatch(Wex.restr,varnames)]
     }
+    
     # names of endo variables
     endnames <- unlist(lapply(strsplit(colnames(xglobal)[grepl(cnames[[cc]],colnames(xglobal))],".",fixed=TRUE),
                               function(l)l[2]))
