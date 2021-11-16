@@ -2,6 +2,7 @@ Change in Version 2.4.4
 - bugfix in Ex argument in `bgvar`
 - bugfix in summary command
 - bugfix with Wex.restr
+- bugfix in monthlyData
 
 Change in Version 2.4.2/3
 - bugfix in fevd; added additional check

@@ -76,7 +76,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
 }}
-\item{\code{Wex.restr}}{ Character vector containing variables that should only be specified as weakly exogenous if not contained as endogenous variable in a particular country. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
+\item{\code{Wex.restr}}{ Character vector containing variables that should be excluded from being used as weakly exogenous from all unit models. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}
 \item{\code{save.shrink.store}}{If set to \code{TRUE} the function also inspects posterior output of shrinkage coefficients. Default set to \code{FALSE}.}
 \item{\code{save.vola.store}}{If set to \code{TRUE} the function also inspects posterior output of coefficients associated with the volatility process. Default set to \code{FALSE}.}
@@ -142,12 +142,14 @@ model.mn <- bgvar(Data=eerData, W=W.list[c("tradeW.0012","finW0711")], plag=1, d
 print(model.mn)
 
 data(monthlyData)
-EA.weights$variables <- c("EAstir","total.assets","M3","ciss","y","p")
-OC.weights$variables <- c("poil","qoil","y")
-OE.weights <- list(EB=EA.weights,OC=OC.weights)
+cN = names(EB.weights$weights)
+Data = monthlyData[c(cN,"EB","OC")]
+W = W[cN,cN]
+OC.weights$weights = OC.weights$weights[cN]
+OE.weights <- list(EB=EB.weights, OC=OC.weights)
 hyperpara<-list(d_lambda = 0.01, e_lambda = 0.01,e_lambda=1.5,d_lambda=1, 
                 prmean=0,a_1=0.01,b_1=0.01,tau_theta=.6,sample_tau=FALSE)
-model.ssvs <- bgvar(Data=monthlyData,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
+model.ssvs <- bgvar(Data=Data,W=W,plag=2,draws=100,burnin=100,prior="SSVS",
                     hyperpara=hyperpara,eigen=TRUE,SV=TRUE,expert=list(OE.weights=OE.weights))
 print(model.ssvs)
 }
