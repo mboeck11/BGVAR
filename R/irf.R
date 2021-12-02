@@ -657,8 +657,11 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
   if(is.null(restriction) || is.null(sign)){
     stop("Please specify 'restriction' together with 'sign'.")
   }
-  if(length(restriction)!=length(sign) || length(restriction)!=length(horizon) || length(sign)!=length(horizon)){
-    if(length(horizon)!=1) stop("Please provide the arguments 'restriction' and 'sign' with equal length. Please respecify.")
+  if(length(restriction)!=length(sign)){
+    stop("Please provide the arguments 'restriction' and 'sign' with equal length. Please respecify.")
+  }
+  if(length(restriction)!=length(horizon)){
+    if(length(horizon)!=1) stop("Please provide the argument 'horizon' either with length equal to one for all shocks or with an equal length of the restrictions.")
   }
   nr <- length(sign)
   if(!(is.null(restriction) && is.null(sign)) && is.null(horizon)){
