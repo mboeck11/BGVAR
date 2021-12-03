@@ -1,8 +1,11 @@
 Change in Version 2.4.4
+- new features:
+  - plag can now be differently specified for endogenous and weakly exogenous variables
 - bugfix in Ex argument in `bgvar`
 - bugfix in summary command
 - bugfix with Wex.restr
 - bugfix in monthlyData
+- bugfix in GFEVD
 
 Change in Version 2.4.2/3
 - bugfix in fevd; added additional check

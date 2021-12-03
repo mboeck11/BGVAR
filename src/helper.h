@@ -14,7 +14,7 @@ void gen_compMat(mat& Cm, const mat& A, const int M, const int p);
 
 double get_ar(mat& Y, int p);
 
-void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double shrink3, double shrink4, bool cons, int Mstar, int p, bool trend);
+void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double shrink3, double shrink4, bool cons, int Mstar, int plag, int plagstar, bool trend);
 
 void inplace_tri_mat_mult(arma::rowvec &x, arma::mat const &trimat);
 

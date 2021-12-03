@@ -53,7 +53,8 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   }
   if(verbose) cat("Start computing predictions of Bayesian Global Vector Autoregression.\n\n")
   thindraws  <- object$args$thindraws
-  plag       <- object$args$plag
+  lags       <- object$args$lags
+  pmax       <- max(lags)
   xglobal    <- object$xglobal
   S_large    <- object$stacked.results$S_large
   F_large    <- object$stacked.results$F_large
@@ -65,7 +66,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   vars       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
   N          <- length(cN)
   Traw       <- nrow(xglobal)
-  bigT       <- Traw-plag
+  bigT       <- Traw-pmax
   bigK       <- ncol(xglobal)
   cons       <- 1
   trend      <- ifelse(object$args$trend,1,0)
@@ -87,13 +88,13 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     flag_cond <- TRUE
   }
   #---------------------------------------------------------------------------------#
-  varndxv <- c(bigK,cons+trend,plag)
-  nkk     <- (plag*bigK)+cons+trend
+  varndxv <- c(bigK,cons+trend,pmax)
+  nkk     <- (pmax*bigK)+cons+trend
   
   Yn <- xglobal
-  Xn <- cbind(.mlag(Yn,plag),1)
-  Xn <- Xn[(plag+1):Traw,,drop=FALSE]
-  Yn <- Yn[(plag+1):Traw,,drop=FALSE]
+  Xn <- cbind(.mlag(Yn,pmax),1)
+  Xn <- Xn[(pmax+1):Traw,,drop=FALSE]
+  Yn <- Yn[(pmax+1):Traw,,drop=FALSE]
   if(trend) Xn <- cbind(Xn,seq(1,bigT))
   
   pred_store <- array(NA,dim=c(thindraws,bigK,n.ahead))

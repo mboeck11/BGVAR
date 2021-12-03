@@ -33,7 +33,7 @@
 #' }}
 #' \item{\code{model.obj}}{ List object that contains model-specific information, in particular\itemize{
 #' \item{\code{xglobal}}{ Data of the model.}
-#' \item{\code{plag}}{ Lag specification of the model.}
+#' \item{\code{lags}}{ Lag specification of the model.}
 #' }}
 #' \item{\code{IRF_store}}{ Four-dimensional array (K times n.ahead times number of shock times draws) which stores the whole posterior distribution. Exists only if \code{save.store=TRUE}.}
 #' \item{\code{R_store}}{ Three-dimensional array (K times K times draws) which stores all rotation matrices. Exists only if \code{save.store=TRUE}.}
@@ -117,11 +117,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   #-----------------------------------------------------------------------------------------------------------#
   if(verbose) cat("Start computing impulse response functions of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  plag        <- x$args$plag
+  lags        <- x$args$lags
+  pmax        <- max(lags)
   xglobal     <- x$xglobal
   Traw        <- nrow(xglobal)
   bigK        <- ncol(xglobal)
-  bigT        <- Traw-plag
+  bigT        <- Traw-pmax
   A_large     <- x$stacked.results$A_large
   F_large     <- x$stacked.results$F_large
   S_large     <- x$stacked.results$S_large
@@ -132,7 +133,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   if(!is.null(shockinfo)) Global <- ifelse(any(shockinfo$global),TRUE,FALSE)
   Rmed        <- NULL
   rot.nr      <- NULL
-  xdat        <- xglobal[(plag+1):Traw,,drop=FALSE]
+  xdat        <- xglobal[(pmax+1):Traw,,drop=FALSE]
   varNames    <- colnames(xdat)
   cN          <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
   vars        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
@@ -205,7 +206,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
   }else if(ident=="girf")
   {
     if(verbose){
@@ -261,7 +262,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
       scale <- scale.new
     }
-    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=plag,MaxTries=MaxTries)
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
   }else if(ident=="sign")
   {
     # --------------- checks -------------------------------------------------#
@@ -415,7 +416,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
     #---------------------------------------------------------------------------
     shocklist <- list(shock.idx=shock.idx,shock.cidx=shock.cidx,MaxTries=MaxTries,S.cube=S.cube,Z.cube=Z.cube,P.cube=P.cube,
-                      shock.order=shock.order,shock.horz=sign.horizon,plag=plag,no.zero.restr=no.zero.restr)
+                      shock.order=shock.order,shock.horz=sign.horizon,plag=pmax,no.zero.restr=no.zero.restr)
   }
   #------------------------------ prepare applyfun --------------------------------------------------------#
   if(is.null(applyfun)) {
@@ -451,7 +452,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       Ginv <- Ginv_large[,,irep]
       Fmat <- adrop(F_large[,,,irep,drop=FALSE],drop=4)
       Smat <- S_large[,,irep]
-      imp.obj <- irf.fun(xdat=xdat,plag=plag,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
+      imp.obj <- irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
       if(verbose){
         if(ident=="sign"){
           if(!any(is.null(imp.obj$rot))){
@@ -547,7 +548,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   if(ident=="sign")
   {
-    imp.obj    <- try(irf.fun(xdat=xdat,plag=plag,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist),silent=TRUE)
+    imp.obj    <- try(irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist),silent=TRUE)
     if(!is(imp.obj,"try-error")){
       Rmed<-imp.obj$rot
     }else{
@@ -555,7 +556,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
   }
   struc.obj <- list(A=A,Fmat=Fmat,Ginv=Ginv,Smat=Smat,Rmed=Rmed)
-  model.obj <- list(xglobal=xglobal,plag=plag)
+  model.obj <- list(xglobal=xglobal,lags=lags)
   #--------------------------------- prepare output----------------------------------------------------------------------#
   out <- structure(list("posterior"   = imp_posterior,
                         "ident"       = ident,

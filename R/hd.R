@@ -42,11 +42,12 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   if(verbose) cat("Start computing historical decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- x$model.obj$xglobal
-  plag    <- x$model.obj$plag
+  lags    <- x$model.obj$lags
+  pmax    <- max(lags)
   ident   <- x$ident
   Traw    <- nrow(xglobal)
   bigK    <- ncol(xglobal)
-  xdat    <- xglobal[(plag+1):Traw,,drop=FALSE]
+  xdat    <- xglobal[(pmax+1):Traw,,drop=FALSE]
   bigT    <- nrow(xdat)
   ALPHA   <- x$struc.obj$A
   Ginv    <- x$struc.obj$Ginv
@@ -80,9 +81,9 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   Sigcholinv <- solve(Sigchol_u)
   
   vv <- matrix(0,bigT,bigK,dimnames=list(NULL,varNames))
-  YY <- xglobal[(plag+1):Traw,]
-  XX <- cbind(.mlag(xglobal,plag),1)
-  XX <- XX[(plag+1):nrow(XX),]
+  YY <- xglobal[(pmax+1):Traw,]
+  XX <- cbind(.mlag(xglobal,pmax),1)
+  XX <- XX[(pmax+1):nrow(XX),]
   if(trend) XX <- cbind(XX,seq(1,bigT))
   
   strMat <- Rinv%*%Sigcholinv
@@ -96,24 +97,24 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   }
   #Start historical decompositions -------------------------------------------------------------------------------#
   if(verbose) cat("Start computing HDs...\n")
-  HDshock_big <- array(0,c(plag*bigK,bigT,bigK))
-  HDconst_big <- matrix(0,plag*bigK,bigT)
-  HDinit_big  <- matrix(0,plag*bigK,bigT)
+  HDshock_big <- array(0,c(pmax*bigK,bigT,bigK))
+  HDconst_big <- matrix(0,pmax*bigK,bigT)
+  HDinit_big  <- matrix(0,pmax*bigK,bigT)
   HDshock     <- array(0,c(bigK,bigT,bigK))
   HDinit      <- matrix(0,bigK,bigT)
   HDconst     <- matrix(0,bigK,bigT)
   if(trend){
-    HDtrend_big <- matrix(0,plag*bigK,bigT)
+    HDtrend_big <- matrix(0,pmax*bigK,bigT)
     HDtrend     <- matrix(0,bigK,bigT)
   }
   
   solveA <- (Sigchol_u%*%rotation.matrix) #Depends on identification, if Cholesky then solveA = t(chol(SIGMA)), where SIGMA is the VC of the global model
   eps <- (YY-XX%*%t(ALPHA))%*%t(solve(solveA)) #Atilda is the matrix of autoregressive coefficients of the global model
-  Fcomp <-  .get_companion(ALPHA[,1:(bigK*plag)],varndxv = c(bigK,0,plag))$MM#Fcomp is the companion matrix (used in the eigenvalue stuff without the constant)
+  Fcomp <-  .get_companion(ALPHA[,1:(bigK*pmax)],varndxv = c(bigK,0,pmax))$MM#Fcomp is the companion matrix (used in the eigenvalue stuff without the constant)
   
-  invA_big <- matrix(0,bigK*plag,bigK)  #M is the number of endogenous variables ; p is the number of lags
+  invA_big <- matrix(0,bigK*pmax,bigK)  #M is the number of endogenous variables ; p is the number of lags
   invA_big[1:bigK,] <- solveA
-  Icomp <- cbind(diag(bigK),matrix(0,bigK,(plag-1)*bigK))
+  Icomp <- cbind(diag(bigK),matrix(0,bigK,(pmax-1)*bigK))
   for (nn in 2:bigT){
     for (jj in 1:bigK){
       eps_big <- matrix(0,bigK,1)
@@ -122,21 +123,21 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
       HDshock[,nn,jj] <- Icomp%*%HDshock_big[,nn,jj]
     }
     #Initial value
-    HDinit_big[,1] <- XX[1,1:(plag*bigK)]
+    HDinit_big[,1] <- XX[1,1:(pmax*bigK)]
     HDinit[,1] <- Icomp%*%HDinit_big[,1]
     HDinit_big[,nn] <- Fcomp%*%HDinit_big[,nn-1]
     HDinit[,nn] <- Icomp%*%HDinit_big[,nn]
     
     #Constant
-    CC <- matrix(0,bigK*plag,1)
-    CC[1:bigK] <- t(ALPHA)[(bigK*plag)+1,]
+    CC <- matrix(0,bigK*pmax,1)
+    CC[1:bigK] <- t(ALPHA)[(bigK*pmax)+1,]
     HDconst_big[,nn] <- CC+Fcomp%*%HDconst_big[,nn-1]
     HDconst[,nn] <- Icomp%*%HDconst_big[,nn]
     
     # Trend
     if(trend){
-      TT <- matrix(0,bigK*plag,1)
-      TT[1:bigK] <- t(ALPHA)[(bigK*plag)+2,]
+      TT <- matrix(0,bigK*pmax,1)
+      TT[1:bigK] <- t(ALPHA)[(bigK*pmax)+2,]
       HDtrend_big[,nn] <- TT+Fcomp%*%HDtrend_big[,nn-1]
       HDtrend[,nn] <- Icomp%*%HDtrend_big[,nn]
     }

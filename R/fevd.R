@@ -50,11 +50,12 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
   if(verbose) cat("Start computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
   xglobal <- x$model.obj$xglobal
-  plag    <- x$model.obj$plag
+  lags    <- x$model.obj$lags
+  pmax    <- max(lags)
   ident   <- x$ident
   Traw    <- nrow(xglobal)
   bigK    <- ncol(xglobal)
-  xdat    <- xglobal[(plag+1):Traw,,drop=FALSE]
+  xdat    <- xglobal[(pmax+1):Traw,,drop=FALSE]
   bigT    <- nrow(x)
   A       <- x$struc.obj$A
   Fmat    <- x$struc.obj$Fmat
@@ -111,16 +112,16 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
     }
   }
   # create dynamic multiplier
-  PHIx <- array(0,c(bigK,bigK,plag+horizon+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
-  PHIx[,,plag+1]  <-  diag(bigK)
-  for (ihor in (plag+2):(plag+horizon+1)){
+  PHIx <- array(0,c(bigK,bigK,pmax+horizon+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx[,,pmax+1]  <-  diag(bigK)
+  for (ihor in (pmax+2):(pmax+horizon+1)){
     acc = matrix(0,bigK,bigK)
-    for (pp in 1:plag){
+    for (pp in 1:pmax){
       acc  <-  acc + Fmat[,,pp]%*%PHIx[,,ihor-pp]
     }
     PHIx[,,ihor]  <-  acc
   }
-  PHI  <-  PHIx[,,(plag+1):(plag+horizon+1)]
+  PHI  <-  PHIx[,,(pmax+1):(pmax+horizon+1)]
   #----------------------------------------------------------------------------------------------------#
   if(verbose) cat("Start computing FEVDs...\n")
   vslct      <- diag(bigK)
@@ -202,18 +203,19 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
   start.gfevd <- Sys.time()
   if(verbose) cat("\nStart computing generalized forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  plag        <- x$args$plag
+  lags        <- x$args$lags
+  pmax        <- max(lags)
   xglobal     <- x$xglobal
   Traw        <- nrow(xglobal)
   bigK        <- ncol(xglobal)
-  Kbig        <- plag*bigK
-  bigT        <- Traw-plag
+  Kbig        <- pmax*bigK
+  bigT        <- Traw-pmax
   A_large     <- x$stacked.results$A_large
   F_large     <- x$stacked.results$F_large
   S_large     <- x$stacked.results$S_large
   Ginv_large  <- x$stacked.results$Ginv_large
   F.eigen     <- x$stacked.results$F.eigen
-  x           <- xglobal[(plag+1):Traw,,drop=FALSE]
+  x           <- xglobal[(pmax+1):Traw,,drop=FALSE]
   thindraws   <- length(F.eigen) ### prior: draws
   varNames    <- colnames(xglobal)
   #------------------------------ prepare applyfun --------------------------------------------------------#
@@ -245,10 +247,14 @@ gfevd.bgvar<-function(x,n.ahead=24,running=TRUE,applyfun=NULL,cores=NULL,verbose
       GFEVD <- .mk_fevd.sims(irfa)
       return(list(GFEVD=GFEVD))
     })
+    thindraws2 <- 0
     for(irep in 1:thindraws){
-      GFEVD_post<-GFEVD_post+imp.obj[[irep]]$GFEVD
+      if(!any(is.na(imp.obj[[irep]]$GFEVD))){
+        GFEVD_post<-GFEVD_post+imp.obj[[irep]]$GFEVD
+        thindraws2 <- thindraws2+1
+      }
     }
-    GFEVD_post<-GFEVD_post/thindraws
+    GFEVD_post<-GFEVD_post/thindraws2
   }else{ #-------------------------HERE DO FULL CALCULATION INCLUDING BOUNDS- VERY MEMORY INTENSIVE!!!-----
     GFEVD_draws<-array(NA,dim=c(thindraws,bigK,bigK,n.ahead))
     GFEVD_post <-array(NA,dim=c(bigK,bigK,n.ahead,3))

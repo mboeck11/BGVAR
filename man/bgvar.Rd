@@ -15,7 +15,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{W}{An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices.}
 
-\item{plag}{Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.}
+\item{plag}{Number of lags used. Either a single value for domestic and weakly exogenous, or a vector of length two. Default set to \code{plag=1}.}
 
 \item{draws}{Number of retained draws. Default set to \code{draws=5000}.}
 

@@ -32,7 +32,7 @@ double tau_post(double tau, double lambda, arma::vec theta, double rat){
 List BVAR_linear(arma::mat Yraw, 
                  arma::mat Wraw, 
                  arma::mat Exraw,
-                 int plag, 
+                 arma::uvec lags,
                  int draws, 
                  int burnin,
                  int thin,
@@ -45,11 +45,15 @@ List BVAR_linear(arma::mat Yraw,
   //----------------------------------------------------------------------------------------------------------------------
   // CONSTRUCT DATA
   //----------------------------------------------------------------------------------------------------------------------
+  int plag = lags(0);
+  int plagstar = lags(1);
+  int pmax  = max(lags);
+  
   int Traw = Yraw.n_rows;
   int M = Yraw.n_cols;
   int K = M*plag;
   int Mstar = Wraw.n_cols;
-  int Kstar = Mstar*(plag+1);
+  int Kstar = Mstar*(plagstar+1);
   
   bool texo = false; int Mex=0;
   if(Exraw.n_elem != 1){
@@ -57,14 +61,14 @@ List BVAR_linear(arma::mat Yraw,
   }
   
   mat Xraw = mlag(Yraw,plag,Traw,M);
-  mat X0 = Xraw.submat(plag,0,Traw-1,K-1);
-  mat Y = Yraw.submat(plag,0,Traw-1,M-1);
+  mat X0 = Xraw.submat(pmax,0,Traw-1,K-1);
+  mat Y = Yraw.submat(pmax,0,Traw-1,M-1);
   double T = X0.n_rows;
-  mat Wall = join_rows(Wraw,mlag(Wraw,plag,Traw,Mstar));
-  mat W0 = Wall.submat(plag,0,Traw-1,Kstar-1);
+  mat Wall = join_rows(Wraw,mlag(Wraw,plagstar,Traw,Mstar));
+  mat W0 = Wall.submat(pmax,0,Traw-1,Kstar-1);
   mat X = join_rows(X0,W0);
   if(texo){
-    mat E0 = Exraw.submat(plag,0,Traw-1,Mex-1);
+    mat E0 = Exraw.submat(pmax,0,Traw-1,Mex-1);
     X = join_rows(X,E0);
   }
   if(cons){
@@ -77,6 +81,7 @@ List BVAR_linear(arma::mat Yraw,
 
   int k = X.n_cols;
   int v = (M*(M-1))/2;
+  
   //----------------------------------------------------------------------------------------------------------------------
   // HYPERPARAMETERS
   //----------------------------------------------------------------------------------------------------------------------
@@ -132,6 +137,7 @@ List BVAR_linear(arma::mat Yraw,
   mat Em_draw = E_OLS; mat Em_str_draw = E_OLS;
   mat L_draw(M,M); L_draw.eye();
   mat Cm(K,K, fill::zeros); gen_compMat(Cm, A_OLS.rows(0,K-1), M, plag);
+  
   //----------------------------------------------------------------------------------------------------------------------
   // PRIORS
   //----------------------------------------------------------------------------------------------------------------------
@@ -154,9 +160,9 @@ List BVAR_linear(arma::mat Yraw,
   }
   for(int i=0; i < Mstar; i++){
     mat W_ = Wraw.col(i);
-    sigmas(M+i) = get_ar(W_,plag);
+    sigmas(M+i) = get_ar(W_,plagstar);
   }
-  if(prior==1) get_Vminnesota(V_prior, sigmas, shrink1, shrink2, shrink3, shrink4, cons, Mstar, plag, trend);
+  if(prior==1) get_Vminnesota(V_prior, sigmas, shrink1, shrink2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
   
   // initialize stuff for MN prior
   mat V_prop1(k,M), V_prop2(k,M), V_prop4(k,M); 
@@ -187,10 +193,10 @@ List BVAR_linear(arma::mat Yraw,
     }
   }
   // NG stuff
-  mat lambda2_A(plag+1,2,fill::zeros);
-  mat A_tau(plag+1,2); A_tau.fill(tau_theta); A_tau(0,0)=0;
-  mat A_tuning(plag+1,2); A_tuning.fill(0.43);
-  mat A_accept(plag+1,2, fill::zeros);
+  mat lambda2_A(pmax+1,2,fill::zeros);
+  mat A_tau(pmax+1,2); A_tau.fill(tau_theta); A_tau(0,0)=0;
+  mat A_tuning(pmax+1,2); A_tuning.fill(0.43);
+  mat A_accept(pmax+1,2, fill::zeros);
   // initialize stuff for NG prior
   mat A_con, V_con, P_con, A_end, V_end, P_end, A_exo, V_exo, P_exo;
   double prodlambda, dl, el, lambda, chi, psi, res;
@@ -212,10 +218,10 @@ List BVAR_linear(arma::mat Yraw,
   double L_tau = tau_theta;
   double L_tuning = 0.43;
   double L_accept = 0.0;
-  mat lambda2_Lmat(plag+1,1, fill::zeros);
-  mat L_taumat(plag+1,1, fill::zeros); 
-  mat L_accmat(plag+1,1, fill::zeros);
-  mat L_tunmat(plag+1,1, fill::zeros);
+  mat lambda2_Lmat(pmax+1,1, fill::zeros);
+  mat L_taumat(pmax+1,1, fill::zeros); 
+  mat L_accmat(pmax+1,1, fill::zeros);
+  mat L_tunmat(pmax+1,1, fill::zeros);
   //---------------------------------------------------------------
   // SV quantitites
   //---------------------------------------------------------------
@@ -291,7 +297,7 @@ List BVAR_linear(arma::mat Yraw,
   // NG
   if(save_shrink_NG){
     size_of_cube1 = {k, M, thindraws};
-    size_of_cube2 = {plag+1, 3, thindraws};
+    size_of_cube2 = {pmax+1, 3, thindraws};
   }
   arma::cube theta_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
   arma::cube lambda2_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
@@ -376,7 +382,7 @@ List BVAR_linear(arma::mat Yraw,
     if(prior == 1){
       // first shrinkage parameter (own lags)
       shrink_prop1 = exp(R::rnorm(0,scale1))*shrink1;
-      get_Vminnesota(V_prop1, sigmas, shrink_prop1, shrink2, shrink3, shrink4, cons, Mstar, plag, trend);
+      get_Vminnesota(V_prop1, sigmas, shrink_prop1, shrink2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
@@ -394,7 +400,7 @@ List BVAR_linear(arma::mat Yraw,
       
       // second shrinkage parameter (cross equations)
       shrink_prop2 = exp(R::rnorm(0,scale2))*shrink2;
-      get_Vminnesota(V_prop2, sigmas, shrink1, shrink_prop2, shrink3, shrink4, cons, Mstar, plag, trend);
+      get_Vminnesota(V_prop2, sigmas, shrink1, shrink_prop2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
@@ -412,7 +418,7 @@ List BVAR_linear(arma::mat Yraw,
       
       // fourth shrinkage parameter (weakly exogenous)
       shrink_prop4 = exp(R::rnorm(0,scale4))*shrink4;
-      get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, trend);
+      get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
@@ -466,157 +472,111 @@ List BVAR_linear(arma::mat Yraw,
     }
     // NG
     if(prior == 3){
-      // coefficients A matrix
-      for(int pp=0; pp < (plag+1); pp++){
-        if(pp==0){
-          A_con = A_draw.rows(plag*M, plag*M+Mstar-1); 
-          V_con = V_prior.rows(plag*M, plag*M+Mstar-1); 
-          P_con = A_prior.rows(plag*M, plag*M+Mstar-1);
-          
-          // sample lambda
-          dl = d_lambda + A_tau(0,1)*Mstar*M;
-          el = e_lambda + 0.5*A_tau(0,1)*accu(V_con);
-          lambda2_A(0,1) = R::rgamma(dl, 1/el);
-          
-          // sample theta
-          for(int ii=0; ii < Mstar; ii++){
-            for(int mm=0; mm < M; mm++){
-              lambda = A_tau(0,1) - 0.5;
-              psi = A_tau(0,1) * lambda2_A(0,1);
-              chi = std::pow(A_con(ii,mm)-P_con(ii,mm),2);
-              
-              res = do_rgig1(lambda, chi, psi);
-              if(res<1e-7) res = 1e-7;
-              if(res>1e+7) res = 1e+7;
-              
-              V_con(ii,mm) = res;
-            }
-          }
-          V_prior.rows(plag*M, plag*M+Mstar-1) = V_con;
-          
-          // sample tau
-          if(sample_tau_bool){
-            vec theta_vec = V_con.as_col();
-            prodlambda = as_scalar(lambda2_A.submat(0,1,pp,1));
-            
-            proposal = exp(R::rnorm(0,A_tuning(0,1)))*A_tau(0,1);
-            unif = R::runif(0,1);
-            
-            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
-            post_tau_curr = tau_post(A_tau(0,1), prodlambda, theta_vec, 1);
-            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(0,1));
-            if(diff > log(unif)){
-              A_tau(0,1) = proposal;
-              A_accept(0,1) += 1;
-            }
-            if(irep < 0.5*burnin){
-              if(A_accept(0,1)/irep > 0.30){A_tuning(0,1) = A_tuning(0,1)*1.01;}
-              if(A_accept(0,1)/irep < 0.15){A_tuning(0,1) = A_tuning(0,1)*0.99;}
-            }
-          }
+      // coefficients A matrix - weakly exogenous
+      for(int pp=0; pp < (plagstar+1); pp++){
+        //-------------------------------------------------------------------
+        // weakly exogenous
+        A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
+        V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
+        P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
+        
+        // sample lambda
+        if(pp == 0){
+          prodlambda = 1.0;
         }else{
-          A_end = A_draw.rows((pp-1)*M, pp*M-1); 
-          V_end = V_prior.rows((pp-1)*M, pp*M-1); 
-          P_end = A_prior.rows((pp-1)*M, pp*M-1);
-          
-          // sample lambda
-          if(pp == 1){
-            prodlambda = 1.0;
-          }else{
-            prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp-1,0)));
+          prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp-1,1)));
+        }
+        dl = d_lambda + A_tau(pp,1)*M*Mstar;
+        el = e_lambda + 0.5*A_tau(pp,1)*accu(V_exo)*prodlambda;
+        lambda2_A(pp,1) = R::rgamma(dl, 1/el);
+        
+        // sample theta
+        prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp,1)));
+        for(int ii=0; ii < Mstar; ii++){
+          for(int mm=0; mm < M; mm++){
+            lambda = A_tau(pp,1) - 0.5;
+            psi = A_tau(pp,1) * prodlambda;
+            chi = std::pow(A_exo(ii,mm) - P_exo(ii,mm),2);
+            
+            res = do_rgig1(lambda, chi, psi);
+            if(res<1e-7) res = 1e-7;
+            if(res>1e+7) res = 1e+7;
+            
+            V_exo(ii,mm) = res;
           }
-          dl = d_lambda + A_tau(pp,0)*std::pow(M,2);
-          el = e_lambda + 0.5*A_tau(pp,0)*accu(V_end)*prodlambda;
-          lambda2_A(pp,0) = R::rgamma(dl, 1/el);
+        }
+        V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1) = V_exo;
+        
+        // sample tau
+        if(sample_tau_bool){
+          vec theta_vec = V_exo.as_col();
           
-          // sample theta
+          proposal = exp(R::rnorm(0,A_tuning(pp,1)))*A_tau(pp,1);
+          unif = R::runif(0,1);
+          
+          post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
+          post_tau_curr = tau_post(A_tau(pp,1), prodlambda, theta_vec, 1);
+          diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp,1));
+          if(diff > log(unif)){
+            A_tau(pp,1) = proposal;
+            A_accept(pp,1) += 1;
+          }
+          if(irep < 0.5*burnin){
+            if(A_accept(pp,1)/irep > 0.30){A_tuning(pp,1) = A_tuning(pp,1)*1.01;}
+            if(A_accept(pp,1)/irep < 0.15){A_tuning(pp,1) = A_tuning(pp,1)*0.99;}
+          }
+        }
+      }
+      // coefficients A matrix
+      for(int pp=0; pp < plag; pp++){
+        A_end = A_draw.rows(pp*M, (pp+1)*M-1); 
+        V_end = V_prior.rows(pp*M, (pp+1)*M-1); 
+        P_end = A_prior.rows(pp*M, (pp+1)*M-1);
+        
+        // sample lambda
+        if(pp == 0){
+          prodlambda = 1.0;
+        }else{
           prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
-          for(int ii=0; ii < M; ii++){
-            for(int mm=0; mm < M; mm++){
-              lambda = A_tau(pp,0) - 0.5;
-              psi = A_tau(pp,0) * prodlambda;
-              chi = std::pow(A_end(ii,mm)-P_end(ii,mm),2);
-              
-              res = do_rgig1(lambda, chi, psi);
-              if(res<1e-7) res = 1e-7;
-              if(res>1e+7) res = 1e+7;
-              
-              V_end(ii,mm) = res;
-            }
-          }
-          V_prior.rows((pp-1)*M, pp*M-1) = V_end;
-          
-          // sample tau
-          if(sample_tau_bool){
-            vec theta_vec = V_end.as_col();
-            prodlambda = as_scalar(lambda2_A.submat(1,0,pp,0));
+        }
+        dl = d_lambda + A_tau(pp+1,0)*std::pow(M,2);
+        el = e_lambda + 0.5*A_tau(pp+1,0)*accu(V_end)*prodlambda;
+        lambda2_A(pp+1,0) = R::rgamma(dl, 1/el);
+        
+        // sample theta
+        prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp+1,0)));
+        for(int ii=0; ii < M; ii++){
+          for(int mm=0; mm < M; mm++){
+            lambda = A_tau(pp+1,0) - 0.5;
+            psi = A_tau(pp+1,0) * prodlambda;
+            chi = std::pow(A_end(ii,mm)-P_end(ii,mm),2);
             
-            proposal = exp(R::rnorm(0,A_tuning(pp,0)))*A_tau(pp,0);
-            unif = R::runif(0,1);
+            res = do_rgig1(lambda, chi, psi);
+            if(res<1e-7) res = 1e-7;
+            if(res>1e+7) res = 1e+7;
             
-            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
-            post_tau_curr = tau_post(A_tau(pp,0), prodlambda, theta_vec, 1);
-            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp,0));
-            if(diff > log(unif)){
-              A_tau(pp,0) = proposal;
-              A_accept(pp,0) += 1;
-            }
-            if(irep < 0.5*burnin){
-              if(A_accept(pp,0)/irep > 0.30){A_tuning(pp,0) = A_tuning(pp,0)*1.01;}
-              if(A_accept(pp,0)/irep < 0.15){A_tuning(pp,0) = A_tuning(pp,0)*0.99;}
-            }
+            V_end(ii,mm) = res;
           }
-          //-------------------------------------------------------------------
-          // weakly exogenous
-          A_exo = A_draw.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
-          V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
-          P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
+        }
+        V_prior.rows(pp*M, (pp+1)*M-1) = V_end;
+        
+        // sample tau
+        if(sample_tau_bool){
+          vec theta_vec = V_end.as_col();
           
-          // sample lambda
-          if(pp == 1){
-            prodlambda = 1.0;
-          }else{
-            prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp-1,1)));
+          proposal = exp(R::rnorm(0,A_tuning(pp+1,0)))*A_tau(pp+1,0);
+          unif = R::runif(0,1);
+          
+          post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
+          post_tau_curr = tau_post(A_tau(pp+1,0), prodlambda, theta_vec, 1);
+          diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp+1,0));
+          if(diff > log(unif)){
+            A_tau(pp+1,0) = proposal;
+            A_accept(pp+1,0) += 1;
           }
-          dl = d_lambda + A_tau(pp,1)*M*Mstar;
-          el = e_lambda + 0.5*A_tau(pp,1)*accu(V_end)*prodlambda;
-          lambda2_A(pp,1) = R::rgamma(dl, 1/el);
-          
-          // sample theta
-          prodlambda = as_scalar(prod(lambda2_A.submat(1,1,pp,1)));
-          for(int ii=0; ii < Mstar; ii++){
-            for(int mm=0; mm < M; mm++){
-              lambda = A_tau(pp,1) - 0.5;
-              psi = A_tau(pp,1) * prodlambda;
-              chi = std::pow(A_exo(ii,mm) - P_exo(ii,mm),2);
-              
-              res = do_rgig1(lambda, chi, psi);
-              if(res<1e-7) res = 1e-7;
-              if(res>1e+7) res = 1e+7;
-              
-              V_exo(ii,mm) = res;
-            }
-          }
-          V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1) = V_exo;
-          
-          // sample tau
-          if(sample_tau_bool){
-            vec theta_vec = V_exo.as_col();
-            
-            proposal = exp(R::rnorm(0,A_tuning(pp,1)))*A_tau(pp,1);
-            unif = R::runif(0,1);
-            
-            post_tau_prop = tau_post(proposal, prodlambda, theta_vec, 1);
-            post_tau_curr = tau_post(A_tau(pp,1), prodlambda, theta_vec, 1);
-            diff = post_tau_prop - post_tau_curr + std::log(proposal) - std::log(A_tau(pp,1));
-            if(diff > log(unif)){
-              A_tau(pp,1) = proposal;
-              A_accept(pp,1) += 1;
-            }
-            if(irep < 0.5*burnin){
-              if(A_accept(pp,1)/irep > 0.30){A_tuning(pp,1) = A_tuning(pp,1)*1.01;}
-              if(A_accept(pp,1)/irep < 0.15){A_tuning(pp,1) = A_tuning(pp,1)*0.99;}
-            }
+          if(irep < 0.5*burnin){
+            if(A_accept(pp+1,0)/irep > 0.30){A_tuning(pp+1,0) = A_tuning(pp+1,0)*1.01;}
+            if(A_accept(pp+1,0)/irep < 0.15){A_tuning(pp+1,0) = A_tuning(pp+1,0)*0.99;}
           }
         }
       }

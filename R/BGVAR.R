@@ -9,7 +9,7 @@
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param W An N times N weight matrix with 0 elements on the diagonal and row sums that sum up to unity or a list of weight matrices. 
-#' @param plag Number of lags used (the same for domestic, exogenous and weakly exogenous variables.). Default set to \code{plag=1}.
+#' @param plag Number of lags used. Either a single value for domestic and weakly exogenous, or a vector of length two. Default set to \code{plag=1}.
 #' @param draws Number of retained draws. Default set to \code{draws=5000}.
 #' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
 #' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.
@@ -182,7 +182,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(any(is.na(plag))){
     stop("Please specify number of lags.")
   }
-  if(length(plag)>1 || plag<1){
+  if(!length(plag)%in%c(1,2)){
     stop("Please specify number of lags accordingly. One lag length parameter for the whole model.")
   }
   if(!is.numeric(draws) | !is.numeric(burnin)){
@@ -210,12 +210,16 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   save.country.store <- expert.list$save.country.store
   save.shrink.store  <- expert.list$save.shrink.store
   save.vola.store    <- expert.list$save.vola.store
-  #-------------------------- construct arglist ----------------------------------------------------#
+  # construct args
   args <- .construct.arglist(bgvar)
+  # specify lags
+  if(length(plag)==1) lags <- rep(plag,2) else lags <- plag
+  args$lags <- lags
+  #-------------------------- construct arglist ----------------------------------------------------#
   if(verbose){
     cat("Start estimation of Bayesian Global Vector Autoregression.\n\n")
     cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
-    cat(paste("Lag order: ",plag,"\n",sep=""))
+    cat(paste("Lag order: ",lags[1]," (endo.), ",lags[2]," (w. exog.)","\n",sep=""))
     cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
     cat(paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
   }
@@ -460,7 +464,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   # Rcpp::sourceCpp("./src/BVAR_linear.cpp")
   start.estim <- Sys.time()
   globalpost <- applyfun(1:N, function(cc){
-    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,plag=plag,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
+    .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,lags=lags,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
   })
   names(globalpost) <- cN
   end.estim <- Sys.time()
@@ -476,7 +480,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(verbose) cat("Start stacking: \n")
   # insert stacking function here
   # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
-  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=plag,globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
+  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=max(lags),globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
   if(!is.null(trim)) {args$thindraws <- length(stacked.results$F.eigen)}
   if(verbose) cat("\nStacking finished.\n")
   if(verbose) cat(paste0("Computation of BGVAR yields ",args$thindraws," (",round(args$thindraws/(draws/thin),2)*100,"%) draws (",
@@ -499,13 +503,15 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       wex0 <- c(paste(varx[wex],"*",sep=""))
     }
     wexL <- endoL <- c()
-    for(pp in 1:plag){
+    for(pp in 1:lags[1]){
+      endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
+    }
+    for(pp in 1:lags[2]){
       if(length(exx)>0){
         wexL <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""), paste(varx[exx],"**_lag",pp,sep=""))
       }else{
         wexL   <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""))
       }
-      endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
     }
     if(cN[cc]%in%names(Ex)){
       tex <- colnames(Ex[[cN[cc]]])
@@ -567,7 +573,9 @@ print.bgvar<-function(x, ...){
                              ifelse(x$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
                                     "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Number of lags: ",x$args$plag,sep=""))
+  cat(paste("Number of lags for endogenous variables: ",x$args$lags[1],sep=""))
+  cat("\n")
+  cat(paste("Number of lags for weakly exogenous variables: ",x$args$lags[2],sep=""))
   cat("\n")
   cat(paste("Number of posterior draws: ",x$args$draws,"/",x$args$thin,"=",floor(x$args$draws/x$args$thin),sep=""))
   cat("\n")
@@ -636,7 +644,9 @@ print.bgvar.summary <- function(x, ...){
                              ifelse(x$object$args$prior=="SSVS","Stochastic Search Variable Selection prior (SSVS)",
                                     "Normal-Gamma prior (NG)")),sep=""))
   cat("\n")
-  cat(paste("Number of lags: ",x$object$args$plag,sep=""))
+  cat(paste("Number of lags for endogenous variables: ",x$args$lags[1],sep=""))
+  cat("\n")
+  cat(paste("Number of lags for weakly exogenous variables: ",x$args$lags[2],sep=""))
   cat("\n")
   cat(paste("Number of posterior draws: ",x$object$args$draws,"/",x$object$args$thin,"=",x$object$args$draws/x$object$args$thin,sep=""))
   cat("\n")
@@ -705,17 +715,18 @@ residuals.bgvar <- function(object, ...){
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
   G.mat   <- object$stacked.results$Ginv_large
   A.mat   <- object$stacked.results$A_large
-  plag    <- object$args$plag
+  lags    <- object$args$lags
+  pmax    <- max(lags)
   draws   <- object$args$thindraws
   time    <- object$args$time
   trend   <- object$args$trend
   xglobal <- object$xglobal
-  YY      <- xglobal[(plag+1):nrow(xglobal),]
-  XX      <- cbind(.mlag(xglobal,plag),1)
-  XX      <- XX[(plag+1):nrow(XX),]
+  YY      <- xglobal[(pmax+1):nrow(xglobal),]
+  XX      <- cbind(.mlag(xglobal,pmax),1)
+  XX      <- XX[(pmax+1):nrow(XX),]
   if(trend) XX <- cbind(XX,seq(1,nrow(XX)))
   
-  rownames(YY) <- as.character(time[-c(1:plag)])
+  rownames(YY) <- as.character(time[-c(1:pmax)])
   res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
   for(irep in 1:draws){
     res.array.global[irep,,]  <- (YY-XX%*%t(A.mat[,,irep]))
@@ -813,12 +824,13 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' }
 #' @export
 fitted.bgvar<-function(object, ..., global=TRUE){
-  plag     <- object$args$plag
+  lags     <- object$args$lags
+  pmax     <- max(lags)
   xglobal  <- object$xglobal
   trend    <- object$args$trend
-  XX       <- .mlag(xglobal,plag)
-  YY       <- xglobal[-c(1:plag),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:plag),,drop=FALSE],1)
+  XX       <- .mlag(xglobal,pmax)
+  YY       <- xglobal[-c(1:pmax),,drop=FALSE]
+  XX       <- cbind(XX[-c(1:pmax),,drop=FALSE],1)
   bigT     <- nrow(YY)
   if(trend) XX <- cbind(XX,seq(1,bigT))
   if(global){
@@ -854,15 +866,16 @@ logLik.bgvar<-function(object, ..., quantile=.50){
   temp <- object$args$logLik
   if(is.null(temp)){
     xglobal   <- object$xglobal
-    plag      <- object$args$plag
+    lags      <- object$args$lags
+    pmax      <- max(lags)
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
+    X_large   <- cbind(.mlag(xglobal,pmax),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
+    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large
@@ -922,15 +935,16 @@ dic.bgvar <- function(object, ...){
     out <- object$args$dic
   }else{
     xglobal   <- object$xglobal
-    plag      <- object$args$plag
+    lags      <- object$args$lags
+    pmax      <- max(lags)
     trend     <- object$args$trend
     bigT      <- nrow(xglobal)
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,plag),1)
+    X_large   <- cbind(.mlag(xglobal,pmax),1)
     if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(plag+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(plag+1):bigT,,drop=FALSE]
+    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large
     S_large   <- object$stacked.results$S_large
     Ginv_large<- object$stacked.results$Ginv_large

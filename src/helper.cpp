@@ -55,13 +55,13 @@ double get_ar(mat& Yraw, int p){
   return s_OLS;
 }
 
-void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double shrink3, double shrink4, bool cons, int Mstar, int p,
-                    bool trend){
+void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double shrink3, double shrink4, bool cons, int Mstar, 
+                    int plag, int plagstar, bool trend){
   int k = V.n_rows; int M = V.n_cols;
   
   // endogenous part
   for(int i=0; i < M; i++){ // equation - column
-    for(int pp=1; pp <= p; pp++){
+    for(int pp=1; pp <= plag; pp++){
       for(int j=0; j < M; j++){ // variable - row
         if(i==j){ // own lag
           V(j+M*(pp-1),i) = pow(shrink1/static_cast<double>(pp),2.0);
@@ -74,9 +74,9 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
   // exogenous part
   if(Mstar > 0){
     for(int i=0; i < M; i++){ // equation - column
-      for(int pp=0; pp <= p; pp++){
+      for(int pp=0; pp <= plagstar; pp++){
         for(int j=0; j < Mstar; j++){
-          V(M*p+pp*Mstar+j,i) = pow((shrink1 * shrink4)/static_cast<double>(pp+1),2.0) * sigmas(i)/(sigmas(M+j));
+          V(M*plag+pp*Mstar+j,i) = pow((shrink1 * shrink4)/static_cast<double>(pp+1),2.0) * sigmas(i)/(sigmas(M+j));
         }
       }
     }
