@@ -21,7 +21,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{burnin}{Number of burn-ins. Default set to \code{burnin=5000}.}
 
-\item{prior}{Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.}
+\item{prior}{Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior, \code{NG} for the Normal-Gamma prior or \code{HS} for the Horseshoe prior. See Details below.}
 
 \item{SV}{If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.}
 
@@ -58,6 +58,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
       \item{\code{sample_tau}}{ If set to \code{TRUE} \code{tau_theta} is sampled.}
       }}
+\item{"HS":}{No additional hyperparameter need to be elicited for the horseshoe prior.}
  }}
 
 \item{eigen}{Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).}

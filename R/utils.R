@@ -259,7 +259,7 @@
   all  <- t(W%*%t(xglobal))
   Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
   class(Yraw) <- class(Wraw) <- "numeric"
-  prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,3))
+  prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,ifelse(prior=="NG",3,4)))
   if(default_hyperpara[["tau_log"]]){
     default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
   }
@@ -273,16 +273,17 @@
     bvar <- structure("message",class=c("try-error","character"))
   }
   if(is(bvar,"try-error")){
-    #Rcpp::sourceCpp("./src/do_rgig1.cpp")
+    # Rcpp::sourceCpp("./src/do_rgig1.cpp")
     bvar<-try(.BVAR_linear_R(Yraw,Wraw,Exraw,lags,draws,burnin,thin,TRUE,trend,SV,
                              prior_in,default_hyperpara,TRUE,setting_store), silent=TRUE)
   }
   # error handling
   if(inherits(bvar,"try-error")){
-    cat(paste0("Error occured in countrymodel: ", cN[cc],". Please check.\n"))
-    cat("Error in detail: \n\n")
-    print(bvar)
-    stop()
+    message("\nBGVAR incurred an error when estimating the models.\nSee original error message:")
+    message(paste0("Error occured in countrymodel: ", cN[cc],". Please check."))
+    message("Error in detail: \n")
+    message(bvar)
+    #stop()
   }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
@@ -309,7 +310,7 @@
   }
   Lambda0store  <- A_store[which(dims=="Wex"),,,drop=FALSE]
   Lambdastore   <- NULL
-  Phistore    <- NULL
+  Phistore      <- NULL
   for(pp in 1:pmax){
     if(pp %in% seq(plag)){
       Phistore[[pp]] <- A_store[which(dims==paste("Ylag",pp,sep="")),,,drop=FALSE]
@@ -335,7 +336,7 @@
       }
     }
   }
-  SIGMAmed_store <- apply(SIGMA_store,c(2,3,4),median)
+  SIGMAmed_store <- apply(SIGMA_store, c(2,3,4), median)
   res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,colnames(Y),NULL)
   if(SV){
     vola_store  <- bvar$Sv_store; dimnames(vola_store) <- list(NULL,colnames(Y),NULL)
@@ -353,15 +354,15 @@
   }
   # MN
   if(prior=="MN" & setting_store$shrink_MN){
-    shrink_store  <- bvar$shrink_store; dimnames(shrink_store) <- list(c("shrink1","shrink2","shrink4"),NULL,NULL)
+    shrink_store  <- bvar$MN$shrink_store; dimnames(shrink_store) <- list(c("shrink1","shrink2","shrink4"),NULL,NULL)
     shrink_post   <- apply(shrink_store,c(1,2),median)
   }else{
     shrink_store  <- shrink_post <- NULL
   }
   # SSVS
   if(prior=="SSVS" & setting_store$shrink_SSVS){
-    gamma_store <- bvar$gamma_store; dimnames(gamma_store) <- list(colnames(X),colnames(Y),NULL)
-    omega_store <- bvar$omega_store; dimnames(omega_store) <- list(colnames(Y),colnames(Y),NULL)
+    gamma_store <- bvar$SSVS$gamma_store; dimnames(gamma_store) <- list(colnames(X),colnames(Y),NULL)
+    omega_store <- bvar$SSVS$omega_store; dimnames(omega_store) <- list(colnames(Y),colnames(Y),NULL)
     PIP         <- apply(gamma_store,c(1,2),mean)
     PIP_omega   <- apply(omega_store,c(1,2),mean)
   }else{
@@ -369,9 +370,9 @@
   }
   # NG
   if(prior=="NG" & setting_store$shrink_NG){
-    theta_store   <- bvar$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
-    lambda2_store <- bvar$lambda2_store
-    tau_store     <- bvar$tau_store
+    theta_store   <- bvar$NG$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
+    lambda2_store <- bvar$NG$lambda2_store
+    tau_store     <- bvar$NG$tau_store
     dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
     dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
     theta_post  <- apply(theta_store,c(1,2),median)
@@ -380,9 +381,47 @@
   }else{
     theta_store <- lambda2_store <- tau_store <- theta_post <- lambda2_post <- tau_post <- NULL
   }
-  store <- list(A_store=A_store,a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,Phistore=Phistore,Exstore=Exstore,SIGMA_store=SIGMA_store,SIGMAmed_store=SIGMAmed_store,L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,lambda2_store=lambda2_store,tau_store=tau_store)
+  # HS
+  if(prior=="HS" & setting_store$shrink_HS){
+    lambda_A_endo_store <- bvar$HS$lambda_A_endo_store
+    lambda_A_exo_store  <- bvar$HS$lambda_A_exo_store
+    lambda_L_store      <- bvar$HS$lambda_L_store
+    nu_A_endo_store     <- bvar$HS$nu_A_endo_store
+    nu_A_exo_store      <- bvar$HS$nu_A_exo_store
+    nu_L_store          <- bvar$HS$nu_L_store
+    tau_A_endo_store    <- bvar$HS$tau_A_endo_store
+    tau_A_exo_store     <- bvar$HS$tau_A_exo_store
+    tau_L_store         <- bvar$HS$tau_L_store
+    zeta_A_endo_store   <- bvar$HS$zeta_A_endo_store
+    zeta_A_exo_store    <- bvar$HS$zeta_A_exo_store
+    zeta_L_store        <- bvar$HS$zeta_L_store
+    
+    lambda_A_endo_post <- apply(lambda_A_endo_store, 1, median)
+    lambda_A_exo_post  <- apply(lambda_A_exo_store, 1, median)
+    lambda_L_post      <- apply(lambda_L_store, 1, median)
+    nu_A_endo_post     <- apply(nu_A_endo_store, 1, median)
+    nu_A_exo_post      <- apply(nu_A_exo_store, 1, median)
+    nu_L_post          <- apply(nu_L_store, 1, median)
+    tau_A_endo_post    <- apply(tau_A_endo_store, 1, median)
+    tau_A_exo_post     <- apply(tau_A_exo_store, 1, median)
+    tau_L_post         <- apply(tau_L_store, 1, median)
+    zeta_A_endo_post   <- apply(zeta_A_endo_store, 1, median)
+    zeta_A_exo_post    <- apply(zeta_A_exo_store, 1, median)
+    zeta_L_post        <- apply(zeta_L_store, 1, median)
+  }else{
+    lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
+    nu_A_endo_store <- nu_A_exo_store <- nu_L_store <- NULL
+    tau_A_endo_store <- tau_A_exo_store <- tau_L_store <- NULL
+    zeta_A_endo_store <- zeta_A_exo_store <- zeta_L_store <- NULL
+    
+    lambda_A_endo_post <- lambda_A_exo_post <- lambda_L_post <- NULL
+    nu_A_endo_post <- nu_A_exo_post <- nu_L_post <- NULL
+    tau_A_endo_post <- tau_A_exo_post <- tau_L_post <- NULL
+    zeta_A_endo_post <- zeta_A_exo_post <- zeta_L_post <- NULL
+  }
   #------------------------------------ compute posteriors -------------------------------------------#
-  A_post      <- apply(A_store,c(1,2),median)
+  A_post      <- apply(A_store, c(1,2), median)
+  L_post      <- apply(L_store, c(1,2), median)
   SIGMA_post  <- apply(SIGMA_store,c(1,2,3),median)
   S_post      <- apply(SIGMA_post,c(1,2),mean)
   Sig         <- S_post/(bigT-K)
@@ -411,8 +450,27 @@
       Lambdapost <- rbind(Lambdapost, matrix(0, Mstar, M, dimnames=list(rep(paste0("Wexlag",pp),Mstar),colnames(Y))))
     }
   }
-  post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,Phipost=Phipost,Expost=Expost,SIGMA_post=SIGMA_post,S_post=S_post,Sig=Sig,theta_post=theta_post,vola_post=vola_post,pars_post=pars_post,res_post=res_post,shrink_post=shrink_post,PIP=PIP,PIP_omega=PIP_omega,lambda2_post=lambda2_post,tau_post=tau_post)
-  return(list(Y=Y,X=X,W=W,store=store,post=post))
+  post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,
+               Phipost=Phipost,Expost=Expost,S_post=S_post,Sig=Sig,theta_post=theta_post,L_post=L_post,
+               SIGMA_post=SIGMA_post,
+               vola_post=vola_post,pars_post=pars_post,res_post=res_post,shrink_post=shrink_post,
+               PIP=PIP,PIP_omega=PIP_omega,lambda2_post=lambda2_post,tau_post=tau_post,
+               lambda_A_endo_post=lambda_A_endo_post,lambda_A_exo_post=lambda_A_exo_post,lambda_L_post=lambda_L_post,
+               nu_A_endo_post=nu_A_endo_post,nu_A_exo_post=nu_A_exo_post,nu_L_post=nu_L_post,
+               tau_A_endo_post=tau_A_endo_post,tau_A_exo_post=tau_A_exo_post,tau_L_post=tau_L_post,
+               zeta_A_endo_post=zeta_A_endo_post,zeta_A_exo_post=zeta_A_exo_post,zeta_L_post=zeta_L_post)
+  
+  store <- list(a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,
+                Phistore=Phistore,Exstore=Exstore,SIGMAmed_store=SIGMAmed_store,
+                L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,
+                res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,
+                lambda2_store=lambda2_store,tau_store=tau_store,
+                lambda_A_endo_store=lambda_A_endo_store,lambda_A_exo_store=lambda_A_exo_store,lambda_L_store=lambda_L_store,
+                nu_A_endo_store=nu_A_endo_store,nu_A_exo_store=nu_A_exo_store,nu_L_store=nu_L_store,
+                tau_A_endo_store=tau_A_endo_store,tau_A_exo_store=tau_A_exo_store,tau_L_store=tau_L_store,
+                zeta_A_endo_store=zeta_A_endo_store,zeta_A_exo_store=zeta_A_exo_store,zeta_L_store=zeta_L_store)
+  out  <- list(Y=Y,X=X,W=W,store=store,post=post)
+  return(out)
 }
 
 #' @name .BVAR_linear_R
@@ -467,8 +525,9 @@
   }
   
   k <- ncol(X)
-  n <- k*M
   v <- (M*(M-1))/2
+  n <- K*M
+  nstar <- Kstar*Mstar
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
   #---------------------------------------------------------------------------------------------------------
@@ -504,6 +563,7 @@
   save_shrink_MN   <- setting_store$shrink_MN
   save_shrink_SSVS <- setting_store$shrink_SSVS
   save_shrink_NG   <- setting_store$shrink_NG
+  save_shrink_HS   <- setting_store$shrink_HS
   save_vola_pars   <- setting_store$vola_pars
   #---------------------------------------------------------------------------------------------------------
   # OLS Quantitites
@@ -519,10 +579,11 @@
   #---------------------------------------------------------------------------------------------------------
   # Initial Values
   #---------------------------------------------------------------------------------------------------------
-  A_draw <- A_OLS
-  SIGMA  <- array(SIGMA_OLS, c(M,M,bigT))
-  Em     <- Em_str <- E_OLS
-  L_draw <- diag(M)
+  A_draw    <- A_OLS
+  SIGMA     <- array(SIGMA_OLS, c(M,M,bigT))
+  Em        <- Em_str <- E_OLS
+  L_draw    <- diag(M)
+  L_drawinv <- diag(M)
   #---------------------------------------------------------------------------------------------------------
   # PRIORS
   #---------------------------------------------------------------------------------------------------------
@@ -580,6 +641,7 @@
       ii <- ii+1
     }
   }
+  
   # NG stuff
   lambda2_A    <- matrix(0.01,pmax+1,2)
   A_tau        <- matrix(tau_theta,pmax+1,2)
@@ -588,6 +650,13 @@
   A_tuning     <- matrix(.43,pmax+1,2)
   A_accept     <- matrix(0,pmax+1,2)
   lambda2_A[1,1] <- A_tau[1,1] <- A_tuning[1,1] <- A_accept[1,1] <- NA
+  
+  # HS stuff
+  lambda_A_endo <- nu_A_endo <- rep(1, n)
+  lambda_A_exo  <- nu_A_exo  <- rep(1, nstar)
+  lambda_L      <- nu_L      <- rep(1, v)
+  tau_A_endo  <- tau_A_exo  <- tau_L <- 1
+  zeta_A_endo <- zeta_A_exo <- zeta_L <- 1
   #------------------------------------
   # Priors on coefs in H matrix of VCV
   #------------------------------------
@@ -625,36 +694,56 @@
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
-  A_store      <- array(NA,c(k,M,thindraws))
-  L_store      <- array(NA,c(M,M,thindraws))
-  res_store    <- array(NA,c(bigT,M,thindraws))
+  A_store      <- array(NA_real_, c(k,M,thindraws))
+  L_store      <- array(NA_real_, c(M,M,thindraws))
+  res_store    <- array(NA_real_, c(bigT,M,thindraws))
   # SV
-  Sv_store     <- array(NA,c(bigT,M,thindraws))
+  Sv_store     <- array(NA_real_, c(bigT,M,thindraws))
   if(save_vola_pars){
-    pars_store <- array(NA,c(4,M,thindraws))
+    pars_store <- array(NA_real_, c(4,M,thindraws))
   }else{
     pars_store <- NULL
   }
   # MN
   if(save_shrink_MN){
-    shrink_store <- array(NA,c(3,1,thindraws))
+    shrink_store <- array(NA_real_, c(3,1,thindraws))
   }else{
     shrink_store <- NULL
   }
   # SSVS
   if(save_shrink_SSVS){
-    gamma_store  <- array(NA,c(k,M,thindraws))
-    omega_store  <- array(NA,c(M,M,thindraws))
+    gamma_store  <- array(NA_real_, c(k,M,thindraws))
+    omega_store  <- array(NA_real_, c(M,M,thindraws))
   }else{
     gamma_store <- omega_store <- NULL
   }
   # NG
   if(save_shrink_NG){
-    theta_store  <- array(NA,c(k,M,thindraws))
-    lambda2_store<- array(NA,c(pmax+1,3,thindraws))
-    tau_store    <- array(NA,c(pmax+1,3,thindraws))
+    theta_store  <- array(NA_real_, c(k,M,thindraws))
+    lambda2_store<- array(NA_real_, c(pmax+1,3,thindraws))
+    tau_store    <- array(NA_real_, c(pmax+1,3,thindraws))
   }else{
     theta_store <- lambda2_store <- tau_store <- NULL
+  }
+  # HS
+  if(save_shrink_HS){
+    lambda_A_endo_store <- array(NA_real_, c(n, thindraws))
+    lambda_A_exo_store  <- array(NA_real_, c(nstar, thindraws))
+    lambda_L_store      <- array(NA_real_, c(v, thindraws))
+    nu_A_endo_store     <- array(NA_real_, c(n, thindraws))
+    nu_A_exo_store      <- array(NA_real_, c(nstar, thindraws))
+    nu_L_store          <- array(NA_real_, c(v, thindraws))
+    tau_A_endo_store    <- array(NA_real_, c(1, thindraws))
+    tau_A_exo_store     <- array(NA_real_, c(1, thindraws))
+    tau_L_store         <- array(NA_real_, c(1, thindraws))
+    zeta_A_endo_store   <- array(NA_real_, c(1, thindraws))
+    zeta_A_exo_store    <- array(NA_real_, c(1, thindraws))
+    zeta_L_store        <- array(NA_real_, c(1, thindraws))
+  }else{
+    lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
+    nu_A_endo_store <- nu_A_exo_store <- nu_L_store <- NULL
+    tau_A_endo_store <- tau_A_exo_store <- tau_L_store <- NULL
+    zeta_A_endo_store <- zeta_A_exo_store <- zeta_L_store <- NULL
   }
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
@@ -662,37 +751,74 @@
   for (irep in 1:ntot){
     #----------------------------------------------------------------------------
     # Step 1: Sample coefficients
-    for (mm in 1:M){
-      if (mm==1){
-        Y.i <- Y[,mm]*exp(-0.5*Sv_draw[,mm])
-        X.i <- X*exp(-0.5*Sv_draw[,mm])
-        
-        V_post <- try(chol2inv(chol(crossprod(X.i)+diag(1/theta[,mm]))),silent=TRUE)
-        if (is(V_post,"try-error")) V_post <- ginv(crossprod(X.i)+diag(1/theta[,mm]))
-        A_post <- V_post%*%(crossprod(X.i,Y.i)+diag(1/theta[,mm])%*%A_prior[,mm])
-        
-        A.draw.i <- try(A_post+t(chol(V_post))%*%rnorm(ncol(X.i)),silent=TRUE)
-        if (is(A.draw.i,"try-error")) A.draw.i <- mvrnorm(1,A_post,V_post)
-        A_draw[,mm] <- A.draw.i
-        Em[,mm] <-  Em_str[,mm] <- Y[,mm]-X%*%A.draw.i
-      }else{
-        Y.i <- Y[,mm]*exp(-0.5*Sv_draw[,mm])
-        X.i <- cbind(X,Em[,1:(mm-1)])*exp(-0.5*Sv_draw[,mm])
-        
-        V_post <- try(chol2inv(chol((crossprod(X.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))))),silent=TRUE)
-        if (is(V_post,"try-error")) V_post <- ginv((crossprod(X.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))))
-        A_post <- V_post%*%(crossprod(X.i,Y.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))%*%c(A_prior[,mm],l_prior[mm,1:(mm-1)]))
-        
-        A.draw.i <- try(A_post+t(chol(V_post))%*%rnorm(ncol(X.i)),silent=TRUE)
-        if (is(A.draw.i,"try-error")) A.draw.i <- mvrnorm(1,A_post,V_post)
-        
-        A_draw[,mm] <- A.draw.i[1:ncol(X)]
-        Em[,mm] <- Y[,mm]-X%*%A.draw.i[1:ncol(X)]
-        Em_str[,mm] <- Y[,mm]-X%*%A.draw.i[1:ncol(X)]-Em[,1:(mm-1),drop=FALSE]%*%A.draw.i[(ncol(X)+1):ncol(X.i),drop=FALSE]
-        L_draw[mm,1:(mm-1)] <- A.draw.i[(ncol(X)+1):ncol(X.i)]
-      }
+    for(mm in 1:M){
+      A0_draw = A_draw
+      A0_draw[,mm] <- 0
+      
+      ztilde <- as.vector((Y - X%*%A0_draw)%*%t(L_drawinv[mm:M,,drop=FALSE])) * exp(-0.5*as.vector(Sv_draw[,mm:M,drop=FALSE]))
+      xtilde <- (L_drawinv[mm:M,mm,drop=FALSE] %x% X) * exp(-0.5*as.vector(Sv_draw[,mm:M,drop=FALSE]))
+      
+      V_post <- try(chol2inv(chol(crossprod(xtilde)+diag(1/theta[,mm]))),silent=TRUE)
+      if(is(V_post,"try-error")) V_post <- try(solve(crossprod(xtilde)+diag(1/theta[,mm])),silent=TRUE)
+      if(is(V_post,"try-error")) V_post <- ginv(crossprod(xtilde)+diag(1/theta[,mm]))
+      A_post <- V_post%*%(crossprod(xtilde,ztilde)+diag(1/theta[,mm])%*%A_prior[,mm])
+      
+      A.draw.i <- try(A_post+t(chol(V_post))%*%rnorm(ncol(X)),silent=TRUE)
+      if(is(A.draw.i,"try-error")) A.draw.i <- t(mvrnorm(1,A_post,V_post))
+      A_draw[,mm] <- A.draw.i
+      Em[,mm] <- Y[,mm]-X%*%A.draw.i
     }
     rownames(A_draw) <- colnames(X)
+    # Step 1b: Sample coefficients in L matrix
+    if(M > 1){
+      for(mm in 2:M){
+        eps.m <- Em[,mm]*exp(-0.5*Sv_draw[,mm,drop=TRUE])
+        eps.x <- Em[,1:(mm-1),drop=FALSE]*exp(-0.5*Sv_draw[,mm,drop=TRUE])
+        
+        L_post <- try(chol2inv(chol(crossprod(eps.x)+diag(1/L_prior[mm,1:(mm-1)],mm-1,mm-1))),silent=TRUE)
+        if(is(L_post,"try-error")) L_post <- try(solve(crossprod(eps.x)+diag(1/L_prior[mm,1:(mm-1)],mm-1,mm-1)),silent=TRUE)
+        if(is(L_post,"try-error")) L_post <- ginv(crossprod(eps.x)+diag(1/L_prior[mm,1:(mm-1)],mm-1,mm-1))
+        l_post <- L_post%*%(crossprod(eps.x,eps.m)+diag(1/L_prior[mm,1:(mm-1)],mm-1,mm-1)%*%l_prior[mm,1:(mm-1)])
+        
+        L.draw.i <- try(l_post+t(chol(L_post))%*%rnorm(length(1:(mm-1))),silent=TRUE)
+        if(is(L.draw.i,"try-error")) L.draw.i <- t(mvrnorm(1,l_post,L_post))
+        L_draw[mm,1:(mm-1)] <- L.draw.i
+      }
+    }
+    # Step 1c: Compute Em_str
+    L_drawinv <- solve(L_draw)
+    Em_str <- Y%*%t(L_drawinv) - X%*%A_draw%*%t(L_drawinv)
+    # for (mm in 1:M){
+    #   if (mm==1){
+    #     Y.i <- Y[,mm]*exp(-0.5*Sv_draw[,mm])
+    #     X.i <- X*exp(-0.5*Sv_draw[,mm])
+    #     
+    #     V_post <- try(chol2inv(chol(crossprod(X.i)+diag(1/theta[,mm]))),silent=TRUE)
+    #     if (is(V_post,"try-error")) V_post <- ginv(crossprod(X.i)+diag(1/theta[,mm]))
+    #     A_post <- V_post%*%(crossprod(X.i,Y.i)+diag(1/theta[,mm])%*%A_prior[,mm])
+    #     
+    #     A.draw.i <- try(A_post+t(chol(V_post))%*%rnorm(ncol(X.i)),silent=TRUE)
+    #     if (is(A.draw.i,"try-error")) A.draw.i <- mvrnorm(1,A_post,V_post)
+    #     A_draw[,mm] <- A.draw.i
+    #     Em[,mm] <-  Em_str[,mm] <- Y[,mm]-X%*%A.draw.i
+    #   }else{
+    #     Y.i <- Y[,mm]*exp(-0.5*Sv_draw[,mm])
+    #     X.i <- cbind(X,Em[,1:(mm-1)])*exp(-0.5*Sv_draw[,mm])
+    #     
+    #     V_post <- try(chol2inv(chol((crossprod(X.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))))),silent=TRUE)
+    #     if (is(V_post,"try-error")) V_post <- ginv((crossprod(X.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))))
+    #     A_post <- V_post%*%(crossprod(X.i,Y.i)+diag(1/c(theta[,mm],L_prior[mm,1:(mm-1)]))%*%c(A_prior[,mm],l_prior[mm,1:(mm-1)]))
+    #     
+    #     A.draw.i <- try(A_post+t(chol(V_post))%*%rnorm(ncol(X.i)),silent=TRUE)
+    #     if (is(A.draw.i,"try-error")) A.draw.i <- mvrnorm(1,A_post,V_post)
+    #     
+    #     A_draw[,mm] <- A.draw.i[1:ncol(X)]
+    #     Em[,mm] <- Y[,mm]-X%*%A.draw.i[1:ncol(X)]
+    #     Em_str[,mm] <- Y[,mm]-X%*%A.draw.i[1:ncol(X)]-Em[,1:(mm-1),drop=FALSE]%*%A.draw.i[(ncol(X)+1):ncol(X.i),drop=FALSE]
+    #     L_draw[mm,1:(mm-1)] <- A.draw.i[(ncol(X)+1):ncol(X.i)]
+    #   }
+    # }
+    # rownames(A_draw) <- colnames(X)
     #----------------------------------------------------------------------------
     # Step 2: different shrinkage prior setups
     # MN
@@ -897,6 +1023,65 @@
         }
       }
     }
+    if(prior == 4){
+      # local shrinkage parameters - L
+      lambda_L = 1 / rgamma(n     = v, 
+                            shape = 1, 
+                            rate  = 1 / nu_L + 0.5 * as.vector(L_draw[lower.tri(L_draw)])^2 / tau_L)
+      nu_L = 1 /rgamma(n     = v, 
+                       shape = 1,
+                       rate  = 1 + 1 / lambda_L)
+      # global shrinkage parameter - L
+      WSSR_L = sum(as.vector(L_draw[lower.tri(L_draw)])^2 / lambda_L)
+      tau_L  = 1 / rgamma(n     = 1, 
+                          shape = (v + 1)/2, 
+                          rate  = 1 / zeta_L + 0.5*WSSR_L)
+      zeta_L = 1 / rgamma(n     = 1, 
+                          shape = 1, 
+                          rate = 1 + 1 / tau_L)
+      # update prior VCV
+      L_prior[lower.tri(L_prior)] = tau_L * lambda_L
+      
+      ############# - A endo
+      slct.i    <- grep("Ylag",rownames(A_draw))
+      # local shrinkage parameter - A endo
+      lambda_A_endo = 1 / rgamma(n     = n, 
+                                 shape = 1,
+                                 rate  = 1 / nu_A_endo + 0.5 * as.vector(A_draw[slct.i,])^2 / tau_A_endo)
+      nu_A_endo     = 1 / rgamma(n     = n, 
+                                 shape = 1,
+                                 rate  = 1 + 1 / lambda_A_endo)
+      # global shrinkage parameter - A endo
+      WSSR_A_endo = sum(as.vector(A_draw[slct.i,])^2 / lambda_A_endo)
+      tau_A_endo  = 1 / rgamma(n     = 1,
+                               shape = (n + 1)/2,
+                               rate  = 1 / zeta_A_endo + 0.5*WSSR_A_endo)
+      zeta_A_endo = 1 / rgamma(n     = 1,
+                               shape = 1,
+                               rate  = 1 + 1 / tau_A_endo)
+      # update prior VCV
+      theta[slct.i,] <- tau_A_endo * lambda_A_endo
+      
+      ############# - A endo
+      slct.w <- grep("Wex", rownames(A_draw))
+      # local shrinkage parameter - A exo
+      lambda_A_exo = 1 / rgamma(n     = nstar, 
+                                shape = 1,
+                                rate  = 1 / nu_A_exo + 0.5 * as.vector(A_draw[slct.w,])^2 / tau_A_exo)
+      nu_A_exo     = 1 / rgamma(n     = nstar, 
+                                shape = 1,
+                                rate  = 1 + 1 / lambda_A_exo)
+      # global shrinkage parameter - A exo
+      WSSR_A_exo = sum(as.vector(A_draw[slct.w,])^2 / lambda_A_exo)
+      tau_A_exo  = 1 / rgamma(n     = 1,
+                              shape = (nstar + 1)/2,
+                              rate  = 1 / zeta_A_endo + 0.5*WSSR_A_exo)
+      zeta_A_exo = 1 / rgamma(n     = 1,
+                              shape = 1,
+                              rate  = 1 + 1 / tau_A_exo)
+      # update prior VCV
+      theta[slct.w,] <- tau_A_exo * lambda_A_exo
+    } 
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
     if(sv){
@@ -954,6 +1139,21 @@
         tau_store[1,3,count]             <- L_tau
         tau_store[1:(plag+1),1:2,count]     <- A_tau
       }
+      # HS
+      if(save_shrink_HS){
+        lambda_A_endo_store[,count] <- lambda_A_endo
+        lambda_A_exo_store[,count]  <- lambda_A_exo
+        lambda_L_store[,count]      <- lambda_L
+        nu_A_endo_store[,count]     <- nu_A_endo
+        nu_A_exo_store[,count]      <- nu_A_exo
+        nu_L_store[,count]          <- nu_L
+        tau_A_endo_store[,count]    <- tau_A_endo
+        tau_A_exo_store[,count]     <- tau_A_exo
+        tau_L_store[,count]         <- tau_L
+        zeta_A_endo_store[,count]   <- zeta_A_endo
+        zeta_A_exo_store[,count]    <- zeta_A_exo
+        zeta_L_store[,count]        <- zeta_L
+      }
     }
   }
   #---------------------------------------------------------------------------------------------------------
@@ -961,63 +1161,113 @@
   #---------------------------------------------------------------------------------------------------------
   dimnames(A_store)=list(colnames(X),colnames(A_OLS),NULL)
   
-  ret <- list(Y=Y,X=X,A_store=A_store,L_store=L_store,Sv_store=Sv_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,theta_store=theta_store,lambda2_store=lambda2_store,tau_store=tau_store,pars_store=pars_store,res_store=res_store)
+  ret <- list(Y=Y,X=X,A_store=A_store,L_store=L_store,Sv_store=Sv_store,pars_store=pars_store,res_store=res_store,
+              MN=list(
+                shrink_store=shrink_store
+                ),
+              SSVS=list(
+                gamma_store=gamma_store,
+                omega_store=omega_store),
+              NG=list(
+                theta_store=theta_store,
+                lambda2_store=lambda2_store,
+                tau_store=tau_store),
+              HS=list(
+                lambda_A_endo_store=lambda_A_endo_store,
+                lambda_A_exo_store=lambda_A_exo_store,
+                lambda_L_store=lambda_L_store,
+                nu_A_endo_store=nu_A_endo_store,
+                nu_A_exo_store=nu_A_exo_store,
+                nu_L_store=nu_L_store,
+                tau_A_endo_store=tau_A_endo_store,
+                tau_A_exo_store=tau_A_exo_store,
+                tau_L_store=tau_L_store,
+                zeta_A_endo_store=zeta_A_endo_store,
+                zeta_A_exo_store=zeta_A_exo_store,
+                zeta_L_store=zeta_L_store
+              ))
   
   return(ret)
 }
 
 #' @name .gvar.stacking.wrapper
 #' @importFrom stats median
+#' @importFrom utils memory.limit
 #' @noRd
 .gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,eigen,trim,verbose){
-  bigT      <- nrow(xglobal)
-  bigK      <- ncol(xglobal)
-  cN        <- names(globalpost)
-  thindraws <- draws/thin
-  F_large   <- array(NA, dim=c(bigK,bigK,plag,thindraws))
-  trim.info <- "No trimming"
-  
-  ## call Rcpp
-  # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
-  out <- gvar_stacking(xglobal    = xglobal, 
-                       plag       = as.integer(plag), 
-                       globalpost = globalpost, 
-                       draws      = as.integer(draws),
-                       thin       = as.integer(thin), 
-                       trend      = trend, 
-                       eigen      = TRUE, 
-                       verbose    = verbose)
-  A_large    <- out$A_large
-  for(pp in 1:plag){
-    F_large[,,pp,] <- out$F_large[,((bigK*(pp-1))+1):(bigK*pp),,drop=FALSE]
-  }
-  S_large    <- out$S_large
-  Ginv_large <- out$Ginv_large
-  F.eigen    <- out$F_eigen
-  dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
-  names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
-  if(trend) names <- c(names,"trend")
-  dimnames(A_large)[[2]]<-names
-  
-  # kick out in-stable draws
-  if(eigen){
-    idx<-which(F.eigen<trim)
-    
-    F_large     <- F_large[,,,idx,drop=FALSE]
-    S_large     <- S_large[,,idx,drop=FALSE]
-    Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
-    A_large     <- A_large[,,idx,drop=FALSE]
-    F.eigen     <- F.eigen[idx]
-    
-    if(length(idx)<10){
-      stop("Less than 10 stable draws have been found. Please re-estimate the model.")
-    }
-    
-    trim.info <- round((length(idx)/thindraws)*100,2)
-    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
-  }
-  
-  results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
+  results <- tryCatch(
+    {
+      bigT      <- nrow(xglobal)
+      bigK      <- ncol(xglobal)
+      cN        <- names(globalpost)
+      thindraws <- draws/thin
+      F_large   <- array(NA, dim=c(bigK,bigK,plag,thindraws))
+      trim.info <- "No trimming"
+      
+      ## call Rcpp
+      # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
+      out <- gvar_stacking(xglobal    = xglobal,
+                           plag       = as.integer(plag), 
+                           globalpost = globalpost, 
+                           draws      = as.integer(draws),
+                           thin       = as.integer(thin), 
+                           trend      = trend, 
+                           eigen      = TRUE, 
+                           verbose    = verbose)
+      A_large    <- out$A_large
+      for(pp in 1:plag){
+        F_large[,,pp,] <- out$F_large[,((bigK*(pp-1))+1):(bigK*pp),,drop=FALSE]
+      }
+      S_large    <- out$S_large
+      Ginv_large <- out$Ginv_large
+      F.eigen    <- out$F_eigen
+      dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
+      names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
+      if(trend) names <- c(names,"trend")
+      dimnames(A_large)[[2]]<-names
+      
+      # kick out in-stable draws
+      if(eigen){
+        idx<-which(F.eigen<trim)
+        
+        F_large     <- F_large[,,,idx,drop=FALSE]
+        S_large     <- S_large[,,idx,drop=FALSE]
+        Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
+        A_large     <- A_large[,,idx,drop=FALSE]
+        F.eigen     <- F.eigen[idx]
+        
+        if(length(idx)<10){
+          stop("Less than 10 stable draws have been found. Please re-estimate the model.")
+        }
+        
+        trim.info <- round((length(idx)/thindraws)*100,2)
+        trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
+      }
+      
+      results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
+    },
+    error=function(cond){
+      if(cond$message == "vector memory exhausted (limit reached?)"){
+        message("BGVAR incurred an error due to memory exhaustiveness.\n See original error message:")
+        message(cond)
+        if(.get_os() == "osx"){
+          message("\nWe advise you to do the following on Mac OS: The enviornment variable R_MAX_VSIZE can be adjusted to to specify the maximal vector heap size.")
+          message("\nCurrent value of R_MAX_VSIZE: ", Sys.getenv("R_MAX_VSIZE"))
+          message("\nAdjust this parameter as follows: Sys.setenv(R_MAX_VSIZE='100GB')")
+        }else if(.get_os() == "windows"){
+          message("\nWe advise you to do the following on Windows OS: The memory limit can be adjusted to specify the maximal vector heap size.")
+          message("\nCurrent value of memory.limit(): ", memory.limit())
+          message("\nAdjust this parameter as follows: memory.limit(size=100000).")
+        }else if(.get_os() == "linux"){
+          message("\nWe advise you to do the following on Linux: The memory limit can be adjusted to specify the maximal vector heap size. The maximal vector heap size of physical and virtual memory is set to the maximum of 16Gb. \n Adjust this parameter as follows: unix::rlimit_as(Inf).")
+        }
+        message("\n In any case, increasin the thinning factor (argument 'thin' of 'bgvar') reduces memory requirements.")
+      }
+      return(NULL)
+    },
+    warning=function(cond){},
+    finally={}
+  )
   return(results)
 }
 
@@ -1140,6 +1390,24 @@
   }
   
   return(list(MM=MM,Jm=Jm))
+}
+
+#' @name .get_os
+#' @noRd
+.get_os <- function(){
+  sysinf <- Sys.info()
+  if (!is.null(sysinf)){
+    os <- sysinf['sysname']
+    if (os == 'Darwin')
+      os <- "osx"
+  } else { ## mystery machine
+    os <- .Platform$OS.type
+    if (grepl("^darwin", R.version$os))
+      os <- "osx"
+    if (grepl("linux-gnu", R.version$os))
+      os <- "linux"
+  }
+  return(tolower(os))
 }
 
 #' @name .globalLik

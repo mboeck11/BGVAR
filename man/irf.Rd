@@ -69,6 +69,7 @@ shockinfo<-get_shockinfo("chol")
 shockinfo$shock<-"US.stir"; shockinfo$scale<--100
 
 irf.chol.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
+
 # sign restrictions
 shockinfo <- get_shockinfo("sign")
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 

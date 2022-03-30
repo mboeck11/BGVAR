@@ -61,8 +61,8 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
     List H(plag);
     for(int pp=0; pp < plag; pp++){
       arma::cube Lambda_p = Lambda[pp]; 
-      arma::mat Lambdairep = Lambda_p.slice(irep);
       arma::cube Phi_p = Phi[pp]; 
+      arma::mat Lambdairep = Lambda_p.slice(irep);
       arma::mat Phiirep = Phi_p.slice(irep);
       
       mat H0 = join_rows(Phiirep.t(),Lambdairep.t())*W;
@@ -101,8 +101,8 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
       S  = join_cols(S,S1);
       for(int pp=0; pp < plag; pp++){
         arma::cube Lambda_p = Lambda[pp]; 
-        arma::mat Lambdairep = Lambda_p.slice(irep);
         arma::cube Phi_p = Phi[pp]; 
+        arma::mat Lambdairep = Lambda_p.slice(irep);
         arma::mat Phiirep = Phi_p.slice(irep);
        
         mat H1 = join_rows(Phiirep.t(),Lambdairep.t())*W;
@@ -111,6 +111,7 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
         H[pp] = H2;
       }
     }
+    
     mat Ginv = G.i();
     vec b0   = Ginv*a0;
     if(trend){b1 = Ginv*a1;}
@@ -121,11 +122,14 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
     }
     A = join_rows(A,b0);
     if(trend){A = join_rows(A,b1);}
+    
+    
     // save
     F_large.slice(irep) = F;
     A_large.slice(irep) = A;
     S_large.slice(irep) = S;
     Ginv_large.slice(irep) = Ginv;
+  
     // compute eigenvalues
     if(eigen){
       arma::mat MM(bigK*plag, bigK*plag, fill::zeros); MM.submat(0,0,bigK-1,bigK*plag-1) = F;

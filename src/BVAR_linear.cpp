@@ -81,6 +81,8 @@ List BVAR_linear(arma::mat Yraw,
 
   int k = X.n_cols;
   int v = (M*(M-1))/2;
+  int n = K*M;
+  int nstar = Kstar*Mstar;
   
   //----------------------------------------------------------------------------------------------------------------------
   // HYPERPARAMETERS
@@ -117,6 +119,7 @@ List BVAR_linear(arma::mat Yraw,
   const bool save_shrink_MN   = setting_store["shrink_MN"];
   const bool save_shrink_SSVS = setting_store["shrink_SSVS"];
   const bool save_shrink_NG   = setting_store["shrink_NG"];
+  const bool save_shrink_HS   = setting_store["shrink_HS"];
   const bool save_vola_pars   = setting_store["vola_pars"];
   //----------------------------------------------------------------------------------------------------------------------
   // OLS QUANTITIES
@@ -136,6 +139,7 @@ List BVAR_linear(arma::mat Yraw,
   }
   mat Em_draw = E_OLS; mat Em_str_draw = E_OLS;
   mat L_draw(M,M); L_draw.eye();
+  mat L_drawinv(M,M); L_drawinv.eye();
   mat Cm(K,K, fill::zeros); gen_compMat(Cm, A_OLS.rows(0,K-1), M, plag);
   
   //----------------------------------------------------------------------------------------------------------------------
@@ -192,6 +196,7 @@ List BVAR_linear(arma::mat Yraw,
       ii += 1;
     }
   }
+  
   // NG stuff
   mat lambda2_A(pmax+1,2,fill::zeros);
   mat A_tau(pmax+1,2); A_tau.fill(tau_theta); A_tau(0,0)=0;
@@ -201,6 +206,12 @@ List BVAR_linear(arma::mat Yraw,
   mat A_con, V_con, P_con, A_end, V_end, P_end, A_exo, V_exo, P_exo;
   double prodlambda, dl, el, lambda, chi, psi, res;
   double unif, proposal, post_tau_prop, post_tau_curr, diff;
+  
+  // HS stuff
+  vec lambda_A_endo(n, fill::ones), nu_A_endo(n, fill::ones), 
+      lambda_A_exo(nstar, fill::ones), nu_A_exo(nstar, fill::ones),
+      lambda_L(v, fill::ones), nu_L(v, fill::ones);
+  double tau_A_endo = 1, zeta_A_endo = 1, tau_A_exo = 1, zeta_A_exo = 1, tau_L = 1, zeta_L = 1;
   //---------------------------------------------------------------
   // prior on coefficients in H matrix of VCV
   //---------------------------------------------------------------
@@ -302,11 +313,100 @@ List BVAR_linear(arma::mat Yraw,
   arma::cube theta_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
   arma::cube lambda2_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
   arma::cube tau_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
+  // HS
+  arma::ivec size_of_mat1 = {0, 0}, size_of_mat2 = {0, 0}, size_of_mat3 = {0, 0}, size_of_mat4 = {0, 0};
+  if(save_shrink_HS){
+    size_of_mat1 = {n, thindraws};
+    size_of_mat2 = {nstar, thindraws};
+    size_of_mat3 = {v, thindraws};
+    size_of_mat4 = {1, thindraws};
+  }
+  arma::mat lambda_A_endo_store(size_of_mat1(0), size_of_mat1(1));
+  arma::mat lambda_A_exo_store(size_of_mat2(0), size_of_mat2(1));
+  arma::mat lambda_L_store(size_of_mat3(0), size_of_mat3(1));
+  arma::mat nu_A_endo_store(size_of_mat1(0), size_of_mat1(1));
+  arma::mat nu_A_exo_store(size_of_mat2(0), size_of_mat2(1));
+  arma::mat nu_L_store(size_of_mat3(0), size_of_mat3(1));
+  arma::mat tau_A_endo_store(size_of_mat4(0), size_of_mat4(1));
+  arma::mat tau_A_exo_store(size_of_mat4(0), size_of_mat4(1));
+  arma::mat tau_L_store(size_of_mat4(0), size_of_mat4(1));
+  arma::mat zeta_A_endo_store(size_of_mat4(0), size_of_mat4(1));
+  arma::mat zeta_A_exo_store(size_of_mat4(0), size_of_mat4(1));
+  arma::mat zeta_L_store(size_of_mat4(0), size_of_mat4(1));
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
   for(int irep = 0; irep < ntot; irep++){
     // Step 1: Sample coefficients
+    // Step 1a: Sample coefficients in A
+    for(int mm = 0; mm < M; mm++){ // estimate equation-by-equation
+      mat A_0    = A_draw; A_0.col(mm).fill(0);
+      mat Linv_0 = L_drawinv.rows(mm,M-1);
+      mat S_0    = exp(-0.5*Sv_draw.cols(mm,M-1));
+      mat zmat   = (Y - X * A_0) * Linv_0.t() ;
+      vec ztilde = vectorise(zmat) % vectorise(S_0);
+      mat xtilde = kron(Linv_0.col(mm), X) % repmat(vectorise(S_0),1,k);
+      mat Vinv_m = diagmat(1/V_prior.col(mm));
+      colvec a_m = A_prior.col(mm);
+      
+      mat V_p = (xtilde.t() * xtilde + Vinv_m).i();
+      mat A_p = V_p * (xtilde.t() * ztilde + Vinv_m * a_m);
+      
+      colvec rand_normal(k);
+      for(int i=0; i<k; i++){
+        rand_normal(i) = R::rnorm(0,1);
+      }
+      mat V_p_chol_lower;
+      bool chol_success = chol(V_p_chol_lower, V_p, "lower");
+      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
+      if(chol_success == false){
+        NumericMatrix tmp = Rchol(V_p, true, false, -1);
+        int d = V_p.n_cols;
+        mat cholV_tmp = mat(tmp.begin(), d, d, false);
+        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
+        V_p_chol_lower = cholV_tmp.cols(piv);
+        V_p_chol_lower = V_p_chol_lower.t();
+      }
+      colvec A_m = A_p + V_p_chol_lower*rand_normal;
+      
+      A_draw.col(mm) = A_m;
+      Em_draw.col(mm) = Y.col(mm) - X * A_m;
+    }
+    // Step 1b: Sample coefficients in L
+    for(int mm = 1; mm < M; mm++){ 
+      mat eps_m = Em_draw.col(mm);
+      mat S_m   = exp(-0.5*Sv_draw.col(mm));
+      mat eps_x = Em_draw.cols(0,mm-1);
+      eps_m = eps_m % S_m;
+      eps_x = eps_x % repmat(S_m,1,mm);
+      mat Vinv_m = diagmat(1/L_prior.submat(mm,0,mm,mm-1));
+      colvec a_m = l_prior.submat(mm,0,mm,mm-1).t();
+      
+      mat V_p = (eps_x.t() * eps_x + Vinv_m).i();
+      mat A_p = V_p * (eps_x.t() * eps_m + Vinv_m * a_m);
+      
+      colvec rand_normal(mm);
+      for(int i=0; i< mm; i++){
+        rand_normal(i) = R::rnorm(0,1);
+      }
+      mat V_p_chol_lower;
+      bool chol_success = chol(V_p_chol_lower, V_p,"lower");
+      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
+      if(chol_success == false){
+        NumericMatrix tmp = Rchol(V_p, true, false, -1);
+        int d = V_p.n_cols;
+        mat cholV_tmp = mat(tmp.begin(), d, d, false);
+        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
+        V_p_chol_lower = cholV_tmp.cols(piv);
+        V_p_chol_lower = V_p_chol_lower.t();
+      }
+      colvec L_m = A_p + V_p_chol_lower*rand_normal;
+      
+      L_draw.submat(mm,0,mm,mm-1) = L_m;
+    }
+    L_drawinv = L_draw.i();
+    Em_str_draw = Y * L_drawinv.t() - X * A_draw * L_drawinv.t();
+    /*
     for(int mm = 0; mm < M; mm++){ // estimate equation-by-equation
       if(mm == 0){
         mat S_m = exp(-0.5*Sv_draw.col(mm));
@@ -376,6 +476,7 @@ List BVAR_linear(arma::mat Yraw,
         Em_str_draw.col(mm) = Y.col(mm) - join_rows(X,Em_draw.cols(0,mm-1)) * A_m;
       }
     }
+     */
     //-----------------------------------------------
     // Step 2: different prior setups
     // SIMS
@@ -625,6 +726,50 @@ List BVAR_linear(arma::mat Yraw,
         }
       }
     }
+    // HS
+    if(prior == 4){
+      //------------------------------------------
+      // coefficients H matrix
+      uvec lower_indices = trimatl_ind(size(L_draw), -1);
+      // sample local shrinkage parameter
+      for(int vv=0; vv < v; vv++){
+        lambda_L(vv) = 1/R::rgamma(1, 1/(1 / nu_L(vv) + 0.5*pow(L_draw(lower_indices(vv)),2) / tau_L));
+        nu_L(vv)     = 1/R::rgamma(1, 1/(1 + 1/lambda_L(vv)));
+      }
+      // sample global shrinkage parameter
+      tau_L  = 1/R::rgamma((v+1)/2, 1/(1/zeta_L + 0.5*sum(pow(L_draw(lower_indices),2)/lambda_L)));
+      zeta_L = 1/R::rgamma(1, 1/(1 + 1 / tau_L));
+      // update prior VCV
+      L_prior(lower_indices) = tau_L * lambda_L;
+      
+      //------------------------------------------
+      // coefficients A matrix - endogenous
+      A_end = A_draw.rows(0, plag*M-1);
+      // sample local shrinkage parameter
+      for(int nn=0; nn < n; nn++){
+        lambda_A_endo(nn) = 1.0 / R::rgamma(1, 1/(1 / nu_A_endo(nn) + 0.5*pow(A_end(nn),2) / tau_A_endo));
+        nu_A_endo(nn)     = 1.0 / R::rgamma(1, 1/(1 + 1/lambda_A_endo(nn)));
+      }
+      // sample global shrinkage parameter
+      tau_A_endo  = 1.0/R::rgamma((n+1)/2, 1/(1/zeta_A_endo + 0.5*sum(pow(vectorise(A_end),2)/lambda_A_endo)));
+      zeta_A_endo = 1.0/R::rgamma(1, 1 + 1/(1 / tau_A_endo));
+      // update prior VCV
+      V_prior.rows(0, plag*M-1) = reshape(tau_A_endo * lambda_A_endo, plag*M, M);
+      
+      //------------------------------------------
+      // coefficients A matrix - exogenous
+      A_exo = A_draw.rows(plag*M, plag*M+(plagstar+1)*Mstar-1);
+      // sample local shrinkage parameter
+      for(int nn=0; nn < nstar; nn++){
+        lambda_A_exo(nn) = 1/R::rgamma(1, 1/(1 / nu_A_exo(nn) + 0.5*pow(A_exo(nn),2) / tau_A_exo));
+        nu_A_exo(nn)     = 1/R::rgamma(1, 1/(1 + 1/lambda_A_exo(nn)));
+      }
+      // sample global shrinkage parameter
+      tau_A_exo  = 1/R::rgamma((nstar+1)/2, 1/(1/zeta_A_exo + 0.5*sum(pow(vectorise(A_exo),2)/lambda_A_exo)));
+      zeta_A_exo = 1/R::rgamma(1, 1/(1 + 1 / tau_A_exo));
+      // update prior VCV
+      V_prior.rows(plag*M, plag*M+(plagstar+1)*Mstar-1) = reshape(tau_A_exo * lambda_A_exo, (plagstar+1)*Mstar, M);
+    }
     //-----------------------------------------------
     // Step 3: Sample covariances
     for(int mm=0; mm < M; mm++){
@@ -679,6 +824,20 @@ List BVAR_linear(arma::mat Yraw,
           L_taumat(0,0) = L_tau;
           tau_store.slice((irep-burnin)/thin) = join_rows(A_tau,L_taumat);
         }
+        if(save_shrink_HS == true){
+          lambda_A_endo_store.col((irep-burnin)/thin) = lambda_A_endo;
+          lambda_A_exo_store.col((irep-burnin)/thin)  = lambda_A_exo;
+          lambda_L_store.col((irep-burnin)/thin)      = lambda_L;
+          nu_A_endo_store.col((irep-burnin)/thin)     = nu_A_endo;
+          nu_A_exo_store.col((irep-burnin)/thin)      = nu_A_exo;
+          nu_L_store.col((irep-burnin)/thin)          = nu_L;
+          tau_A_endo_store.col((irep-burnin)/thin)    = tau_A_endo;
+          tau_A_exo_store.col((irep-burnin)/thin)     = tau_A_exo;
+          tau_L_store.col((irep-burnin)/thin)         = tau_L;
+          zeta_A_endo_store.col((irep-burnin)/thin)   = zeta_A_endo;
+          zeta_A_exo_store.col((irep-burnin)/thin)    = zeta_A_exo;
+          zeta_L_store.col((irep-burnin)/thin)        = zeta_L;
+        }
       }
     }
     // check user interruption
@@ -691,12 +850,32 @@ List BVAR_linear(arma::mat Yraw,
                       Named("A_store") = A_store, 
                       Named("L_store") = L_store, 
                       Named("Sv_store") = Sv_store, 
-                      Named("shrink_store") = shrink_store,
-                      Named("gamma_store") = gamma_store, 
-                      Named("omega_store") = omega_store, 
-                      Named("theta_store") = theta_store, 
-                      Named("lambda2_store") = lambda2_store, 
-                      Named("tau_store") = tau_store, 
+                      Named("res_store") = res_store,
                       Named("pars_store") = pars_store, 
-                      Named("res_store") = res_store);
+                      Named("MN") = List::create(
+                        Named("shrink_store") = shrink_store
+                      ),
+                      Named("SSVS") = List::create(
+                        Named("gamma_store") = gamma_store, 
+                        Named("omega_store") = omega_store
+                      ),
+                      Named("NG") = List::create(
+                        Named("theta_store") = theta_store, 
+                        Named("lambda2_store") = lambda2_store, 
+                        Named("tau_store") = tau_store
+                      ),
+                      Named("HS") = List::create(
+                        Named("lambda_A_endo_store") = lambda_A_endo_store,
+                        Named("lambda_A_exo_store") = lambda_A_exo_store,
+                        Named("lambda_L_store") = lambda_L_store,
+                        Named("nu_A_endo_store") = nu_A_endo_store,
+                        Named("nu_A_exo_store") = nu_A_exo_store,
+                        Named("nu_L_store") = nu_L_store,
+                        Named("tau_A_exo_store") = tau_A_exo_store,
+                        Named("tau_A_endo_store") = tau_A_endo_store,
+                        Named("tau_L_store") = tau_L_store,
+                        Named("zeta_A_endo_store") = zeta_A_endo_store,
+                        Named("zeta_A_exo_store") = zeta_A_exo_store,
+                        Named("zeta_L_store") = zeta_L_store)
+                      );
 }

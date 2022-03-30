@@ -84,7 +84,7 @@ NULL
 "monthlyData"
 
 #' @title pesaranData
-#' @description This data set contains quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 33 countries.
+#' @description This data set contains quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 29 countries.
 #' @format The data loads \code{pesaranData}, which is a list object of length \code{N} (i.e, the number of countries) and contains the country-level data as described in Mohaddes and Raissi (2020). The countries are abbreviated using ISO-2 codes. Furthermore, we also provide two datasets with first differences of some variables in \code{pesaranDiff}. \code{dominant} contains data that is considered global. \code{tA} is a three-dimensional array that contains \code{N} times \code{N} annual trade flow matrices over the period from 1980 to 2016. This array can be used to construct weight matrices. For more details, see below:
 #' \describe{
 #'   \item{\code{W.8016}}{ Weight matrix for the \code{pesaran.level} and \code{pesaran.diff} data sets, based on averaged trade flows covering the period 1980 to 2016 (based on \code{tA}).}
@@ -108,7 +108,7 @@ NULL
 #'     \item{\code{pmetal}}{ Metal price index.}
 #'     \item{\code{pmat}}{ Agricultural price index.}}}
 #' }
-#' @aliases pesaranDiff EAData EADiff W.8016 W.EA.9916 tA tA.EA ppp dominant
+#' @aliases pesaranDiff W.8016 tA dominant
 #' @references 
 #' Mohaddes, K. and M. Raissi (2018). Compilation, Revision and Updating of the Global VAR (GVAR) Database, 1979Q2-2016Q4. University of Cambridge: Faculty of Economics (mimeo).
 #' @docType data

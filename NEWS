@@ -1,4 +1,7 @@
 Change in Version 2.4.4
+- Implementation of the corrigendum of Carriero, Chan, Clark, and Marcellino (2021, Journal of Econometrics)
+- added the horseshoe prior (Makalic and Schmidt, 2015, IEEE Signal Processing Letters)
+- better memory usage
 - new features:
   - plag can now be differently specified for endogenous and weakly exogenous variables
 - bugfix in Ex argument in `bgvar`

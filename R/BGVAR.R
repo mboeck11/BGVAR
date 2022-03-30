@@ -12,7 +12,7 @@
 #' @param plag Number of lags used. Either a single value for domestic and weakly exogenous, or a vector of length two. Default set to \code{plag=1}.
 #' @param draws Number of retained draws. Default set to \code{draws=5000}.
 #' @param burnin Number of burn-ins. Default set to \code{burnin=5000}.
-#' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior or \code{NG} for the Normal-Gamma prior. See Details below.
+#' @param prior Either \code{SSVS} for the Stochastic Search Variable Selection prior, \code{MN} for the Minnesota prior, \code{NG} for the Normal-Gamma prior or \code{HS} for the Horseshoe prior. See Details below.
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
 #' @param hold.out Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 #' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
@@ -50,6 +50,7 @@
 #'       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
 #'       \item{\code{sample_tau}}{ If set to \code{TRUE} \code{tau_theta} is sampled.}
 #'       }}
+#' \item{"HS":}{No additional hyperparameter need to be elicited for the horseshoe prior.}
 #'  }
 #' @param eigen Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).
 #' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
@@ -163,6 +164,8 @@
 #' @importFrom zoo coredata
 bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out=0,thin=1,hyperpara=NULL,
                 eigen=TRUE,Ex=NULL,trend=FALSE,expert=NULL,verbose=TRUE){
+  Sys.setenv(LANGUAGE='en')
+  if(verbose) cat("\014")
   start.bgvar <- Sys.time()
   #--------------------------------- checks  ------------------------------------------------------#
   if(!is.list(Data) & !is.matrix(Data) & is.data.frame(Data)){
@@ -191,6 +194,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
     stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
   }
+  if(!prior%in%c("MN","SSVS","NG","HS")){
+    stop("Please selecte one of the following prior options: MN, SSVS, NG, or HS.")
+  }
   #-------------------------- expert settings -------------------------------------------------------#
   # expert settings
   expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, save.shrink.store = FALSE, save.vola.store = FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
@@ -216,13 +222,12 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(length(plag)==1) lags <- rep(plag,2) else lags <- plag
   args$lags <- lags
   #-------------------------- construct arglist ----------------------------------------------------#
-  if(verbose){
-    cat("Start estimation of Bayesian Global Vector Autoregression.\n\n")
-    cat(paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior","Normal-Gamma prior")),".\n",sep=""))
-    cat(paste("Lag order: ",lags[1]," (endo.), ",lags[2]," (w. exog.)","\n",sep=""))
-    cat(paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""))
-    cat(paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
-  }
+  printtext <- paste0("\n\nStart estimation of Bayesian Global Vector Autoregression.\n\n",
+                      paste("Prior: ",ifelse(prior=="MN","Minnesota prior",ifelse(prior=="SSVS","Stochastic Search Variable Selection prior",ifelse(prior=="NG","Normal-Gamma prior","Horseshoe prior"))),".\n",sep=""),
+                      paste("Lag order: ",lags[1]," (endo.), ",lags[2]," (w. exog.)","\n",sep=""),
+                      paste("Stochastic volatility: ", ifelse(SV,"enabled","disabled"),".\n",sep=""),
+                      paste("Number of cores used: ", ifelse(is.null(cores),1,cores),".\n",sep=""))
+  if(verbose) cat(printtext)
   #------------------------------ user checks  ---------------------------------------------------#
   # check Data
   if(is.matrix(Data)){
@@ -379,12 +384,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
   }
   args$Ex <- Ex
-  # check prior
-  if(!prior%in% c("MN","SSVS","NG")){
-    stop("Please selecte one of the following prior options: MN, SSVS or NG")
-  }
   # check thinning factor
   if(thin<1){
+    printtext <- paste0(printtext, paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
     if(verbose) cat(paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
     thin <- round(1/thin,2)
   }
@@ -396,6 +398,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }else{
     thin_mess <- paste("Thinning factor: ", thin,". This means every ",ifelse(thin==1,"",ifelse(thin==2,paste(thin,"nd ",sep=""),ifelse(thin==3,paste(thin,"rd ",sep=""),paste(thin,"th ",sep="")))),"draw is saved.\n",sep="")
   }
+  printtext <- paste0(printtext,thin_mess)
   if(verbose) cat(thin_mess)
   args$thin <- thin
   args$thindraws <- draws/thin
@@ -409,6 +412,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
                  "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
+    printtext <- paste0(printtext, "\t No hyperparameters are chosen, default setting applied.\n")
     if(verbose) cat("\t No hyperparameters are chosen, default setting applied.\n")
   }
   if(!is.null(hyperpara)){
@@ -420,10 +424,11 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       default_hyperpara[para] <- hyperpara[para]
       if(para=="tau_theta") default_hyperpara["tau_log"] <- FALSE
     }
+    printtext <- paste0(printtext, "Default values for chosen hyperparamters overwritten.\n")
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
   }
   # store setting
-  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE,
+  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE, shrink_HS = FALSE,
                         vola_pars = FALSE)
   if(expert.list$save.shrink.store)
     setting_store[[paste0("shrink_",prior)]] <- TRUE
@@ -460,17 +465,22 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }
   if(is.null(cores)) {cores <- 1}
   #------------------------------ estimate BVAR ---------------------------------------------------------------#
-  if(verbose) cat("\nEstimation of country models starts... ")
+  # define constant
+  printtext <- paste0(printtext,"\nEstimation of country models starts...")
+  if(verbose) cat("\nEstimation of country models starts...")
   # Rcpp::sourceCpp("./src/BVAR_linear.cpp")
   start.estim <- Sys.time()
   globalpost <- applyfun(1:N, function(cc){
+    if(verbose) cat("\f",printtext,"\nModel: ",cc,"/",N," done.")
     .BVAR_linear_wrapper(cc=cc,cN=cN,xglobal=xglobal,gW=gW,prior=prior,lags=lags,draws=draws,burnin=burnin,trend=trend,SV=SV,thin=thin,default_hyperpara=default_hyperpara,Ex=Ex,use_R=use_R,setting_store=setting_store)
   })
+  cat("\014")
+  cat(printtext)
   names(globalpost) <- cN
   end.estim <- Sys.time()
   diff.estim <- difftime(end.estim,start.estim,units="mins")
   mins <- round(diff.estim,0); secs <- round((diff.estim-floor(diff.estim))*60,0)
-  if(verbose) cat(paste(" took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
+  if(verbose) cat(paste("\nEstimation done and took ",mins," ",ifelse(mins==1,"min","mins")," ",secs, " ",ifelse(secs==1,"second.","seconds.\n"),sep=""))
   #--------------------------- stacking part for global model -----------------------------------------------------#
   if(is.logical(eigen)){
     if(eigen){trim<-1.05}else{trim<-NULL}
