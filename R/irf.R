@@ -438,16 +438,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   if(is.null(cores)) cores <- 1
   #------------------------------ container -------------------------------------------------------#
   # initialize objects to save IRFs, HDs, etc.
-  R_store       <- array(NA, dim=c(bigK,bigK,thindraws), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
-  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
-  
   if(ident=="sign"){
     R_store       <- array(NA, dim=c(bigK,bigK,1), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
   }else{
     R_store <- NULL
   }
   IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,1), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
-  
   imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
@@ -511,6 +507,10 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
     }
     rm(temp)
+    # transform back to R-version
+    shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l+1)
+    shocklist$shock.horz <- shocklist$shock.horz+1
+    shocklist$shock.order <- shocklist$shock.order+1
   }
   end.comp <- Sys.time()
   diff.comp <- difftime(end.comp,start.comp,units="mins")
