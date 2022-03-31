@@ -439,6 +439,10 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   # initialize objects to save IRFs, HDs, etc.
   R_store       <- array(NA, dim=c(bigK,bigK,thindraws), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
   IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
+  
+  R_store       <- array(NA, dim=c(bigK,bigK,1), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
+  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,1), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
+  
   imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
@@ -482,12 +486,15 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     # type
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
     counter <- numeric(length=thindraws)
+    # sourceCpp("./src/irf.cpp")
     temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist_cpp,verbose=verbose)
     for(irep in 1:thindraws){
-      IRF_store[,,,irep] <- temp$irf[[irep]]
-      R_store[,,irep] <- temp$rot[[irep]]
+      print(irep)
+      IRF_store[,,,irep] <- temp$irf[[1]]
+      R_store[,,irep] <- temp$rot[[1]]
       counter[irep] <- temp$counter[irep,1]
       if(temp$counter[irep,1] == MaxTries) IRF_store[,,,irep] <- NA_real_
+      temp$irf[[1]] <- NULL
     }
   }
   end.comp <- Sys.time()

@@ -82,7 +82,7 @@ List BVAR_linear(arma::mat Yraw,
   int k = X.n_cols;
   int v = (M*(M-1))/2;
   int n = K*M;
-  int nstar = Kstar*Mstar;
+  int nstar = Kstar*M;
   
   //----------------------------------------------------------------------------------------------------------------------
   // HYPERPARAMETERS
