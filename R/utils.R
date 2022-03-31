@@ -1714,7 +1714,7 @@
     irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
   }
   # define output
-  out <- list(impl=irfa,rot=NULL)
+  out <- list(impl=irfa,rot=NULL,icounter=1)
   return(out)
 }
 
@@ -1743,7 +1743,7 @@
     irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
   }
   # define output
-  out <- list(impl=irfa,rot=NULL)
+  out <- list(impl=irfa,rot=NULL,icounter=1)
   return(out)
 }
 

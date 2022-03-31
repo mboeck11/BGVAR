@@ -37,7 +37,7 @@ void get_nullspace(arma::mat& NU, arma::mat& M){
 //' @name compute_irf
 //' @noRd
 // [[Rcpp::export]]
-Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool verbose) {
+Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_large, const int type, const int nhor, const int thindraws, const SEXP shocklist_in, const bool save_rot, const bool verbose) {
   // input stuff
   Rcpp::List shocklist(Rcpp::clone(shocklist_in));
   //----------------------------------------------------------------------------
@@ -57,7 +57,11 @@ Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_l
   // allocate the output matrix
   arma::field<arma::cube> irf_output(thindraws);
   irf_output.fill(arma::ones<arma::cube>(bigK,bigK,nhor));
-  arma::field<arma::mat> rot_output(thindraws);
+  arma::uword size_of_rot = 0;
+  if(save_rot){
+    size_of_rot = thindraws;
+  }
+  arma::field<arma::mat> rot_output(size_of_rot);
   rot_output.fill(arma::ones<arma::mat>(bigK,bigK));
   arma::vec counter_output(thindraws);
   // initialize stuff
@@ -224,7 +228,9 @@ Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_l
    
    // save stuff
    irf_output(irep) = irfa;
-   rot_output(irep) = Q_bar;
+   if(save_rot){
+     rot_output(irep) = Q_bar;
+   }
    
    if(verbose){
    // Increment progress bar
