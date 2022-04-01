@@ -37,7 +37,7 @@ The data loads \code{pesaranData}, which is a list object of length \code{N} (i.
 pesaranData
 }
 \description{
-This data set contains quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 29 countries.
+This data set contains quarterly observations by country, spanning the period from 1979Q2 to 2019Q4. It can be downloaded from \url{https://www.mohaddes.org/gvar}. The country coverage is 28 countries.
 }
 \references{
 Mohaddes, K. and M. Raissi (2018). Compilation, Revision and Updating of the Global VAR (GVAR) Database, 1979Q2-2016Q4. University of Cambridge: Faculty of Economics (mimeo).
