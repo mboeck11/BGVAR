@@ -32,14 +32,14 @@
 #' }
 #' @importFrom stats cor
 avg.pair.cc=function(object, digits=3){
-  if(class(object)=="bgvar"){
+  if(inherits(object, "bgvar")){
     lags <- object$args$lags
     pmax <- max(lags)
     dat  <- object$xglobal[-c(1:pmax),]
     res  <- do.call("cbind",object$cc.results$res)
     res  <- res[,colnames(dat)] 
   }
-  if(class(object)=="bgvar.resid"){
+  if(inherits(object, "bgvar.resid")){
     dat    <- object$Data
     res    <- apply(object$country,c(2,3),mean)  
     res.g  <- apply(object$global,c(2,3),mean) 
@@ -61,7 +61,7 @@ avg.pair.cc=function(object, digits=3){
   rownames(datL)<-rownames(resL)<-rownames(resL.g)<-cN
   colnames(datL)<-colnames(resL)<-colnames(resL.g)<-names(idx)
   
-  if(class(object)=="bgvar"){
+  if(inherits(object,"bgvar")){
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
@@ -73,7 +73,7 @@ avg.pair.cc=function(object, digits=3){
       resL[ii,i]<-aux.res
     }
   }
-  if(class(object)=="bgvar.resid"){  # include analysis based on residuals of the global model as well
+  if(inherits(object,"bgvar.resid")){  # include analysis based on residuals of the global model as well
     for(i in 1:length(idx)){
       aux.dat <- cor(dat[,idx[[i]]])
       aux.res <- cor(res[,idx[[i]]])
