@@ -490,7 +490,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
     counter <- numeric(length=thindraws)
     save_rot <- ifelse(ident=="sign",TRUE,FALSE)
-    # sourceCpp("./src/irf.cpp")
+    # Rcpp::sourceCpp("./src/irf.cpp")
     temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist,save_rot=save_rot,verbose=verbose)
     IRF_store[,,,1] <- temp$irf[[1]]
     if(ident=="sign") R_store[,,1] <- temp$rot[[1]]

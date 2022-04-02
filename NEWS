@@ -1,4 +1,4 @@
-Change in Version 2.4.4
+Change in Version 2.4.4/5
 - Implementation of the corrigendum of Carriero, Chan, Clark, and Marcellino (2021, Journal of Econometrics)
 - added the horseshoe prior (Makalic and Schmidt, 2015, IEEE Signal Processing Letters)
 - better memory usage
@@ -9,6 +9,7 @@ Change in Version 2.4.4
 - bugfix with Wex.restr
 - bugfix in monthlyData
 - bugfix in GFEVD
+- bugfix in summary
 
 Change in Version 2.4.2/3
 - bugfix in fevd; added additional check

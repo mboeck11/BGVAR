@@ -25,6 +25,8 @@ man/.Rhistory
 
 cran-comments.md
 
+CRAN-SUBMISSION
+
 # C++
 ## Compiled Object files
 *.o

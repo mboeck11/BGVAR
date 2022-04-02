@@ -47,7 +47,7 @@ We start by installing the package from CRAN and attaching it with
 
 ```{r,hide=TRUE}
 oldpar <- par(no.readonly=TRUE)
-set.seed(1)
+set.seed(123)
 library(BGVAR)
 ```
 <p align=justify>
@@ -748,7 +748,7 @@ W<-apply(W,2,function(x)x/rowSums(W))
 OE.weights$EB$weights <- OE.weights$EB$weights[names(OE.weights$EB$weights)%in%EA_countries]
 ```
 
-```{r,"ea.estimate"}
+```{r,"ea.estimate", results="hide"}
 # estimates the model
 model.ssvs<-bgvar(Data=monthlyData,
                   W=W,
@@ -988,7 +988,7 @@ Main arguments and description of the function `bgvar`.
 
 * `thin`: Is a thinning interval which grabs every 'thin'th draw from the posterior output. For example, `thin=10` saves every tenth draw from the posterior. Default set to `thin=1`.
 
-* `hyperpara`: Is a list object that defines the hyperparameters when the prior is set to either `"MN"`, `"SSVS"` or `"NG"`.
+* `hyperpara`: Is a list object that defines the hyperparameters when the prior is set to either `"MN"`, `"SSVS"`, `"NG"`, or `HS`.
     + `"miscellaneous:"` 
         + `a_1` is the prior hyperparameter for the inverted gamma prior (shape) (set `a_1 = b_1` to a small value for the standard uninformative prior). Default is set to `a_1=0.01`.
         + `b_1` is the prior hyperparameter for the inverted gamma prior (rate). Default sit set to `b_1=0.01`.
@@ -1015,6 +1015,7 @@ Main arguments and description of the function `bgvar`.
         + `d_lambda` Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is `d_lambda=1`.
         + `tau_theta` Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of `tau_theta=1` would lead to the Bayesian LASSO. Default value differs per entity and set to `tau_theta=1/log(M)`, where `M` is the number of endogenous variables per entity.
         + `sample_tau` If set to `TRUE` `tau_theta` is sampled.
+    + `"HS"`: No additional hyperparameter needs to be elicited for the horseshoe prior.
 
 * `eigen` Set to `TRUE` if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If `eigen` is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to $1.05$ (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than $1.05$ in modulus).
 
