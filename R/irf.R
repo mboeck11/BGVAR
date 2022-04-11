@@ -506,7 +506,6 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
         temp$irf[[1]] <- NULL; temp$rot[[1]] <- NULL
       }
       if(irep %% 50 == 0) gc() # free up memory
-      print(irep)
     }
     rm(temp)
     # transform back to R-version
