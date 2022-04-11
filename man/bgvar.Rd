@@ -115,7 +115,7 @@ Returns a list of class \code{bgvar} with the following elements: \itemize{
 }}}
 }
 \description{
-Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
+Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), the Normal-Gamma (NG), or the Horseshoe (HS) prior. All specifications can be estimated with stochastic volatility.
 }
 \details{
 We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search Variable Selection prior labeled \code{SSVS} and the Normal-Gamma prior labeled \code{NG}. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).

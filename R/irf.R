@@ -439,12 +439,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   #------------------------------ container -------------------------------------------------------#
   # initialize objects to save IRFs, HDs, etc.
   if(ident=="sign"){
-    R_store       <- array(NA, dim=c(bigK,bigK,1), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
+    R_store       <- array(NA_real_, dim=c(bigK,bigK,thindraws), dimnames=list(colnames(xglobal),colnames(xglobal),NULL))
   }else{
     R_store <- NULL
   }
-  IRF_store     <- array(NA, dim=c(bigK,bigK,n.ahead+1,1), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
-  imp_posterior <- array(NA, dim=c(bigK,n.ahead+1,shock.nr,Q))
+  IRF_store     <- array(NA_real_, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
+  imp_posterior <- array(NA_real_, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
   start.comp <- Sys.time()
@@ -475,10 +475,13 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       if(imp.obj[[1]]$icounter == MaxTries){
         imp.obj[[1]] <- NULL
       }else{
-        IRF_store <- abind(IRF_store, imp.obj[[1]]$impl, along=4)
-        if(ident=="sign") R_store <- abind(R_store, imp.obj[[1]]$rot, along=3)
+        IRF_store[,,,irep] <- imp.obj[[1]]$impl
+        if(ident=="sign") R_store[,,,irep] <- imp.obj[[1]]$rot
+        imp.obj[[1]] <- NULL
       }
+      if(irep %% 50 == 0) gc() # free up memory
     }
+    rm(imp.obj)
   }else
   { # cpp-version
     #--------------------------------------------------------------
@@ -491,20 +494,19 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     counter <- numeric(length=thindraws)
     save_rot <- ifelse(ident=="sign",TRUE,FALSE)
     # Rcpp::sourceCpp("./src/irf.cpp")
+    # Rcpp::sourceCpp("/users/mboeck/documents/packages/bgvar/src/irf.cpp")
     temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist,save_rot=save_rot,verbose=verbose)
-    IRF_store[,,,1] <- temp$irf[[1]]
-    if(ident=="sign") R_store[,,1] <- temp$rot[[1]]
-    counter[1] <- temp$counter[1,1]
-    temp$irf[[1]]<-NULL; temp$rot[[1]]<-NULL
-    for(irep in 2:thindraws){
+    for(irep in 1:thindraws){
       counter[irep] <- temp$counter[irep,1]
       if(temp$counter[irep,1] == MaxTries){
         temp$irf[[1]] <- NULL; temp$rot[[1]] <- NULL
       }else{
-        IRF_store <- abind(IRF_store, temp$irf[[1]], along=4)
-        if(ident=="sign") R_store   <- abind(R_store, temp$rot[[1]], along=3)
+        IRF_store[,,,irep] <- temp$irf[[1]]
+        if(ident=="sign") R_store[,,irep] <- temp$rot[[1]]
         temp$irf[[1]] <- NULL; temp$rot[[1]] <- NULL
       }
+      if(irep %% 50 == 0) gc() # free up memory
+      print(irep)
     }
     rm(temp)
     # transform back to R-version

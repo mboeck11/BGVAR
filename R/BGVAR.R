@@ -1,7 +1,7 @@
 #' @name bgvar
 #' @export
 #' @title Estimation of Bayesian GVAR
-#' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), or the Normal-Gamma prior. All specifications can be estimated with stochastic volatility.
+#' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), the Normal-Gamma (NG), or the Horseshoe (HS) prior. All specifications can be estimated with stochastic volatility.
 #' @usage bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
 #'       hyperpara=NULL, eigen=TRUE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 #' @param Data Either a \itemize{
