@@ -2,7 +2,7 @@
 #' @title Graphical Summary of Output Created with \code{bgvar}
 #' @description Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
 #' @param x Either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.
-#' @param ... Additional arguments.
+#' @param ... Additional arguments; set graphical parameters.
 #' @param resp If only a subset of variables or countries should be plotted. If set to default value \code{NULL} all countries/variables are plotted.
 #' @param global If \code{TRUE} global fitted values are plotted, otherwise country fitted values.
 #' @param quantiles Numeric vector with posterior quantiles. Default is set to plot median along with 68\%/80\% confidence intervals.

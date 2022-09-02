@@ -29,7 +29,7 @@
 \arguments{
 \item{x}{Either an object of class \code{bgvar}, \code{bgvar.res}, \code{bgvar.irf}, \code{bgvar.predict} or \code{bgvar.fevd}.}
 
-\item{...}{Additional arguments.}
+\item{...}{Additional arguments; set graphical parameters.}
 
 \item{resp}{Specify either a specific variable, a specific country or a specific variable in a specific country which should be plotted. If set to \code{NULL} all countries is plotted.}
 
