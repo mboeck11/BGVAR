@@ -47,6 +47,7 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
     fit <- YY-do.call("cbind",x$cc.results$res)
   }
   # adapt styles
+  bgvar.env$plot$cex.axis = 1.1 # adjust for this particular plot
   args <- list(...)
   args.env <- names(bgvar.env$plot)
   if(length(args)>0){
