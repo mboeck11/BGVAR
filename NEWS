@@ -1,3 +1,6 @@
+Change in Version 2.5.1
+- changes plot styles
+
 Change in Version 2.5.0
 - bugfix in pesaranData (rowSums did not sum up to one)
 - final version for JSS publication

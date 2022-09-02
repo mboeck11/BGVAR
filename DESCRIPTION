@@ -1,7 +1,7 @@
 Package: BGVAR
 Type: Package
 Title: Bayesian Global Vector Autoregressions
-Version: 2.5.0
+Version: 2.5.1
 Author: Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
     Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
@@ -30,5 +30,5 @@ Suggests:
     rmarkdown, testthat (>= 2.1.0)
 LazyData: true
 LinkingTo: Rcpp, RcppArmadillo, RcppProgress, RcppParallel, stochvol, GIGrvg
-RoxygenNote: 7.1.2
+RoxygenNote: 7.2.0
 VignetteBuilder: knitr

@@ -29,9 +29,9 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   plag     <- x$args$plag
   xglobal  <- x$xglobal
   trend    <- x$args$trend
-  XX       <- .mlag(xglobal,plag)
-  YY       <- xglobal[-c(1:plag),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:plag),,drop=FALSE],1)
+  XX       <- .mlag(xglobal,plag[1])
+  YY       <- xglobal[-c(1:plag[1]),,drop=FALSE]
+  XX       <- cbind(XX[-c(1:plag[1]),,drop=FALSE],1)
   bigT     <- nrow(YY)
   if(trend) XX <- cbind(XX,seq(1,bigT))
   time     <- .timelabel(x$args$time)
@@ -46,6 +46,14 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   }else{
     fit <- YY-do.call("cbind",x$cc.results$res)
   }
+  # adapt styles
+  args <- list(...)
+  args.env <- names(bgvar.env$plot)
+  if(length(args)>0){
+    for(aa in args.env){
+      if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
+    }
+  }
   if(is.null(resp)){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
@@ -59,8 +67,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
                 lwd=3)
         lines(YY[,idx],col="grey40", lwd=3, lty=2)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -79,8 +87,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
                 lwd=3)
         lines(YY[,idx],col="grey40", lwd=3, lty=2)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -99,8 +107,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
                 lwd=3)
         lines(YY[,idx],col="grey40", lwd=3, lty=2)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -117,8 +125,8 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
               lwd=3)
       lines(YY[,idx],col="grey40", lwd=3, lty=2)
       axisindex <- round(seq(1,bigT,length.out=8))
-      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-      axis(2, cex.axis=0.6, cex.lab=2.5)
+      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.axis)
+      axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }else{
@@ -153,6 +161,14 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
   }else{
     res <- apply(x$country,c(2,3),median)
   }
+  # adapt styles
+  args <- list(...)
+  args.env <- names(bgvar.env$plot)
+  if(length(args)>0){
+    for(aa in args.env){
+      if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
+    }
+  }
   if(is.null(resp)){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
@@ -165,8 +181,8 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
                 lwd=3)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -184,8 +200,8 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
                 lwd=3)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -203,8 +219,8 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
                 xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
                 lwd=3)
         axisindex <- round(seq(1,bigT,length.out=8))
-        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-        axis(2, cex.axis=0.6, cex.lab=2.5)
+        axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+        axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -220,8 +236,8 @@ plot.bgvar.resid <- function(x, ..., resp=NULL, global=TRUE){
               xaxt="n",yaxt="n", cex.main=bgvar.env$plot$cex.main, cex.lab=bgvar.env$plot$cex.lab, 
               lwd=3)
       axisindex <- round(seq(1,bigT,length.out=8))
-      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=0.6, cex.lab=2.5)
-      axis(2, cex.axis=0.6, cex.lab=2.5)
+      axis(1, at=axisindex, labels=time[axisindex], las=2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
+      axis(2, cex.axis=bgvar.env$plot$cex.axis, cex.lab=bgvar.env$plot$cex.lab)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }else{
@@ -263,6 +279,14 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
   if((Q %% 2) == 0){
     stop("Please provide odd numbers of quantiles: median along with intervals.")
   }
+  # adapt styles
+  args <- list(...)
+  args.env <- names(bgvar.env$plot)
+  if(length(args)>0){
+    for(aa in args.env){
+      if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
+    }
+  }
   if(is.null(resp)){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
@@ -281,8 +305,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
         axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
         axisindex <- round(seq(1,length(axisnames),length.out=8))
-        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-        axis(side=2, cex.axis=0.6)
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=bgvar.env$plot$cex.axis,tick=FALSE,las=2)
+        axis(side=2, cex.axis=bgvar.env$plot$cex.axis)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -306,8 +330,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
         axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
         axisindex <- round(seq(1,length(axisnames),length.out=8))
-        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-        axis(side=2, cex.axis=0.6)
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=bgvar.env$plot$cex.axis, tick=FALSE, las=2)
+        axis(side=2, cex.axis=bgvar.env$plot$cex.axis)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -331,8 +355,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
         axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
         axisindex <- round(seq(1,length(axisnames),length.out=8))
-        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-        axis(side=2, cex.axis=0.6)
+        axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=bgvar.env$plot$cex.axis,tick=FALSE,las=2)
+        axis(side=2, cex.axis=bgvar.env$plot$cex.axis)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -354,8 +378,8 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
       lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
       axisnames <- c(rownames(Xdata),paste("t+",1:hstep,sep=""))
       axisindex <- round(seq(1,length(axisnames),length.out=8))
-      axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=0.6,tick=FALSE,las=2)
-      axis(side=2, cex.axis=0.6)
+      axis(side=1, at=axisindex, labels=axisnames[axisindex], cex.axis=bgvar.env$plot$cex.axis,tick=FALSE,las=2)
+      axis(side=2, cex.axis=bgvar.env$plot$cex.axis)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }else{
@@ -397,6 +421,14 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
   if((Q %% 2) == 0){
     stop("Please provide odd numbers of quantiles: median along with intervals.")
   }
+  # adapt styles
+  args <- list(...)
+  args.env <- names(bgvar.env$plot)
+  if(length(args)>0){
+    for(aa in args.env){
+      if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
+    }
+  }
   if(is.null(resp)){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
@@ -415,9 +447,9 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         }
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=bgvar.env$plot$cex.axis,las=1)
         axisindex<-seq(1,nrow(x),by=4)
-        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=bgvar.env$plot$cex.axis,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -443,9 +475,9 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         }
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=bgvar.env$plot$cex.axis,las=1)
         axisindex<-seq(1,nrow(x),by=4)
-        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=bgvar.env$plot$cex.axis,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -469,9 +501,9 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
         }
         lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
         segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+        axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=bgvar.env$plot$cex.axis,las=1)
         axisindex<-seq(1,nrow(x),by=4)
-        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
+        axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=bgvar.env$plot$cex.axis,tick=FALSE)
         abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
       }
     }
@@ -493,9 +525,9 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
       }
       lines(x[,median(seq(Q))],col=bgvar.env$plot$col.50,lwd=4)
       segments(x0=1,y0=0,x1=nrow(x),y1=0,col=bgvar.env$plot$col.zero,lty=bgvar.env$plot$lty.zero,lwd=bgvar.env$plot$lwd.zero)
-      axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=1.2,las=1)
+      axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=1,nsmall=1),cex.axis=bgvar.env$plot$cex.axis,las=1)
       axisindex<-seq(1,nrow(x),by=4)
-      axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=1.6,tick=FALSE)
+      axis(side=1, las=1,at=axisindex, labels=axisindex-1, cex.axis=bgvar.env$plot$cex.axis,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }else{
@@ -540,6 +572,14 @@ plot.bgvar.fevd<-function(x, ..., resp, k.max=10){
     if(kk*10>k.max) kk.max <- k.max else kk.max <- kk*10
     varNames[[kk]] <- resp[((kk-1)*10+1):kk.max]
   }
+  # adapt styles
+  args <- list(...)
+  args.env <- names(bgvar.env$plot)
+  if(length(args)>0){
+    for(aa in args.env){
+      if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
+    }
+  }
   for(kk in 1:length(varNames)){
     rows <- length(varNames[[kk]])/2
     if(rows<1) cols <- 1 else cols <- 2
@@ -555,9 +595,9 @@ plot.bgvar.fevd<-function(x, ..., resp, k.max=10){
               main=varAll[idx],cex.main=bgvar.env$plot.cex.main,cex.axis=bgvar.env$plot$cex.axis,
               cex.lab=bgvar.env$plot$cex.lab,lty=1,ylim=c(b1,b2))
       
-      axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=2,nsmall=1),cex.axis=1.2,las=1)
+      axis(2, at=seq(b1,b2,length.out=5), labels=format(seq(b1,b2,length.out=5),digits=2,nsmall=1),cex.axis=bgvar.env$plot$cex.axis,las=1)
       axisindex<-seq(1,length(x),by=4)
-      axis(side=1, las=1,at=axisindex, labels=c(0:length(x))[axisindex], cex.axis=1.6,tick=FALSE)
+      axis(side=1, las=1,at=axisindex, labels=c(0:length(x))[axisindex], cex.axis=bgvar.env$plot$cex.axis,tick=FALSE)
       abline(v=axisindex,col=bgvar.env$plot$col.tick,lty=bgvar.env$plot$lty.tick)
     }
   }

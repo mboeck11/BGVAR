@@ -117,7 +117,7 @@ NULL
 bgvar.env <- new.env()
 bgvar.env$plot <- list(
   cex.main = 2,
-  cex.axis = 2.5,
+  cex.axis = 1.7,
   cex.lab  = 2.5,
   col.unc  = c("grey60","grey40","grey20"),
   col.50   = "black",
