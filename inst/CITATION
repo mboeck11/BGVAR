@@ -2,33 +2,37 @@ if(!exists("meta") || is.null(meta)) {meta <- packageDescription("BVAR")}
 year <- sub("-.*", "", meta$Date)
 version <- meta$Version
 
-bibentry(
-  header = "To cite the working paper introducing the BGVAR package in publications please use:",
-  bibtype = "techreport",
-  title = "{BGVAR}: {B}ayesian Global Vector Autoregressions with Shrinkage Priors in {R}",
-  author = personList(
-    person(given = "Maximilian", family = "Böck", email = "maximilian.boeck@wu.ac.at"),
-    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@wu.ac.at"),
-    person(given = "Florian", family = "Huber", email = "florian.huber@sbg.ac.at")),
-  year = "2020",
-  institution = "Federal Reserve Dallas",
-  type = "Working paper",
-  number = {395},
-  textVersion = "Maximilian Böck, Martin Feldkircher and Florian Huber (2020). BGVAR: Bayesian Global Vector Autoregressions with Shrinkage Priors in R. Federal Reserve Dallas Working Paper, No. 395"
+bibentry(bibtype = "Article",
+  title        = "{BGVAR}: {B}ayesian Global Vector Autoregressions with Shrinkage Priors in {R}",
+  author       = c(person(given = "Maximilian",
+                          family = "Boeck",
+                          email = "maximilian.boeck@da-vienna.ac.at"),
+                   person(given = "Martin",
+                          family = "Feldkircher",
+                          email = "martin.feldkircher@da-vienna.ac.at"),
+                   person(given = "Florian",
+                          family = "Huber",
+                          email = "florian.huber@sbg.ac.at")),
+  journal      = "Journal of Statistical Software",
+  year         = "2022",
+  volume       = "104",
+  number       = "9",
+  pages        = "1--28",
+  doi          = "10.18637/jss.v104.i09",
+  header       = "To cite BGVAR in publications use:"
 )
 
-bibentry(
-  header = "To cite BGVAR package directly please use:",
-  bibtype = "Manual",
+bibentry(bibtype = "Manual",
   title = "{BGVAR}: {B}ayesian Global Vector Autoregressions",
   author = personList(
-    person(given = "Maximilian", family = "Böck", email = "maximilian.boeck@wu.ac.at"),
-    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@wu.ac.at"),
+    person(given = "Maximilian", family = "Boeck", email = "maximilian.boeck@da-vienna.ac.at"),
+    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@da-vienna.ac.at"),
     person(given = "Florian", family = "Huber", email = "florian.huber@sbg.ac.at")),
   year = "2020",
-  textVersion = paste0("Maximilian Böck, Martin Feldkircher and Florian Huber (2020) BGVAR: Bayesian Global Vector Autoregressions.",
+  textVersion = paste0("Maximilian Boeck, Martin Feldkircher and Florian Huber (2020) BGVAR: Bayesian Global Vector Autoregressions.",
     "R package version ", version,
-    ", URL https://CRAN.R-project.org/package=BGVAR.")
+    ", URL https://CRAN.R-project.org/package=BGVAR."),
+    header = "To cite BGVAR package directly please use:"
 )
 
 citEntry(
@@ -36,13 +40,13 @@ citEntry(
   entry = "manual",
   title = "{BGVAR}: {B}ayesian Global Vector Autoregressions",
   author = personList(
-    person(given = "Maximilian", family = "Böck", email = "maximilian.boeck@wu.ac.at"),
-    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@wu.ac.at"),
+    person(given = "Maximilian", family = "Boeck", email = "maximilian.boeck@da-vienna.ac.at"),
+    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@da-vienna.ac.at"),
     person(given = "Florian", family = "Huber", email = "florian.huber@sbg.ac.at")),
   year = year,
   note = paste0("{R} package version ", version),
   url = "https://CRAN.R-project.org/package=BGVAR",
-  textVersion = paste0("Maximilian Böck, Martin Feldkircher and Florian Huber (2020) BGVAR: Bayesian Global Vector Autoregressions.",
+  textVersion = paste0("Maximilian Boeck, Martin Feldkircher and Florian Huber (2020) BGVAR: Bayesian Global Vector Autoregressions.",
     "R package version ", version,
     ", URL https://CRAN.R-project.org/package=BGVAR.")
 )
