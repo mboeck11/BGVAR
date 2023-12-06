@@ -10,7 +10,7 @@
 #' @param quantiles Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.
 #' @param save.store If set to \code{TRUE} the full distribution is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
-#' @return Returns an object of class \code{bgvar.pred} with the following elements \itemize{
+#' @return Returns an object of class \code{bgvar.pred} with the following elements \describe{
 #' \item{\code{fcast}}{ is a K times n.ahead times Q-dimensional array that contains  Q quantiles of the posterior predictive distribution.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 #' \item{\code{n.ahead}}{ specified forecast horizon.}
@@ -45,6 +45,12 @@
 #' @export
 predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, quantiles=NULL, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
   if(is.null(quantiles)){
     quantiles <- c(.05,.10,.16,.50,.84,.90,.95)
   }

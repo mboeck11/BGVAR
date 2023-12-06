@@ -17,7 +17,7 @@ fevd(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns a list with two elements \itemize{
+Returns a list with two elements \describe{
 \item{\code{FEVD}}{  an array of size (K times horizon times N), where K are all variables in the system, horizon is the specified impulse response horizon and N is the size of the decomposed structural variables (if \code{var.slct=NULL} then K=N).}
 \item{\code{xglobal}}{ used data of the model.}
 }

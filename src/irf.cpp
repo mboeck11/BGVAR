@@ -1,7 +1,5 @@
 #include<RcppArmadillo.h>
-// [[Rcpp::depends(RcppArmadillo,RcppProgress)]]
-#include <progress.hpp>
-#include <progress_bar.hpp>
+// [[Rcpp::depends(RcppArmadillo)]]
 
 void get_PHI(arma::cube& PHI, arma::cube& Fmat, const int nhor){
   const int plag = Fmat.n_slices;
@@ -75,9 +73,9 @@ Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_l
   arma::mat Q_bar(bigK,bigK, arma::fill::zeros);
   arma::mat invGSigma_u(bigK, bigK, arma::fill::zeros);
   //----------------------------------------------------------------------------
-  arma::vec prog_rep_points = round(arma::linspace(0, thindraws, 50));
+  //arma::vec prog_rep_points = round(arma::linspace(0, thindraws, 50));
   //bool display_progress = true;
-  Progress prog(50, verbose);
+  //Progress prog(50, verbose);
   for(int irep = 0; irep < thindraws; irep++){
   // current draw
   Amat = A_large.slice(irep);
@@ -232,12 +230,12 @@ Rcpp::List compute_irf(arma::cube A_large, arma::cube S_large, arma::cube Ginv_l
      rot_output(irep) = Q_bar;
    }
    
-   if(verbose){
-   // Increment progress bar
-   if (any(prog_rep_points == irep)){
-   prog.increment();
-   }
-   }
+   //if(verbose){
+      // Increment progress bar
+   // if (any(prog_rep_points == irep)){
+        //prog.increment();
+      //}
+   //}
    // check user interruption
    if(irep % 10 == 0)
    Rcpp::checkUserInterrupt();

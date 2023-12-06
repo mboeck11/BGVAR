@@ -12,7 +12,7 @@ The data loads two objects \code{eerData}, which is a list object of length \cod
 \describe{
   \item{\code{W.trade0012}}{ Weight matrix based on trade flows, rowsums equal unity.}
   \item{\code{W.list}}{ List of ten weight matrices, described in Feldkircher and Huber (2016).}
-  \item{\code{eerData}}{ is a list object of length \code{N} containing \itemize{
+  \item{\code{eerData}}{ is a list object of length \code{N} containing \describe{
   \item{\code{y}}{ Real GDP, average of 2005=100. Seasonally adjusted, in logarithms.}
   \item{\code{Dp}}{ Consumer prices (period-on-period). CPI seasonally adjusted, in logarithm.}
   \item{\code{stir}}{ Short-term interest rate, typically 3-months money market rate.}
@@ -21,7 +21,7 @@ The data loads two objects \code{eerData}, which is a list object of length \cod
   \item{\code{tb}}{ Trade balance (ratio of real exports to real imports).}
   \item{\code{poil}}{ Price of oil, seasonally adjusted, in logarithms.}
   }}
-  \item{\code{USexpectations}}{ is a time series object containing US expectations data: \itemize{
+  \item{\code{USexpectations}}{ is a time series object containing US expectations data: \describe{
   \item{\code{y_t+4}}{ Four-quarter ahead expectation of Real GDP growth.}
   \item{\code{Dp_t+4}}{ Four-quarter ahead expectation of consumer price inflation.}
   \item{\code{stir_t+4}}{ Four-quarter ahead expectation of short-term interest rates.}

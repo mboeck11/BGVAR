@@ -8,7 +8,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
       hyperpara=NULL, eigen=TRUE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
 }
 \arguments{
-\item{Data}{Either a \itemize{
+\item{Data}{Either a \describe{
 \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 }}
@@ -29,7 +29,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{thin}{Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.}
 
-\item{hyperpara}{Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \itemize{
+\item{hyperpara}{Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \describe{
 \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
 \item{\code{prmean}}{ Prior mean on the first lag of the autoregressive coefficients, standard value is \code{prmean=1} for non-stationary data. Prior mean for the remaining autoregressive coefficients automatically set to 0.}
@@ -38,13 +38,13 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{\code{a0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape1 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{a0=25}.}
 \item{\code{b0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape2 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{b0=1.5}.}
 \item{\code{Bsigma}}{ If \code{SV=TRUE}, this is the hyperparameter for the Gamma prior on the variance of the log-volatilities. Default is set to \code{Bsigma=1}.}
-\item{"MN"}{\itemize{
+\item{"MN"}{\describe{
       \item{\code{shrink1}}{ Starting value of \code{shrink1}. Default set to 0.1.}
       \item{\code{shrink2}}{ Starting value of \code{shrink2}. Default set to 0.2.}
       \item{\code{shrink3}}{ Hyperparameter of \code{shrink3}. Default set to 100.}
       \item{\code{shrink4}}{ Starting value of \code{shrink4}. Default set to 0.1.}
       }}
-\item{"SSVS"}{\itemize{
+\item{"SSVS"}{\describe{
       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
       \item{\code{tau1}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is  included (slab, tau1 should be large).}
       \item{\code{kappa0}}{ is the prior variance associated with the normal prior on the covariances if a covariance equals zero (spike, kappa0 should be close to zero).}
@@ -52,7 +52,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
       \item{\code{p_i}}{ is the prior inclusion probability for each regression coefficient whether it is included in the model (default set to \code{p_i=0.5}).}
       \item{\code{q_ij}}{ is the prior inclusion probability for each covariance whether it is included in the model (default set to \code{q_ij=0.5}).}
       }}
-\item{"NG":}{\itemize{
+\item{"NG":}{\describe{
       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
       \item{\code{d_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{d_lambda=1}.}
       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
@@ -63,16 +63,16 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{eigen}{Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).}
 
-\item{Ex}{For including truly exogenous variables to the model. Either a \itemize{
+\item{Ex}{For including truly exogenous variables to the model. Either a \describe{
 \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 }}
 
 \item{trend}{If set to \code{TRUE} a deterministic trend is added to the country models.}
 
-\item{expert}{Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+\item{expert}{Expert settings, must be provided as list. Default is set to \code{NULL}.\describe{
 \item{\code{variable.list}}{ In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weighting matrix. Default is \code{NULL}.}
-\item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
+\item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \describe{
 \item{\code{weights}}{ Vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
 \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
@@ -89,12 +89,12 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns a list of class \code{bgvar} with the following elements: \itemize{
+Returns a list of class \code{bgvar} with the following elements: \describe{
 \item{\code{args}}{ is a list object that contains the arguments submitted to function \code{bgvar}.}
 \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 \item{\code{gW}}{ is the global weight matrix. It is a list, with \code{N} entries, each of which contains the weight matrix of each country.}
 \item{\code{country.res}}{ is a matrix that contains the posterior mean of the  country models' residuals. The residuals have been obtained as a running mean and thus always relate to the full set of posterior draws. This implies that in case you have opted for trimming the draws the residuals do not correspond to the posterior draws of the "trimmed" coefficients. This is a storage problem, rather than a statistical problem. Experiments, however, show that residual properties (autocorrelation, cross-sectional correlation) of trimmed and reported residuals are close.}
-\item{\code{stacked results}}{\itemize{
+\item{\code{stacked results}}{\describe{
       \item{\code{S_large}}{ is a three-dimensional array (K times K times draws) of the (block-diagonal) posterior variance covariance matrix.}
       \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times draws) of the coefficients.}
       \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times draws) of the inverse of the G matrix.}
@@ -103,7 +103,7 @@ Returns a list of class \code{bgvar} with the following elements: \itemize{
       \item{\code{trim.info}}{ is a character vector. Contains information regarding the nr. of stable draws out of total (thinned) draws. Experience shows that a maximum eigenvalue of \code{1.05} seems a reasonable choice when working with data in levels to generate stable impulse responses.}
 }}
 \item{\code{cc.results}}{ each entry of this list contains an list object of length \code{N}. Each entry in the list corresponds to one country model and contains one of the following posterior medians.
-\itemize{
+\describe{
       \item{\code{coeffs}}{ contains in each entry the matrix with the posterior median of the estimated coefficients. Columns of the matrix correspond to an equation in the country model (i.e., the dependent variable) and rows to coefficient estimates of the explanatory variables.}
       \item{\code{sig}}{ contains in each entry the variance-covariance matrix for each point in time. If \code{SV=FALSE} all entries along the time dimension are the same.}
       \item{\code{theta}}{ contains in each entry the estimated prior variances for the coefficients. Explains how much shrinkage is induced on each coefficient depending on the prior setup.}

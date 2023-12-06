@@ -12,7 +12,7 @@ conv.diag(object, crit.val=1.96)
 \item{crit.val}{Critical value used for test statistic.}
 }
 \value{
-Returns an object of class \code{bgvar.CD}. This is a list with \itemize{
+Returns an object of class \code{bgvar.CD}. This is a list with \describe{
 \item{\code{geweke.z}}{ Z-scores for a test of equality of means between the first and last parts of the chain. A separate statistic is calculated for each variable in each chain.}
 \item{\code{perc}}{ is the percentage of Z-scores exceeding \code{crit.val} (in absolute terms).}
 }

@@ -94,12 +94,13 @@
         Wnew[kk,var.cntry.indic] <- wghts[cntry.indic]
       }else{# in case we have exo variables
         # this includes the exo variables in all country models and the exo countries
-        Wnew[kk,var.cntry.indic] <- 1
+        Wnew[kk,var.cntry.indic] = 1
+        # if all zero then set zero
+        if(all(W$W[cc,] == 0)) Wnew[kk,var.cntry.indic] = 0
         # in case we look at an exo country, where the variable is endog. defined, we have to set the exo variable to zero
         if(cnames[[cc]]%in%exo.countries&&paste(cnames[cc],rownames(Wnew)[kk],sep=".")%in%colnames(Wnew)){
           Wnew[kk,var.cntry.indic] <- 0
         }
-        
       }
     }
     #----------------------here we specify the part for the endogenous variabes-----------------------------------------#
@@ -116,10 +117,18 @@
         }
       }
     }
-    WfinNR <- rbind(endoW,Wnew)
     
-    WfinNR <- WfinNR[!(rowSums(abs(WfinNR)) == 0),]
-    gW[[cc]]<-apply(WfinNR,2,function(x) x/(rowSums(WfinNR)))
+    # WfinNR <- WfinNR[!(rowSums(abs(WfinNR)) == 0),]  # only chang MB 14/01/23 !!!! 
+    #gW[[cc]]<-apply(WfinNR,2,function(x) x/rowSums(WfinNR))
+    
+    zero_rows <- apply(Wnew,1,sum) == 0
+    if(sum(zero_rows) != nrow(Wnew)){
+      Wnew <- Wnew[!zero_rows,]
+      Wnew <- apply(Wnew,2,function(x)x/rowSums(Wnew))
+    }
+    
+    WfinNR <- rbind(endoW,Wnew)
+    gW[[cc]] <- WfinNR
   }
   names(gW)<-cnames
   #----------------------here we specify the part for extra weights-----------------------------------------#
@@ -181,7 +190,7 @@
 
 #' @name .get_V
 #' @noRd
-.get_V <- function(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend=FALSE){
+.get_V <- function(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend=FALSE,wexo=TRUE){
   V_i <- matrix(0,k,M)
   # endogenous part
   for(i in 1:M){
@@ -198,11 +207,13 @@
     }
   }
   # exogenous part
-  for(i in 1:M){
-    for(pp in 0:plagstar){
-      for(j in 1:Mstar){
-        #V_i[M*p+pp*Mstar+j,i] <- a_bar_4 * sigma_sq[i]/(sigma_wex[j]*(pp+1)) #####
-        V_i[M*plag+pp*Mstar+j,i] <- (shrink1*shrink4/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
+  if(wexo){
+    for(i in 1:M){
+      for(pp in 0:plagstar){
+        for(j in 1:Mstar){
+          #V_i[M*p+pp*Mstar+j,i] <- a_bar_4 * sigma_sq[i]/(sigma_wex[j]*(pp+1)) #####
+          V_i[M*plag+pp*Mstar+j,i] <- (shrink1*shrink4/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
+        }
       }
     }
   }
@@ -252,13 +263,21 @@
 #' @noRd
 #' @importFrom utils capture.output
 .BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, lags, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R, setting_store){
-  Yraw <- xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
-  W    <- gW[[cc]]
-  Exraw <- matrix(NA_real_)
+  Yraw  = xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
+  W     = gW[[cc]]
+  Exraw = matrix(NA_real_)
   if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
-  all  <- t(W%*%t(xglobal))
-  Wraw <- all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
-  class(Yraw) <- class(Wraw) <- "numeric"
+  all         = t(W%*%t(xglobal))
+  Wraw        = all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
+  class(Yraw) = class(Wraw) <- "numeric"
+  Mstar       = ncol(Wraw)
+  if(all(Wraw==0)){ # case of no exogenous variables -- always uses R version (not implemented in Rcpp)
+    Wraw  = NULL
+    wexo  = FALSE
+  }else{
+    wexo  = TRUE
+  }
+  default_hyperpara$Mstar <- Mstar
   prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,ifelse(prior=="NG",3,4)))
   if(default_hyperpara[["tau_log"]]){
     default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
@@ -287,17 +306,31 @@
   }
   #------------------------------------------------ get data ----------------------------------------#
   Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
-  M <- ncol(Y); Mstar <- ncol(Wraw); bigT <- nrow(Y); K <- ncol(X)
+  M <- ncol(Y); bigT <- nrow(Y); K <- ncol(X)
   plag <- lags[1]; plagstar <- lags[2]; pmax <- max(lags)
   if(!any(is.na(Exraw))) Mex <- ncol(Exraw)
-  xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
-              paste(rep("Wexlag",Mstar),rep(seq(1,plagstar),each=Mstar),sep=""))
-  if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
-  xnames <- c(xnames,"cons")
-  if(trend) xnames <- c(xnames,"trend")
+  if(wexo){
+    xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
+                paste(rep("Wexlag",Mstar),rep(seq(1,plagstar),each=Mstar),sep=""))
+    if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
+    xnames <- c(xnames,"cons")
+    if(trend) xnames <- c(xnames,"trend")
+    xnames_end <- xnames
+  }else{
+    xnames <- c(paste0(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""))
+    if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
+    xnames <- c(xnames,"cons")
+    if(trend) xnames <- c(xnames,"trend")
+    
+    xnames_end <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
+                    paste(rep("Wexlag",Mstar),rep(seq(1,plagstar),each=Mstar),sep=""))
+    if(!any(is.na(Exraw))) xnames_end <- c(xnames_end,paste(rep("Tex",Mex)))
+    xnames_end <- c(xnames_end,"cons")
+    if(trend) xnames_end <- c(xnames_end,"trend")
+  }
   colnames(X) <- xnames
   #-----------------------------------------get containers ------------------------------------------#
-  A_store <- bvar$A_store; dimnames(A_store)[[1]] <- colnames(X); dimnames(A_store)[[2]] <- colnames(Y)
+  A_store <- bvar$A_store; dimnames(A_store)[[1]] <- xnames_end; dimnames(A_store)[[2]] <- colnames(Y)
   # splitting up stores
   dims          <- dimnames(A_store)[[1]]
   a0store       <- adrop(A_store[which(dims=="cons"),,,drop=FALSE],drop=1)
@@ -382,6 +415,14 @@
     theta_store <- lambda2_store <- tau_store <- theta_post <- lambda2_post <- tau_post <- NULL
   }
   # HS
+  lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
+  nu_A_endo_store     <- nu_A_exo_store     <- nu_L_store     <- NULL
+  tau_A_endo_store    <- tau_A_exo_store    <- tau_L_store    <- NULL
+  zeta_A_endo_store   <- zeta_A_exo_store   <- zeta_L_store   <- NULL
+  lambda_A_endo_post  <- lambda_A_exo_post  <- lambda_L_post  <- NULL
+  nu_A_endo_post      <- nu_A_exo_post      <- nu_L_post      <- NULL
+  tau_A_endo_post     <- tau_A_exo_post     <- tau_L_post     <- NULL
+  zeta_A_endo_post    <- zeta_A_exo_post    <- zeta_L_post    <- NULL
   if(prior=="HS" & setting_store$shrink_HS){
     lambda_A_endo_store <- bvar$HS$lambda_A_endo_store
     lambda_A_exo_store  <- bvar$HS$lambda_A_exo_store
@@ -396,28 +437,18 @@
     zeta_A_exo_store    <- bvar$HS$zeta_A_exo_store
     zeta_L_store        <- bvar$HS$zeta_L_store
     
-    lambda_A_endo_post <- apply(lambda_A_endo_store, 1, median)
-    lambda_A_exo_post  <- apply(lambda_A_exo_store, 1, median)
-    lambda_L_post      <- apply(lambda_L_store, 1, median)
-    nu_A_endo_post     <- apply(nu_A_endo_store, 1, median)
-    nu_A_exo_post      <- apply(nu_A_exo_store, 1, median)
-    nu_L_post          <- apply(nu_L_store, 1, median)
-    tau_A_endo_post    <- apply(tau_A_endo_store, 1, median)
-    tau_A_exo_post     <- apply(tau_A_exo_store, 1, median)
-    tau_L_post         <- apply(tau_L_store, 1, median)
-    zeta_A_endo_post   <- apply(zeta_A_endo_store, 1, median)
-    zeta_A_exo_post    <- apply(zeta_A_exo_store, 1, median)
-    zeta_L_post        <- apply(zeta_L_store, 1, median)
-  }else{
-    lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
-    nu_A_endo_store <- nu_A_exo_store <- nu_L_store <- NULL
-    tau_A_endo_store <- tau_A_exo_store <- tau_L_store <- NULL
-    zeta_A_endo_store <- zeta_A_exo_store <- zeta_L_store <- NULL
-    
-    lambda_A_endo_post <- lambda_A_exo_post <- lambda_L_post <- NULL
-    nu_A_endo_post <- nu_A_exo_post <- nu_L_post <- NULL
-    tau_A_endo_post <- tau_A_exo_post <- tau_L_post <- NULL
-    zeta_A_endo_post <- zeta_A_exo_post <- zeta_L_post <- NULL
+    lambda_A_endo_post  <- apply(lambda_A_endo_store, 1, median)
+    lambda_A_exo_post   <- apply(lambda_A_exo_store, 1, median) 
+    lambda_L_post       <- apply(lambda_L_store, 1, median)
+    nu_A_endo_post      <- apply(nu_A_endo_store, 1, median)
+    nu_A_exo_post       <- apply(nu_A_exo_store, 1, median)
+    nu_L_post           <- apply(nu_L_store, 1, median)
+    tau_A_endo_post     <- apply(tau_A_endo_store, 1, median)
+    tau_A_exo_post      <- apply(tau_A_exo_store, 1, median)
+    tau_L_post          <- apply(tau_L_store, 1, median)
+    zeta_A_endo_post    <- apply(zeta_A_endo_store, 1, median)
+    zeta_A_exo_post     <- apply(zeta_A_exo_store, 1, median)
+    zeta_L_post         <- apply(zeta_L_store, 1, median)
   }
   #------------------------------------ compute posteriors -------------------------------------------#
   A_post      <- apply(A_store, c(1,2), median)
@@ -493,40 +524,51 @@
   for (ii in 1:plag) nameslags <- c(nameslags,rep(paste("Ylag",ii,sep=""),M))
   colnames(Ylag) <- nameslags
   
-  Mstar <- ncol(Wraw)
-  Kstar <- Mstar*(plagstar+1)
-  exo <- TRUE
-  Wexlag <- .mlag(Wraw,plagstar)
-  colnames(Wraw) <- rep("Wex",Mstar)
+  Mstar        <- hyperpara$Mstar
+  Kstar        <- Mstar*(plagstar+1)
+  wexnames     <- rep("Wex",Mstar)
   wexnameslags <- NULL
   for (ii in 1:plagstar) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
-  colnames(Wexlag) <- wexnameslags
-  
-  texo <- FALSE; Mex <- 0
-  if(nrow(Exraw) != 1){
-    Mex <- ncol(Exraw)
-    texo <- TRUE
-    colnames(Exraw) <- rep("Tex",Mex)
+  if(!is.null(Wraw)){
+    wexo             <- TRUE
+    Wexlag           <- .mlag(Wraw,plagstar)
+    colnames(Wraw)   <- wexnames
+    colnames(Wexlag) <- wexnameslags
+  }else{
+    wexo             <- FALSE
+    Wexlag           <- NULL
   }
   
-  Xraw <- cbind(Ylag,Wraw,Wexlag)
+  texo <- FALSE; Mex <- 0; exnames <- NULL
+  if(nrow(Exraw) != 1){
+    Mex             <- ncol(Exraw)
+    texo            <- TRUE
+    exnames         <- rep("Tex",Mex)
+    colnames(Exraw) <- exnames
+  }
+  nameslags_end <- c(nameslags,wexnames,wexnameslags,exnames)
+  
+  Xraw          <- cbind(Ylag,Wraw,Wexlag)
   if(texo) Xraw <- cbind(Xraw,Exraw)
-  X <- Xraw[(pmax+1):nrow(Xraw),,drop=FALSE]
-  Y <- Yraw[(pmax+1):Traw,,drop=FALSE]
-  bigT  <- nrow(X)
+  X             <- Xraw[(pmax+1):nrow(Xraw),,drop=FALSE]
+  Y             <- Yraw[(pmax+1):Traw,,drop=FALSE]
+  bigT          <- nrow(X)
   
   if(cons){
-    X <- cbind(X,1)
+    X                    <- cbind(X,1)
     colnames(X)[ncol(X)] <- "cons"
+    nameslags_end        <- c(nameslags_end,"cons")
   }
   if(trend){
-    X <- cbind(X,seq(1,bigT))
+    X                    <- cbind(X,seq(1,bigT))
     colnames(X)[ncol(X)] <- "trend"
+    nameslags_end        <- c(nameslags_end,"trend")
   }
   
-  k <- ncol(X)
-  v <- (M*(M-1))/2
-  n <- K*M
+  k     <- ncol(X)
+  k_end <- ncol(Ylag) + Kstar + ifelse(cons,1,0) + ifelse(trend,1,0)
+  v     <- (M*(M-1))/2
+  n     <- K*M
   nstar <- Kstar*M
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
@@ -612,51 +654,62 @@
     alpha_i       <- solve(crossprod(Ylag_i))%*%crossprod(Ylag_i,Y_i)
     sigma_sq[i,1] <- (1/(nrow(Y_i)-plag-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
   }
-  sigma_wex <- matrix(0,Mstar,1)
-  for (j in 1:Mstar){
-    Ywex_i <- .mlag(Wraw[,j],plagstar)
-    Ywex_i <- Ywex_i[(plag+1):Traw,]
-    Yw_i   <- Wraw[(plag+1):Traw,j,drop=FALSE]
-    Ywex_i <- cbind(Ywex_i,seq(1,nrow(Yw_i)))
-    alpha_w <- solve(crossprod(Ywex_i))%*%t(Ywex_i)%*%Yw_i
-    sigma_wex[j,1] <- (1/(nrow(Yw_i)-plag-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
+  if(wexo){
+    sigma_wex <- matrix(0,Mstar,1)
+    for (j in 1:Mstar){
+      Ywex_i <- .mlag(Wraw[,j],plagstar)
+      Ywex_i <- Ywex_i[(plag+1):Traw,]
+      Yw_i   <- Wraw[(plag+1):Traw,j,drop=FALSE]
+      Ywex_i <- cbind(Ywex_i,seq(1,nrow(Yw_i)))
+      alpha_w <- solve(crossprod(Ywex_i))%*%t(Ywex_i)%*%Yw_i
+      sigma_wex[j,1] <- (1/(nrow(Yw_i)-plag-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
+    }
+  }else{
+    sigma_wex <- NULL
   }
-  if(prior==1){
-    theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,
-                    sigma_sq,sigma_wex,trend)
-  }
-  post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
-  post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
-  post4 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)+log(shrink4)
   
-  # SSVS stuff
-  gamma  <-  matrix(1,k,M)
-  sigma_alpha  <-  sqrt(diag(kronecker(SIGMA_OLS,XtXinv)))
-  tau0 <- matrix(NA_real_, k, M); tau1 <- matrix(NA_real_, k, M)
-  ii <- 1
-  for(mm in 1:M){
-    for(kk in 1:k){
-      tau0[kk,mm] <- tau00*sigma_alpha[ii]
-      tau1[kk,mm] <- tau11*sigma_alpha[ii]
-      ii <- ii+1
+  # MN prior
+  if(prior == 1){
+    theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
+    post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
+    post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
+    post4 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)+log(shrink4) # correction term
+  }
+  
+  # SSVS prior
+  if(prior == 2){
+    gamma  <-  matrix(1,k,M)
+    sigma_alpha  <-  sqrt(diag(kronecker(SIGMA_OLS,XtXinv)))
+    tau0 <- matrix(NA_real_, k, M); tau1 <- matrix(NA_real_, k, M)
+    ii <- 1
+    for(mm in 1:M){
+      for(kk in 1:k){
+        tau0[kk,mm] <- tau00*sigma_alpha[ii]
+        tau1[kk,mm] <- tau11*sigma_alpha[ii]
+        ii <- ii+1
+      }
     }
   }
   
   # NG stuff
-  lambda2_A    <- matrix(0.01,pmax+1,2)
-  A_tau        <- matrix(tau_theta,pmax+1,2)
-  colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
-  rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,pmax),sep="")
-  A_tuning     <- matrix(.43,pmax+1,2)
-  A_accept     <- matrix(0,pmax+1,2)
-  lambda2_A[1,1] <- A_tau[1,1] <- A_tuning[1,1] <- A_accept[1,1] <- NA
-  
+  if(prior == 3){
+    lambda2_A       <- matrix(0.01,pmax+1,2)
+    A_tau           <- matrix(tau_theta,pmax+1,2)
+    colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
+    rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,pmax),sep="")
+    A_tuning        <- matrix(.43,pmax+1,2)
+    A_accept        <- matrix(0,pmax+1,2)
+    lambda2_A[1,1]  <- A_tau[1,1] <- A_tuning[1,1] <- A_accept[1,1] <- NA
+  }
+
   # HS stuff
-  lambda_A_endo <- nu_A_endo <- rep(1, n)
-  lambda_A_exo  <- nu_A_exo  <- rep(1, nstar)
-  lambda_L      <- nu_L      <- rep(1, v)
-  tau_A_endo  <- tau_A_exo  <- tau_L <- 1
-  zeta_A_endo <- zeta_A_exo <- zeta_L <- 1
+  if(prior == 4){
+    lambda_A_endo <- nu_A_endo <- rep(1, n)
+    lambda_A_exo  <- nu_A_exo  <- rep(1, nstar)
+    lambda_L      <- nu_L      <- rep(1, v)
+    tau_A_endo  <- tau_A_exo  <- tau_L <- 1
+    zeta_A_endo <- zeta_A_exo <- zeta_L <- 1
+  }
   #------------------------------------
   # Priors on coefs in H matrix of VCV
   #------------------------------------
@@ -694,7 +747,7 @@
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
-  A_store      <- array(NA_real_, c(k,M,thindraws))
+  A_store      <- array(0,        c(k_end,M,thindraws))
   L_store      <- array(NA_real_, c(M,M,thindraws))
   res_store    <- array(NA_real_, c(bigT,M,thindraws))
   # SV
@@ -712,14 +765,14 @@
   }
   # SSVS
   if(save_shrink_SSVS){
-    gamma_store  <- array(NA_real_, c(k,M,thindraws))
+    gamma_store  <- array(0,        c(k_end,M,thindraws))
     omega_store  <- array(NA_real_, c(M,M,thindraws))
   }else{
     gamma_store <- omega_store <- NULL
   }
   # NG
   if(save_shrink_NG){
-    theta_store  <- array(NA_real_, c(k,M,thindraws))
+    theta_store  <- array(0,        c(k_end,M,thindraws))
     lambda2_store<- array(NA_real_, c(pmax+1,3,thindraws))
     tau_store    <- array(NA_real_, c(pmax+1,3,thindraws))
   }else{
@@ -727,23 +780,23 @@
   }
   # HS
   if(save_shrink_HS){
-    lambda_A_endo_store <- array(NA_real_, c(n, thindraws))
-    lambda_A_exo_store  <- array(NA_real_, c(nstar, thindraws))
-    lambda_L_store      <- array(NA_real_, c(v, thindraws))
-    nu_A_endo_store     <- array(NA_real_, c(n, thindraws))
-    nu_A_exo_store      <- array(NA_real_, c(nstar, thindraws))
-    nu_L_store          <- array(NA_real_, c(v, thindraws))
-    tau_A_endo_store    <- array(NA_real_, c(1, thindraws))
-    tau_A_exo_store     <- array(NA_real_, c(1, thindraws))
-    tau_L_store         <- array(NA_real_, c(1, thindraws))
-    zeta_A_endo_store   <- array(NA_real_, c(1, thindraws))
-    zeta_A_exo_store    <- array(NA_real_, c(1, thindraws))
-    zeta_L_store        <- array(NA_real_, c(1, thindraws))
+    lambda_A_endo_store <- array(0, c(n, thindraws))
+    lambda_A_exo_store  <- array(0, c(nstar, thindraws))
+    lambda_L_store      <- array(0, c(v, thindraws))
+    nu_A_endo_store     <- array(0, c(n, thindraws))
+    nu_A_exo_store      <- array(0, c(nstar, thindraws))
+    nu_L_store          <- array(0, c(v, thindraws))
+    tau_A_endo_store    <- array(0, c(1, thindraws))
+    tau_A_exo_store     <- array(0, c(1, thindraws))
+    tau_L_store         <- array(0, c(1, thindraws))
+    zeta_A_endo_store   <- array(0, c(1, thindraws))
+    zeta_A_exo_store    <- array(0, c(1, thindraws))
+    zeta_L_store        <- array(0, c(1, thindraws))
   }else{
     lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
-    nu_A_endo_store <- nu_A_exo_store <- nu_L_store <- NULL
-    tau_A_endo_store <- tau_A_exo_store <- tau_L_store <- NULL
-    zeta_A_endo_store <- zeta_A_exo_store <- zeta_L_store <- NULL
+    nu_A_endo_store     <- nu_A_exo_store     <- nu_L_store     <- NULL
+    tau_A_endo_store    <- tau_A_exo_store    <- tau_L_store    <- NULL
+    zeta_A_endo_store   <- zeta_A_exo_store   <- zeta_L_store   <- NULL
   }
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
@@ -786,8 +839,8 @@
       }
     }
     # Step 1c: Compute Em_str
-    L_drawinv <- solve(L_draw)
-    Em_str <- Y%*%t(L_drawinv) - X%*%A_draw%*%t(L_drawinv)
+    L_drawinv = solve(L_draw)
+    Em_str    = Y%*%t(L_drawinv) - X%*%A_draw%*%t(L_drawinv)
     # for (mm in 1:M){
     #   if (mm==1){
     #     Y.i <- Y[,mm]*exp(-0.5*Sv_draw[,mm])
@@ -825,47 +878,44 @@
     if(prior==1){
       #Step for the first shrinkage parameter (own lags)
       shrink1.prop <- exp(rnorm(1,0,scale1))*shrink1
-      theta1.prop   <- .get_V(k,M,Mstar,plag,plagstar,shrink1.prop,shrink2,shrink3,shrink4,
-                              sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post1.prop<-sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
+      theta1.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1.prop,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
+      post1.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
       if ((post1.prop-post1)>log(runif(1,0,1))){
-        shrink1 <- shrink1.prop
-        theta   <- theta1.prop
-        post1   <- post1.prop
-        accept1 <- accept1+1
+        shrink1    <- shrink1.prop
+        theta      <- theta1.prop
+        post1      <- post1.prop
+        accept1    <- accept1+1
       }
       
       #Step for the second shrinkage parameter (cross equation)
       shrink2.prop <- exp(rnorm(1,0,scale2))*shrink2
-      theta2.prop   <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2.prop,shrink3,shrink4,
-                              sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post2.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
+      theta2.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2.prop,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
+      post2.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
       if ((post2.prop-post2)>log(runif(1,0,1))){
-        shrink2 <- shrink2.prop
-        theta   <- theta2.prop
-        post2   <- post2.prop
-        accept2 <- accept2+1
+        shrink2    <- shrink2.prop
+        theta      <- theta2.prop
+        post2      <- post2.prop
+        accept2    <- accept2+1
       }
       
       #Step for the final shrinkage parameter (weakly exogenous)
       shrink4.prop <- exp(rnorm(1,0,scale4))*shrink4
-      theta4.prop   <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,
-                              sigma_sq=sigma_sq,sigma_wex=sigma_wex)
-      post4.prop <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
-      if ((post4.prop-post4)>log(runif(1,0,1))){
-        shrink4  <- shrink4.prop
-        theta    <- theta4.prop
-        post4    <- post4.prop
-        accept4  <- accept4+1
+      theta4.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
+      post4.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
+      if((post4.prop-post4)>log(runif(1,0,1))){
+        shrink4    <- shrink4.prop
+        theta      <- theta4.prop
+        post4      <- post4.prop
+        accept4    <- accept4+1
       }
       
       if (irep<(0.5*burnin)){
-        if ((accept1/irep)<0.15) scale1 <- 0.99*scale1
-        if ((accept1/irep)>0.3)  scale1 <- 1.01*scale1
-        if ((accept2/irep)<0.15) scale2 <- 0.99*scale2
-        if ((accept2/irep)>0.3)  scale2 <- 1.01*scale2
-        if ((accept4/irep)<0.15) scale4 <- 0.99*scale4
-        if ((accept4/irep)>0.3)  scale4 <- 1.01*scale4
+        if((accept1/irep)<0.15) scale1 <- 0.99*scale1
+        if((accept1/irep)>0.3)  scale1 <- 1.01*scale1
+        if((accept2/irep)<0.15) scale2 <- 0.99*scale2
+        if((accept2/irep)>0.3)  scale2 <- 1.01*scale2
+        if((accept4/irep)<0.15) scale4 <- 0.99*scale4
+        if((accept4/irep)>0.3)  scale4 <- 1.01*scale4
       }
     }
     # SSVS
@@ -936,46 +986,48 @@
         }
       } # END-if M>1
       # Norml-Gamma for weakly exogenous
-      for(ss in 0:plagstar){
-        if(ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))
-        A.lag.star  <- A_draw[slct.i,,drop=FALSE]
-        A.lag.prior <- A_prior[slct.i,,drop=FALSE]
-        theta.lag   <- theta[slct.i,,drop=FALSE]
-        
-        if (ss==0){
-          lambda2_A[ss+1,2] <- rgamma(n     = 1,
-                                      shape = d_lambda + A_tau[ss+1,2]*Mstar*M,
-                                      rate  = e_lambda + A_tau[ss+1,2]/2*sum(theta.lag))
-        }else{
-          lambda2_A[ss+1,2] <- rgamma(n     = 1,
-                                      shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
-                                      rate  = e_lambda + A_tau[ss+1,2]*0.5*prod(lambda2_A[1:ss,2])*sum(theta.lag))
-        }
-        for(ii in 1:Mstar){
-          for(mm in 1:M){
-            temp <- do_rgig1(lambda = A_tau[ss+1,2]-0.5,
-                             chi    = (A.lag.star[ii,mm] - A.lag.prior[ii,mm])^2,
-                             psi    = A_tau[ss+1,2]*prod(lambda2_A[1:(ss+1),2]))
-            temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
-            theta.lag[ii,mm] <- temp
+      if(wexo){
+        for(ss in 0:plagstar){
+          if(ss==0) slct.i <- which(rownames(A_draw)=="Wex") else slct.i <- which(rownames(A_draw)==paste("Wexlag",ss,sep=""))
+          A.lag.star  <- A_draw[slct.i,,drop=FALSE]
+          A.lag.prior <- A_prior[slct.i,,drop=FALSE]
+          theta.lag   <- theta[slct.i,,drop=FALSE]
+          
+          if (ss==0){
+            lambda2_A[ss+1,2] <- rgamma(n     = 1,
+                                        shape = d_lambda + A_tau[ss+1,2]*Mstar*M,
+                                        rate  = e_lambda + A_tau[ss+1,2]/2*sum(theta.lag))
+          }else{
+            lambda2_A[ss+1,2] <- rgamma(n     = 1,
+                                        shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
+                                        rate  = e_lambda + A_tau[ss+1,2]*0.5*prod(lambda2_A[1:ss,2])*sum(theta.lag))
           }
-        }
-        theta[slct.i,] <- theta.lag
-        
-        if(sample_tau){
-          #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
-          A_tau_prop       <- exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
-          post_A_tau_prop  <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-          post_A_tau_old   <- .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-          post.diff        <- post_A_tau_prop - post_A_tau_old + log(A_tau_prop) - log(A_tau[ss+1,2])
-          post.diff        <- ifelse(is.nan(post.diff),-Inf,post.diff)
-          if (post.diff > log(runif(1,0,1))){
-            A_tau[ss+1,2]    <- A_tau_prop
-            A_accept[ss+1,2] <- A_accept[ss+1,2]+1
+          for(ii in 1:Mstar){
+            for(mm in 1:M){
+              temp <- do_rgig1(lambda = A_tau[ss+1,2]-0.5,
+                               chi    = (A.lag.star[ii,mm] - A.lag.prior[ii,mm])^2,
+                               psi    = A_tau[ss+1,2]*prod(lambda2_A[1:(ss+1),2]))
+              temp <- ifelse(temp<1e-7,1e-7,ifelse(temp>1e+7,1e+7,temp))
+              theta.lag[ii,mm] <- temp
+            }
           }
-          if (irep<(0.5*burnin)){
-            if ((A_accept[ss+1,2]/irep)>0.3)  A_tuning[ss+1,2] <- 1.01*A_tuning[ss+1,2]
-            if ((A_accept[ss+1,2]/irep)<0.15) A_tuning[ss+1,2] <- 0.99*A_tuning[ss+1,2]
+          theta[slct.i,] <- theta.lag
+          
+          if(sample_tau){
+            #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
+            A_tau_prop       <- exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
+            post_A_tau_prop  <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
+            post_A_tau_old   <- .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
+            post.diff        <- post_A_tau_prop - post_A_tau_old + log(A_tau_prop) - log(A_tau[ss+1,2])
+            post.diff        <- ifelse(is.nan(post.diff),-Inf,post.diff)
+            if (post.diff > log(runif(1,0,1))){
+              A_tau[ss+1,2]    <- A_tau_prop
+              A_accept[ss+1,2] <- A_accept[ss+1,2]+1
+            }
+            if (irep<(0.5*burnin)){
+              if ((A_accept[ss+1,2]/irep)>0.3)  A_tuning[ss+1,2] <- 1.01*A_tuning[ss+1,2]
+              if ((A_accept[ss+1,2]/irep)<0.15) A_tuning[ss+1,2] <- 0.99*A_tuning[ss+1,2]
+            }
           }
         }
       }
@@ -1063,24 +1115,26 @@
       theta[slct.i,] <- tau_A_endo * lambda_A_endo
       
       ############# - A endo
-      slct.w <- grep("Wex", rownames(A_draw))
-      # local shrinkage parameter - A exo
-      lambda_A_exo = 1 / rgamma(n     = nstar, 
+      if(wexo){
+        slct.w <- grep("Wex", rownames(A_draw))
+        # local shrinkage parameter - A exo
+        lambda_A_exo = 1 / rgamma(n     = nstar, 
+                                  shape = 1,
+                                  rate  = 1 / nu_A_exo + 0.5 * as.vector(A_draw[slct.w,])^2 / tau_A_exo)
+        nu_A_exo     = 1 / rgamma(n     = nstar, 
+                                  shape = 1,
+                                  rate  = 1 + 1 / lambda_A_exo)
+        # global shrinkage parameter - A exo
+        WSSR_A_exo = sum(as.vector(A_draw[slct.w,])^2 / lambda_A_exo)
+        tau_A_exo  = 1 / rgamma(n     = 1,
+                                shape = (nstar + 1)/2,
+                                rate  = 1 / zeta_A_endo + 0.5*WSSR_A_exo)
+        zeta_A_exo = 1 / rgamma(n     = 1,
                                 shape = 1,
-                                rate  = 1 / nu_A_exo + 0.5 * as.vector(A_draw[slct.w,])^2 / tau_A_exo)
-      nu_A_exo     = 1 / rgamma(n     = nstar, 
-                                shape = 1,
-                                rate  = 1 + 1 / lambda_A_exo)
-      # global shrinkage parameter - A exo
-      WSSR_A_exo = sum(as.vector(A_draw[slct.w,])^2 / lambda_A_exo)
-      tau_A_exo  = 1 / rgamma(n     = 1,
-                              shape = (nstar + 1)/2,
-                              rate  = 1 / zeta_A_endo + 0.5*WSSR_A_exo)
-      zeta_A_exo = 1 / rgamma(n     = 1,
-                              shape = 1,
-                              rate  = 1 + 1 / tau_A_exo)
-      # update prior VCV
-      theta[slct.w,] <- tau_A_exo * lambda_A_exo
+                                rate  = 1 + 1 / tau_A_exo)
+        # update prior VCV
+        theta[slct.w,] <- tau_A_exo * lambda_A_exo
+      }
     } 
     #----------------------------------------------------------------------------
     # Step 3: Sample variances
@@ -1114,52 +1168,60 @@
     # Step 4: store draws
     if(irep %in% thin.draws){
       count <- count+1
-      A_store[,,count]   <- A_draw
-      L_store[,,count]   <- L_draw
-      res_store[,,count] <- Y-X%*%A_draw
+      A_tmp <- matrix(0, k_end, M)
+      if(wexo){
+        A_tmp <- A_draw
+      }else{
+        A_tmp[1:K,]          <- A_draw[1:K,]
+        if(cons) A_tmp[K+Kstar+1,] <- A_draw[K+1,]
+        if(trend) A_tmp[K+Kstar+ifelse(cons,1,0)+1,] <- A_draw[K+ifelse(cons,1,0)+1,]
+      }
+      A_store[,,count]   = A_tmp
+      L_store[,,count]   = L_draw
+      res_store[,,count] = Y-X%*%A_draw
       # SV
-      Sv_store[,,count]   <- Sv_draw
+      Sv_store[,,count] = Sv_draw
       if(save_vola_pars){
-        pars_store[,,count] <- pars_var
+        pars_store[,,count] = pars_var
       }
       # MN
       if(save_shrink_MN){
-        shrink_store[,,count] <- c(shrink1,shrink2,shrink4)
+        shrink_store[,,count] = c(shrink1,shrink2,shrink4)
       }
       # SSVS
       if(save_shrink_SSVS){
-        gamma_store[,,count] <- gamma
-        omega_store[,,count] <- omega
+        gamma_store[,,count] = gamma
+        omega_store[,,count] = omega
       }
       # NG
       if(save_shrink_NG){
-        theta_store[,,count]     <- theta
-        lambda2_store[1,3,count] <- lambda2_L
-        lambda2_store[1:(plag+1),1:2,count] <- lambda2_A
-        tau_store[1,3,count]             <- L_tau
-        tau_store[1:(plag+1),1:2,count]     <- A_tau
+        theta_store[,,count]                = theta
+        lambda2_store[1,3,count]            = lambda2_L
+        lambda2_store[1:(plag+1),1:2,count] = lambda2_A
+        tau_store[1,3,count]                = L_tau
+        tau_store[1:(plag+1),1:2,count]     = A_tau
       }
       # HS
       if(save_shrink_HS){
-        lambda_A_endo_store[,count] <- lambda_A_endo
-        lambda_A_exo_store[,count]  <- lambda_A_exo
-        lambda_L_store[,count]      <- lambda_L
-        nu_A_endo_store[,count]     <- nu_A_endo
-        nu_A_exo_store[,count]      <- nu_A_exo
-        nu_L_store[,count]          <- nu_L
-        tau_A_endo_store[,count]    <- tau_A_endo
-        tau_A_exo_store[,count]     <- tau_A_exo
-        tau_L_store[,count]         <- tau_L
-        zeta_A_endo_store[,count]   <- zeta_A_endo
-        zeta_A_exo_store[,count]    <- zeta_A_exo
-        zeta_L_store[,count]        <- zeta_L
+        lambda_A_endo_store[,count] = lambda_A_endo
+        lambda_A_exo_store[,count]  = lambda_A_exo
+        lambda_L_store[,count]      = lambda_L
+        nu_A_endo_store[,count]     = nu_A_endo
+        nu_A_exo_store[,count]      = nu_A_exo
+        nu_L_store[,count]          = nu_L
+        tau_A_endo_store[,count]    = tau_A_endo
+        tau_A_exo_store[,count]     = tau_A_exo
+        tau_L_store[,count]         = tau_L
+        zeta_A_endo_store[,count]   = zeta_A_endo
+        zeta_A_exo_store[,count]    = zeta_A_exo
+        zeta_L_store[,count]        = zeta_L
       }
     }
   }
   #---------------------------------------------------------------------------------------------------------
   # END ESTIMATION
   #---------------------------------------------------------------------------------------------------------
-  dimnames(A_store)=list(colnames(X),colnames(A_OLS),NULL)
+  dimnames(A_store)=list(nameslags_end,colnames(A_OLS),NULL)
   
   ret <- list(Y=Y,X=X,A_store=A_store,L_store=L_store,Sv_store=Sv_store,pars_store=pars_store,res_store=res_store,
               MN=list(
@@ -1287,7 +1349,6 @@
   F.eigen   <- numeric(thindraws)
   trim.info <- "No trimming"
   
-  A_large     <- array(NA_real_, dim=c(thindraws,bigK,(bigK*plag+1+ifelse(trend,1,0))))
   A_large     <- array(NA_real_, dim=c(bigK,bigK*plag+1+ifelse(trend,1,0),thindraws))
   S_large     <- array(NA_real_, dim=c(bigK,bigK,thindraws))
   Ginv_large  <- array(NA_real_, dim=c(bigK,bigK,thindraws))
@@ -1316,7 +1377,7 @@
       G            <- rbind(G,A%*%W)
       a0           <- rbind(a0,VAR$store$a0store[,irep,drop=FALSE])
       if(trend) a1 <- rbind(a1,VAR$store$a1store[,irep,drop=FALSE])
-      S_post[[cc]] <- apply(adrop(VAR$store$SIGMA_store[,,,irep,drop=FALSE],drop=4),c(2,3),median)
+      S_post[[cc]] <- adrop(VAR$store$SIGMAmed_store[,,irep,drop=FALSE],drop=3)
     }
     G.inv  <- solve(G)
     S_large[,,irep] <- as.matrix(bdiag(S_post))
@@ -1332,7 +1393,7 @@
     }
     
     ALPHA <- cbind(ALPHA,b0,b1)
-    A_large[irep,,]<-ALPHA
+    A_large[,,irep]<-ALPHA
     
     if(eigen){
       MM  <- .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1),plag))$MM
@@ -1354,10 +1415,10 @@
     if(trim==TRUE) trim <- 1.05
     idx<-which(F.eigen<trim)
     
-    F_large     <- F_large[idx,,,,drop=FALSE]
-    S_large     <- S_large[idx,,,drop=FALSE]
-    Ginv_large  <- Ginv_large[idx,,,drop=FALSE]
-    A_large     <- A_large[idx,,,drop=FALSE]
+    F_large     <- F_large[,,,idx,drop=FALSE]
+    S_large     <- S_large[,,idx,drop=FALSE]
+    Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
+    A_large     <- A_large[,,idx,drop=FALSE]
     F.eigen     <- F.eigen[idx]
     
     if(length(idx)<10){

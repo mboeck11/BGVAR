@@ -24,7 +24,7 @@ Computes the Deviance information criterion for an object \code{bgvar}.
 \donttest{
 library(BGVAR)
 data(testdata)
-model.mn <- bgvar(Data=testdata,W=W.test,plag=2,draws=100,burnin=100,prior="MN")
+model.mn <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,prior="MN")
 dic(model.mn)
 }
 }

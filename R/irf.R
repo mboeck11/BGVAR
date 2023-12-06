@@ -13,7 +13,7 @@
 #' @param n.ahead Forecasting horizon.
 #' @param shockinfo Dataframe with additional information about the nature of shocks. Depending on the \code{ident} argument, the dataframe has to be specified differently. In order to get a dummy version for each identification scheme use \code{\link{get_shockinfo}}.
 #' @param quantiles Numeric vector with posterior quantiles. Default is set to compute median along with 68\%/80\%/90\% confidence intervals.
-#' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+#' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\describe{
 #' \item{\code{MaxTries}}{ Numeric specifying maximal number of tries for finding a rotation matrix with sign-restrictions. Attention: setting this number very large may results in very long computational times. Default is set to \code{MaxTries=100}.}
 #' \item{\code{save.store}}{ If set to \code{TRUE} the full posterior of both, impulses responses and rotation matrices, are returned. Default is set to \code{FALSE} in order to save storage.}
 #' \item{\code{use_R}}{ Boolean whether IRF computation should fall back on \code{R} version, otherwise \code{Rcpp} version is used.}
@@ -21,17 +21,17 @@
 #' \item{\code{cores}}{ Numeric specifying the number of cores which should be used, also \code{all} and \code{half} is possible. By default only one core is used.}
 #' }
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
-#' @return Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
+#' @return Returns a list of class \code{bgvar.irf} with the following elements: \describe{
 #' \item{\code{posterior}}{ Four-dimensional array (K times n.ahead times number of shocks times Q) that contains Q quantiles of the posterior distribution of the impulse response functions.}
 #' \item{\code{shockinfo}}{ Dataframe with details on identification specification.}
 #' \item{\code{rot.nr}}{ In case identification is based on sign restrictions (i.e., \code{ident="sign"}), this provides the number of rotation matrices found for the number of posterior draws (save*save_thin).}
-#' \item{\code{struc.obj}}{ List object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
+#' \item{\code{struc.obj}}{ List object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\describe{
 #' \item{\code{A}}{ Median posterior of global coefficient matrix.}
 #' \item{\code{Ginv}}{ Median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
 #' \item{\code{S}}{ Posterior median of matrix with country variance-covariance matrices on the main diagonal.}
 #' \item{\code{Rmed}}{ Posterior rotation matrix if \code{ident="sign"}.}
 #' }}
-#' \item{\code{model.obj}}{ List object that contains model-specific information, in particular\itemize{
+#' \item{\code{model.obj}}{ List object that contains model-specific information, in particular\describe{
 #' \item{\code{xglobal}}{ Data of the model.}
 #' \item{\code{lags}}{ Lag specification of the model.}
 #' }}

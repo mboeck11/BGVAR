@@ -196,14 +196,14 @@ bgvar.sim <- function(len, M, N, plag=1, cons=FALSE, trend=FALSE, SV=FALSE){
 #' @param n.ahead forecasting horizon.
 #' @param save.store If set to \code{TRUE} the full posterior is returned. Default is set to \code{FALSE} in order to save storage.
 #' @param verbose If set to \code{FALSE} it suppresses printing messages to the console.
-#' @return Returns a list of class \code{bgvar.irf} with the following elements: \itemize{
+#' @return Returns a list of class \code{bgvar.irf} with the following elements: \describe{
 #' \item{\code{posterior}}{ is a four-dimensional array (K times K times n.ahead times 7) that contains 7 quantiles of the posterior distribution of the impulse response functions: the 50\% ("low25" and "high75"), the 68\% ("low16" and "high84") and the 90\% ("low05" and "high95") credible sets along with the posterior median ("median").}
-#' \item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\itemize{
+#' \item{\code{struc.obj}}{ is a list object that contains posterior quantitites needed when calculating historical decomposition and structural errors via \code{hd.decomp}.\describe{
 #' \item{\code{A}}{ median posterior of global coefficient matrix.}
 #' \item{\code{Ginv}}{ median posterior of matrix \code{Ginv}, which describes contemporaneous relationships between countries.}
 #' \item{\code{S}}{ posterior median of matrix with country variance-covariance matrices on the main diagonal.}
 #' }}
-#' \item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\itemize{
+#' \item{\code{model.obj}}{ is a list object that contains model-specific information, in particular\describe{
 #' \item{\code{xglobal}}{ used data of the model.}
 #' \item{\code{plag}}{ used lag specification of the model.}
 #' }}

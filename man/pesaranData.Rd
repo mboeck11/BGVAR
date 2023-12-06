@@ -13,21 +13,21 @@ The data loads \code{pesaranData}, which is a list object of length \code{N} (i.
 \describe{
   \item{\code{W.8016}}{ Weight matrix for the \code{pesaran.level} and \code{pesaran.diff} data sets, based on averaged trade flows covering the period 1980 to 2016 (based on \code{tA}).}
   \item{\code{tA}}{ Three-dimensional array that contains the yearly, bilateral trade flows, which were used to construct \code{W.8016}.}
-  \item{\code{peseranData}}{ List object of length \code{N} containing \itemize{
+  \item{\code{peseranData}}{ List object of length \code{N} containing \describe{
     \item{\code{y}}{ Real GDP.}
     \item{\code{Dp}}{ Consumer price inflation.}
     \item{\code{r}}{ Short-term interest rate, typically 3-months money market rate.}
     \item{\code{lr}}{ Long-term interest rate.}
     \item{\code{eq}}{ Equity prices.}
     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
- \item{\code{pesaranDiff}}{ List object of length \code{N} containing \itemize{
+ \item{\code{pesaranDiff}}{ List object of length \code{N} containing \describe{
     \item{\code{y}}{ Growth rate of real GDP.}
     \item{\code{Dp}}{ First differences of consumer price inflation.}
     \item{\code{r}}{ First differences of short-term interest rate, typically 3-months money market rate.}
     \item{\code{lr}}{ Long-term interest rate.}
     \item{\code{eq}}{ Equity prices.}
     \item{\code{ep}}{ Exchange rate vis a vis the US dollar, deflated by the domestic CPI.}}}
- \item{\code{dominant}}{ Data set containing global variables: \itemize{
+ \item{\code{dominant}}{ Data set containing global variables: \describe{
     \item{\code{poil}}{ Oil prices.}
     \item{\code{pmetal}}{ Metal price index.}
     \item{\code{pmat}}{ Agricultural price index.}}}

@@ -61,12 +61,12 @@ List BVAR_linear(arma::mat Yraw,
   }
   
   mat Xraw = mlag(Yraw,plag,Traw,M);
-  mat X0 = Xraw.submat(pmax,0,Traw-1,K-1);
-  mat Y = Yraw.submat(pmax,0,Traw-1,M-1);
+  mat X0   = Xraw.submat(pmax,0,Traw-1,K-1);
+  mat Y    = Yraw.submat(pmax,0,Traw-1,M-1);
   double T = X0.n_rows;
   mat Wall = join_rows(Wraw,mlag(Wraw,plagstar,Traw,Mstar));
-  mat W0 = Wall.submat(pmax,0,Traw-1,Kstar-1);
-  mat X = join_rows(X0,W0);
+  mat W0   = Wall.submat(pmax,0,Traw-1,Kstar-1);
+  mat X    = join_rows(X0,W0);
   if(texo){
     mat E0 = Exraw.submat(pmax,0,Traw-1,Mex-1);
     X = join_rows(X,E0);
@@ -360,7 +360,7 @@ List BVAR_linear(arma::mat Yraw,
       bool chol_success = chol(V_p_chol_lower, V_p, "lower");
       // Fall back on Rs chol if armadillo fails (it suppports pivoting)
       if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true, false, -1);
+        NumericMatrix tmp = Rchol(V_p, true);
         int d = V_p.n_cols;
         mat cholV_tmp = mat(tmp.begin(), d, d, false);
         uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
@@ -393,7 +393,7 @@ List BVAR_linear(arma::mat Yraw,
       bool chol_success = chol(V_p_chol_lower, V_p,"lower");
       // Fall back on Rs chol if armadillo fails (it suppports pivoting)
       if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true, false, -1);
+        NumericMatrix tmp = Rchol(V_p, true);
         int d = V_p.n_cols;
         mat cholV_tmp = mat(tmp.begin(), d, d, false);
         uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
@@ -426,7 +426,7 @@ List BVAR_linear(arma::mat Yraw,
         bool chol_success = chol(V_p_chol_lower, V_p, "lower");
         // Fall back on Rs chol if armadillo fails (it suppports pivoting)
         if(chol_success == false){
-          NumericMatrix tmp = Rchol(V_p, true, false, -1);
+          NumericMatrix tmp = Rchol(V_p, true);
           int d = V_p.n_cols;
           mat cholV_tmp = mat(tmp.begin(), d, d, false);
           uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
@@ -461,7 +461,7 @@ List BVAR_linear(arma::mat Yraw,
         bool chol_success = chol(V_p_chol_lower, V_p,"lower");
         // Fall back on Rs chol if armadillo fails (it suppports pivoting)
         if(chol_success == false){
-          NumericMatrix tmp = Rchol(V_p, true, false, -1);
+          NumericMatrix tmp = Rchol(V_p, true);
           int d = V_p.n_cols;
           mat cholV_tmp = mat(tmp.begin(), d, d, false);
           uvec piv = sort_index(as<vec>(tmp.attr("pivot")));

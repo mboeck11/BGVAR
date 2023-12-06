@@ -16,7 +16,7 @@
 \item{...}{Additional arguments.}
 }
 \value{
-Returns a list with the following arguments \itemize{
+Returns a list with the following arguments \describe{
 \item{\code{global}}{ A (T-p) times K times draws/thin array containing the residuals of the global model.}
 \item{\code{country}}{ A (T-p) times K times draws/thin array containing the residuals of the country models.}
 \item{\code{Data}}{ A (T-p) times K matrix containing the data of the model.}

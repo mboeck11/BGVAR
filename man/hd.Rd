@@ -15,7 +15,7 @@ hd(x, rotation.matrix=NULL, verbose=TRUE)
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns a list with the following objects \itemize{
+Returns a list with the following objects \describe{
 \item{\code{hd_array}}{ is a three-dimensional array with the first dimension referring to the K time series, the second to the T observations and the third dimensions containing the contribution of the shocks in explaining historically deviations in the time series from their trend. The third dimension is K+3, since the last three entries contain the contributions of the constant, the initial condition and a residual component that the contributions sum up to the original time series. If a trend i specified in the model the third dimension is K+3 with trend ordered after the constant.}
 \item{\code{struc.shcok}}{ contains the structural shock.}
 \item{\code{x}}{ is a matrix object that contains the original time series, which is of dimension K times (T-plag).}

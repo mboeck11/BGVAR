@@ -123,7 +123,7 @@ arma::vec dmvnrm_arma_fast(const arma::mat& x,
   bool chol_success = chol(Sig_chol, sigma);
   // Fall back on Rs chol if armadillo fails (it suppports pivoting)
   if(chol_success == false){
-    NumericMatrix tmp = Rchol(sigma, true, false, -1);
+    NumericMatrix tmp = Rchol(sigma, true);
     int d = sigma.n_cols;
     mat cholV_tmp = mat(tmp.begin(), d, d, false);
     uvec piv = sort_index(as<vec>(tmp.attr("pivot")));

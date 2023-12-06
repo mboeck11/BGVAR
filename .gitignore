@@ -44,3 +44,4 @@ vignettes/*.pdf
 TODO
 doc
 Meta
+inst/doc

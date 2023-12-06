@@ -1,8 +1,6 @@
-// [[Rcpp::depends(RcppArmadillo, RcppProgress)]]
+// [[Rcpp::depends(RcppArmadillo)]]
 #include <RcppArmadillo.h>
 #include <stdlib.h>
-#include <progress.hpp>
-#include <progress_bar.hpp>
 #include "helper.h"
 
 using namespace Rcpp;
@@ -32,9 +30,9 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
   
   arma::vec a1, b1;
   //---------------------------------------------------------------------------------------------
-  vec prog_rep_points = round(linspace(0, thindraws, 50));
+  //vec prog_rep_points = round(linspace(0, thindraws, 50));
   //bool display_progress = true;
-  Progress prog(50, verbose);
+  //Progress prog(50, verbose);
   for(int irep = 0; irep < thindraws; irep++){
     // patient 0
     List VAR = globalpost[0];
@@ -138,12 +136,12 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
       F_eigen(irep) = abs(real(eigval)).max();
     }
     
-    if(verbose){
+    //if(verbose){
       // Increment progress bar
-      if (any(prog_rep_points == irep)){
-        prog.increment();
-      }
-    }
+      //if (any(prog_rep_points == irep)){
+      //  prog.increment();
+      //}
+    //}
     // check user interruption
     if(irep % 200 == 0)
       Rcpp::checkUserInterrupt();

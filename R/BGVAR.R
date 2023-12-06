@@ -4,7 +4,7 @@
 #' @description Estimates a Bayesian GVAR with either the Stochastic Search Variable Selection (SSVS), the Minnesota prior (MN), the Normal-Gamma (NG), or the Horseshoe (HS) prior. All specifications can be estimated with stochastic volatility.
 #' @usage bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0, thin=1, 
 #'       hyperpara=NULL, eigen=TRUE, Ex=NULL, trend=FALSE, expert=NULL, verbose=TRUE)
-#' @param Data Either a \itemize{
+#' @param Data Either a \describe{
 #' \item{\code{list object}}{ of length \code{N} that contains the data. Each element of the list refers to a country/entity. The number of columns (i.e., variables) in each country model can be different. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times \code{K}, with \code{K} denoting the sum of all endogenous variables of the system. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
@@ -16,12 +16,12 @@
 #' @param SV If set to \code{TRUE}, models are fitted with stochastic volatility using the \code{stochvol} package. Due to storage issues, not the whole history of the \code{T} variance covariance matrices are kept, only the median. Consequently, the \code{BGVAR} package shows only one set of impulse responses (with variance covariance matrix based on mean sample point volatilities) instead of \code{T} sets. Specify \code{SV=FALSE} to turn SV off.
 #' @param hold.out Defines the hold-out sample. Default without hold-out sample, thus set to zero.
 #' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
-#' @param Ex For including truly exogenous variables to the model. Either a \itemize{
+#' @param Ex For including truly exogenous variables to the model. Either a \describe{
 #' \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
 #' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
-#' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \itemize{
+#' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \describe{
 #' \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 #' \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
 #' \item{\code{prmean}}{ Prior mean on the first lag of the autoregressive coefficients, standard value is \code{prmean=1} for non-stationary data. Prior mean for the remaining autoregressive coefficients automatically set to 0.}
@@ -30,13 +30,13 @@
 #' \item{\code{a0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape1 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{a0=25}.}
 #' \item{\code{b0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape2 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{b0=1.5}.}
 #' \item{\code{Bsigma}}{ If \code{SV=TRUE}, this is the hyperparameter for the Gamma prior on the variance of the log-volatilities. Default is set to \code{Bsigma=1}.}
-#' \item{"MN"}{\itemize{
+#' \item{"MN"}{\describe{
 #'       \item{\code{shrink1}}{ Starting value of \code{shrink1}. Default set to 0.1.}
 #'       \item{\code{shrink2}}{ Starting value of \code{shrink2}. Default set to 0.2.}
 #'       \item{\code{shrink3}}{ Hyperparameter of \code{shrink3}. Default set to 100.}
 #'       \item{\code{shrink4}}{ Starting value of \code{shrink4}. Default set to 0.1.}
 #'       }}
-#' \item{"SSVS"}{\itemize{
+#' \item{"SSVS"}{\describe{
 #'       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
 #'       \item{\code{tau1}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is  included (slab, tau1 should be large).}
 #'       \item{\code{kappa0}}{ is the prior variance associated with the normal prior on the covariances if a covariance equals zero (spike, kappa0 should be close to zero).}
@@ -44,7 +44,7 @@
 #'       \item{\code{p_i}}{ is the prior inclusion probability for each regression coefficient whether it is included in the model (default set to \code{p_i=0.5}).}
 #'       \item{\code{q_ij}}{ is the prior inclusion probability for each covariance whether it is included in the model (default set to \code{q_ij=0.5}).}
 #'       }}
-#' \item{"NG":}{\itemize{
+#' \item{"NG":}{\describe{
 #'       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
 #'       \item{\code{d_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{d_lambda=1}.}
 #'       \item{\code{tau_theta}}{ Parameter of the Normal-Gamma prior that governs the heaviness of the tails of the prior distribution. A value of \code{tau_theta=1} would lead to the Bayesian LASSO. Default value differs per entity and set to \code{tau_theta=1/log(M)}, where \code{M} is the number of endogenous variables per entity.}
@@ -53,9 +53,9 @@
 #' \item{"HS":}{ No additional hyperparameter needs to be elicited for the horseshoe prior.}
 #'  }
 #' @param eigen Set to TRUE if you want to compute the largest eigenvalue of the companion matrix for each posterior draw. If the modulus of the eigenvalue is significantly larger than unity, the model is unstable. Unstable draws exceeding an eigenvalue of one are then excluded. If \code{eigen} is set to a numeric value, then this corresponds to the maximum eigenvalue. The default is set to 1.05 (which excludes all posterior draws for which the eigenvalue of the companion matrix was larger than 1.05 in modulus).
-#' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\itemize{
+#' @param expert Expert settings, must be provided as list. Default is set to \code{NULL}.\describe{
 #' \item{\code{variable.list}}{ In case \code{W} is a list of weight matrices, specify here which set of variables should be weighted by which weighting matrix. Default is \code{NULL}.}
-#' \item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \itemize{
+#' \item{\code{OE.weights}}{ Default value is set to \code{NULL}. Can be used to provide information of how to handle additional country models (other entities). Additional country models can be used to endogenously determine variables that are (weakly) exogenous for the majority of the other country models. As examples, one could think of an additional oil price model (see also Mohaddes and Raissi 2019) or a model for the joint euro area monetary policy (see also Georgiadis 2015; Feldkircher, Gruber and Huber (2020)). The data for these additional country models has to be contained in \code{Data}. The number of additional country models is unlimited. Each list entry of \code{OE.weights} has to be named similar to the name of the additional country model contained in \code{Data}. Each slot of \code{OE.weight} has to contain the following information: \describe{
 #' \item{\code{weights}}{ Vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
 #' \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 #' \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
@@ -72,12 +72,12 @@
 #' @details We provide three priors, the Minnesota labeled \code{MN}, the Stochastic Search Variable Selection prior labeled \code{SSVS} and the Normal-Gamma prior labeled \code{NG}. The first one has been implemented for global VARs in Feldkircher and Huber (2016) and the second one in Crespo Cuaresma et al. (2016), while the last one has been introduced to VAR modeling in Huber and Feldkircher (2019).
 #'  Please consult these references for more details on the specification. In the following we will briefly explain the difference between the three priors. The Minnesota prior pushes the variables in the country-specific VAR towards their unconditional stationary mean, or toward a situation where there is at least one unit root present. The SSVS prior is a form of a 'spike' and 'slab' prior. Variable selection is based on the probability of assigning the corresponding regression coefficient to the 'slab' component. If a regression coefficient is non informative, the 'spike' component pushes the associated posterior estimate more strongly towards zero. Otherwise, the slab component resembles a non-informative prior that has little impact on the posterior. Following George et. al. (2008) we set the prior variances for the normal distribution in a semi-automatic fashion. This implies scaling the mixture normal with the OLS standard errors of the coefficients for the full model. The NG prior is a form of global-local shrinkage prior. Hence, the local component shrinks each coefficient towards zero if there is no information for the associated dependent variable. Otherwise, the prior exerts a fat-tail structure such that deviations from zero are possible. The global component is present for each lag, thus capturing the idea that higher lags should be shrunk more aggressively towards zero.
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
-#' @return Returns a list of class \code{bgvar} with the following elements: \itemize{
+#' @return Returns a list of class \code{bgvar} with the following elements: \describe{
 #' \item{\code{args}}{ is a list object that contains the arguments submitted to function \code{bgvar}.}
 #' \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 #' \item{\code{gW}}{ is the global weight matrix. It is a list, with \code{N} entries, each of which contains the weight matrix of each country.}
 #' \item{\code{country.res}}{ is a matrix that contains the posterior mean of the  country models' residuals. The residuals have been obtained as a running mean and thus always relate to the full set of posterior draws. This implies that in case you have opted for trimming the draws the residuals do not correspond to the posterior draws of the "trimmed" coefficients. This is a storage problem, rather than a statistical problem. Experiments, however, show that residual properties (autocorrelation, cross-sectional correlation) of trimmed and reported residuals are close.}
-#' \item{\code{stacked results}}{\itemize{
+#' \item{\code{stacked results}}{\describe{
 #'       \item{\code{S_large}}{ is a three-dimensional array (K times K times draws) of the (block-diagonal) posterior variance covariance matrix.}
 #'       \item{\code{F_large}}{ is a four-dimensional array (K times K times lags times draws) of the coefficients.}
 #'       \item{\code{Ginv_large}}{ is a three-dimensional array (K times K times draws) of the inverse of the G matrix.}
@@ -86,7 +86,7 @@
 #'       \item{\code{trim.info}}{ is a character vector. Contains information regarding the nr. of stable draws out of total (thinned) draws. Experience shows that a maximum eigenvalue of \code{1.05} seems a reasonable choice when working with data in levels to generate stable impulse responses.}
 #' }}
 #' \item{\code{cc.results}}{ each entry of this list contains an list object of length \code{N}. Each entry in the list corresponds to one country model and contains one of the following posterior medians.
-#' \itemize{
+#' \describe{
 #'       \item{\code{coeffs}}{ contains in each entry the matrix with the posterior median of the estimated coefficients. Columns of the matrix correspond to an equation in the country model (i.e., the dependent variable) and rows to coefficient estimates of the explanatory variables.}
 #'       \item{\code{sig}}{ contains in each entry the variance-covariance matrix for each point in time. If \code{SV=FALSE} all entries along the time dimension are the same.}
 #'       \item{\code{theta}}{ contains in each entry the estimated prior variances for the coefficients. Explains how much shrinkage is induced on each coefficient depending on the prior setup.}
@@ -437,12 +437,12 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(expert.list$save.vola.store)
     setting_store[["vola_pars"]] <- TRUE
   #------------------------------ get weights -----------------------------------------------------------------#
-  xglobal <- .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)
-  exo.countries<-xglobal$exo.countries
-  exo     <- xglobal$exo
-  endo    <- xglobal$endo
-  gW      <- xglobal$gW
-  xglobal <- xglobal$bigx
+  xglobal       = .getweights(Data=Data,W=W,OE.weights=OE.weights,Wex.restr=Wex.restr,variable.list=variable.list)
+  exo.countries = xglobal$exo.countries
+  exo           = xglobal$exo
+  endo          = xglobal$endo
+  gW            = xglobal$gW
+  xglobal       = xglobal$bigx
   #---------------------------------hold out sample------------------------------------------------------------#
   args$yfull <- xglobal
   xglobal    <- xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
@@ -489,7 +489,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   }else{
     trim<-eigen;eigen<-TRUE
   }
-  if(verbose) cat("Start stacking: \n")
+  if(verbose) cat("Stacking of global model starts... \n")
   # insert stacking function here
   # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
   stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=max(lags),globalpost=globalpost,draws=draws,thin=thin,trend=trend,eigen=eigen,trim=trim,verbose=verbose)
@@ -634,6 +634,13 @@ print.bgvar<-function(x, ...){
 #' @author Maximilian Boeck
 #' @export
 summary.bgvar <- function(object, ...){
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   CD  <- conv.diag(object)
   res <- resid.corr.test(object,lag.cor=1,alpha=0.95)
   cross.corr <- avg.pair.cc(object)
@@ -708,7 +715,7 @@ print.bgvar.summary <- function(x, ...){
 #' @param object A fitted \code{bgvar} object.
 #' @param ... Additional arguments.
 #' @details This function calculates residuals of the global and the country models based on a \code{bgvar} object. Country models' residuals are equivalent to output generated by the \code{print.bgvar} function in case no trimming has been used. If trimming was invoked to discard unstable draws output of both functions might differ since \code{print.bgvar} calculates residuals as a running mean to save storage which is based on the \emph{whole} set of posterior draws (including discarded draws). In this case it is recommended to recalculate the residuals with \code{residuals.bgvar} and re-do the serial autocorrelation or average pairwise cross-correlation analysis using functions \code{resid.corr.test} and \code{avg.pair.cc}.
-#' @return Returns a list with the following arguments \itemize{
+#' @return Returns a list with the following arguments \describe{
 #' \item{\code{global}}{ A (T-p) times K times draws/thin array containing the residuals of the global model.}
 #' \item{\code{country}}{ A (T-p) times K times draws/thin array containing the residuals of the country models.}
 #' \item{\code{Data}}{ A (T-p) times K matrix containing the data of the model.}
@@ -724,7 +731,14 @@ print.bgvar.summary <- function(x, ...){
 #' resid(model.ng)
 #' }
 residuals.bgvar <- function(object, ...){
+  
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   G.mat   <- object$stacked.results$Ginv_large
   A.mat   <- object$stacked.results$A_large
   lags    <- object$args$lags
@@ -775,6 +789,14 @@ resid.bgvar <- residuals.bgvar
 #' }
 #' @importFrom stats quantile
 coef.bgvar<-function(object, ..., quantile=.50){
+  
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   out <- apply(object$stacked.results$F_large,c(1,2,3),quantile,quantile,na.rm=TRUE)
   dimnames(out)[[1]] <- colnames(object$xglobal)
   return(out)
@@ -807,6 +829,14 @@ coefficients.bgvar <- coef.bgvar
 #' }
 #' @export
 vcov.bgvar<-function(object, ..., quantile=.50){
+  
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   S_qu <- apply(object$stacked.results$S_large,c(1,2),quantile,quantile,na.rm=TRUE)
   Ginv_qu <- apply(object$stacked.results$Ginv_large,c(1,2),quantile,quantile,na.rm=TRUE)
   if(length(quantile)==1){
@@ -836,6 +866,14 @@ vcov.bgvar<-function(object, ..., quantile=.50){
 #' }
 #' @export
 fitted.bgvar<-function(object, ..., global=TRUE){
+  
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   lags     <- object$args$lags
   pmax     <- max(lags)
   xglobal  <- object$xglobal
@@ -872,9 +910,18 @@ fitted.bgvar<-function(object, ..., global=TRUE){
 #' }
 #' @export
 logLik.bgvar<-function(object, ..., quantile=.50){
+  
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   if(length(quantile)!=1){
     stop("Please provide only one quantile.")
   }
+  
   temp <- object$args$logLik
   if(is.null(temp)){
     xglobal   <- object$xglobal
@@ -937,12 +984,20 @@ logLik.bgvar<-function(object, ..., quantile=.50){
 #' \donttest{
 #' library(BGVAR)
 #' data(testdata)
-#' model.mn <- bgvar(Data=testdata,W=W.test,plag=2,draws=100,burnin=100,prior="MN")
+#' model.mn <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,prior="MN")
 #' dic(model.mn)
 #' }
 #' @references 
 #' Spiegelhalter, D. J. and Best, N. G., Carlin, B. P. and Linde, A. (2002) \emph{Bayesian measures of model complexity and fit.} Journal of the Royal Statistical Society, Series B, Vol. 64(4), pp. 583-639.
 dic.bgvar <- function(object, ...){
+  
+  if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  # check if posterior draws are available
+  if(object$args$thindraws == 0){
+    cat("Computation of BGVAR has yielded no stable posterior draws!")
+    return(invisible(object))
+  }
+  
   if(!is.null(object$args$dic)){
     out <- object$args$dic
   }else{

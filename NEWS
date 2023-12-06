@@ -1,3 +1,13 @@
+Change in Version 2.5.3
+- small change in estimation procedure: countries can now have asymmetric effects, i.e., they are important for other countries
+- but do have own spillovers (no weakly exogenous variables for particular countries)
+- add JSS paper to vignette
+- update maintainer information (mail address)
+- change 'itemize' to 'describe' in markdown help files.
+
+Change in Version 2.5.2
+- add JSS publication
+
 Change in Version 2.5.1
 - changes plot styles
 

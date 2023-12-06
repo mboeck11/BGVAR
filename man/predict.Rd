@@ -34,7 +34,7 @@
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns an object of class \code{bgvar.pred} with the following elements \itemize{
+Returns an object of class \code{bgvar.pred} with the following elements \describe{
 \item{\code{fcast}}{ is a K times n.ahead times Q-dimensional array that contains  Q quantiles of the posterior predictive distribution.}
 \item{\code{xglobal}}{ is a matrix object of dimension T times N (T # of observations, K # of variables in the system).}
 \item{\code{n.ahead}}{ specified forecast horizon.}

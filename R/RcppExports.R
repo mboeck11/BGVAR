@@ -37,5 +37,5 @@ compute_irf <- function(A_large, S_large, Ginv_large, type, nhor, thindraws, sho
 
 # Register entry points for exported C++ functions
 methods::setLoadAction(function(ns) {
-    .Call('_BGVAR_RcppExport_registerCCallable', PACKAGE = 'BGVAR')
+    .Call(`_BGVAR_RcppExport_registerCCallable`)
 })

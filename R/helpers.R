@@ -139,7 +139,7 @@ avg.pair.cc=function(object, digits=3){
 #' @param object A fitted \code{bgvar} object.
 #' @param crit.val Critical value used for test statistic.
 #' @details Geweke (1992) proposed a convergence diagnostic for Markov chains based on a test for equality of the means of the first and last part of a Markov chain (by default we use the first 10\% and the last 50\%). If the samples are drawn from the stationary distribution of the chain, the two means are equal and Geweke's statistic has an asymptotically standard normal distribution. The test statistic is a standard Z-score: the difference between the two sample means divided by its estimated standard error. The standard error is estimated from the spectral density at zero and so takes into account any autocorrelation.
-#' @return Returns an object of class \code{bgvar.CD}. This is a list with \itemize{
+#' @return Returns an object of class \code{bgvar.CD}. This is a list with \describe{
 #' \item{\code{geweke.z}}{ Z-scores for a test of equality of means between the first and last parts of the chain. A separate statistic is calculated for each variable in each chain.}
 #' \item{\code{perc}}{ is the percentage of Z-scores exceeding \code{crit.val} (in absolute terms).}
 #' }
@@ -201,7 +201,7 @@ print.bgvar.CD <- function(x, ...){
 #' @param dig1 Number of digits to display F-statistics and its critical values.
 #' @param dig2 Number of digits to display p-values.
 #' @details It is the F-test of the familiar Lagrange Multiplier (LM) statistic (see Godfrey 1978a, 1978b), also known as the 'modified LM' statistic. The null hypothesis is that \eqn{rho}, the autoregressive parameter on the residuals, equals 0 indicating absence of serial autocorrelation. For higher order serial correlation, the null is that all \eqn{rho}'s jointly are 0. The test is implemented as in Vanessa Smith's and Alessandra Galesi's ''GVAR toolbox 2.0 User Guide'', page 129.
-#' @return Returns a list with the following objects \itemize{
+#' @return Returns a list with the following objects \describe{
 #' \item{\code{Fstat}}{ contains a list of length \code{N} with the associated F-statistic for each variable in each country.}
 #' \item{\code{resTest}}{ contains a matrix of size 2N times K+3, with the F-statistics for each country and each variable.}
 #' \item{\code{p.res}}{ contains a table which summarizes the output.}

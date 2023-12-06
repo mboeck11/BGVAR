@@ -21,7 +21,7 @@ gfevd(x, n.ahead=24, running=TRUE, applyfun=NULL, cores=NULL, verbose=TRUE)
 \item{verbose}{If set to \code{FALSE} it suppresses printing messages to the console.}
 }
 \value{
-Returns a list with two elements \itemize{
+Returns a list with two elements \describe{
 \item{\code{GFEVD}}{ a three or four-dimensional array, with the first dimension referring to the K time series that are decomposed into contributions of K time series (second dimension) for \code{n.ahead} forecast horizons. In case \code{running=TRUE} only the posterior mean else also its 16\% and 84\% credible intervals is contained in the fourth dimension.}
 \item{\code{xglobal}}{ used data of the model.}
 }

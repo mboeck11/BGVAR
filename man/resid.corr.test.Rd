@@ -18,7 +18,7 @@ resid.corr.test(obj, lag.cor=1, alpha=0.95, dig1=5, dig2=3)
 \item{dig2}{Number of digits to display p-values.}
 }
 \value{
-Returns a list with the following objects \itemize{
+Returns a list with the following objects \describe{
 \item{\code{Fstat}}{ contains a list of length \code{N} with the associated F-statistic for each variable in each country.}
 \item{\code{resTest}}{ contains a matrix of size 2N times K+3, with the F-statistics for each country and each variable.}
 \item{\code{p.res}}{ contains a table which summarizes the output.}
