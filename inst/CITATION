@@ -1,4 +1,4 @@
-if(!exists("meta") || is.null(meta)) {meta <- packageDescription("BVAR")}
+if(!exists("meta") || is.null(meta)) {meta <- packageDescription("BGVAR")}
 year <- sub("-.*", "", meta$Date)
 version <- meta$Version
 
@@ -23,19 +23,6 @@ bibentry(bibtype = "Article",
 )
 
 bibentry(bibtype = "Manual",
-  title = "{BGVAR}: {B}ayesian Global Vector Autoregressions",
-  author = personList(
-    person(given = "Maximilian", family = "Boeck", email = "maximilian.boeck@unibocconi.it"),
-    person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@da-vienna.ac.at"),
-    person(given = "Florian", family = "Huber", email = "florian.huber@sbg.ac.at")),
-  year = "2020",
-  textVersion = paste0("Maximilian Boeck, Martin Feldkircher and Florian Huber (2020) BGVAR: Bayesian Global Vector Autoregressions.",
-    "R package version ", version,
-    ", URL https://CRAN.R-project.org/package=BGVAR."),
-    header = "To cite BGVAR package directly please use:"
-)
-
-citEntry(
   header = "To cite the current version of BGVAR package please use:",
   entry = "manual",
   title = "{BGVAR}: {B}ayesian Global Vector Autoregressions",
