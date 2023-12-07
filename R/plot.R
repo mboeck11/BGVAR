@@ -430,15 +430,25 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
       if(aa%in%names(args)) bgvar.env$plot[[aa]] = args[[aa]]
     }
   }
+  irf_list = list(); count<-0
   if(is.null(resp)){
     nrc  <- lapply(Ki,function(k).get_nrc(k))
     for(cc in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
       for(kk in 1:K){
-        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        
+        plot_varname = paste0(cN[cc],".",vars[kk])
+        idx          = which(plot_varname==varNames)
         if(length(idx) == 0) next
+        
+        # get plot data
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum)}
+        # save plot data
+        irf_list[[paste0("IRF.",plot_varname)]] = x
+        count = count+1
+        
+        # do plot
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -462,11 +472,19 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
       par(mar=bgvar.env$mar,mfrow=c(nrc[[cc]][1],nrc[[cc]][2]))
       vars.cc <- sapply(strsplit(varNames[grep(cN[cc],varNames)],".",fixed=TRUE),function(x) x[2])
       for(kk in 1:K){
-        idx <- which(paste0(cN[cc],".",vars.cc[kk])==varNames)
-        idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
+        
+        plot_varname = paste0(cN[cc],".",vars[kk])
+        idx <- which(plot_varname==varNames)
         if(length(idx) == 0) next
+        
+        # get plot data
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum)}
+        # save plot data
+        irf_list[[paste0("IRF.",plot_varname)]] = x
+        count = count+1
+        
+        # do plot
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -489,10 +507,18 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     for(vv in 1:length(nrc)){
       par(mar=bgvar.env$mar,mfrow=c(nrc[[vv]][1],nrc[[vv]][2]))
       for(kk in 1:Ki[vv]){
-        idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
+        plot_varname = paste0(cN[kk],".",vars[vv])
+        idx <- which(plot_varname==varNames)
         if(length(idx)==0) next
+        
+        # get plot data
         x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
         if(cumulative){x<-apply(x,2,cumsum)}
+        # save plot data
+        irf_list[[paste0("IRF.",plot_varname)]] = x
+        count = count+1
+        
+        # do plot
         b <- range(x);b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -515,8 +541,15 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
     par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
     for(kk in 1:Ki){
       idx <- ridx[kk]
+      
+      # get plot data
       x<-posterior[idx,,shock,paste0("Q",quantiles*100),drop=TRUE] 
       if(cumulative){x<-apply(x,2,cumsum)}
+      # save plot data
+      irf_list[[paste0("IRF.",resp[kk])]] = x
+      count = count+1
+      
+      # do plot
       b <- range(x);b1<-b[1];b2<-rev(b)[1]
       plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
               lwd=bgvar.env$plot$lwd.line,ylab="",xlab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
@@ -534,7 +567,7 @@ plot.bgvar.irf<-function(x, ...,resp=NULL, shock=1, quantiles=c(.10,.16,.50,.84,
   }else{
     stop("Please specify 'resp' either as one or more specific variable names in the dataset, as general variable name or as unit name, but not as a combination therof. Respecify.")
   }
-  return(invisible(x))
+  return(invisible(irf_list))
 }
 
 #' @name plot

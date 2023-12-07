@@ -4,6 +4,7 @@ Change in Version 2.5.3
 - add JSS paper to vignette
 - update maintainer information (mail address)
 - change 'itemize' to 'describe' in markdown help files.
+- irf command returns plotted data in list format.
 
 Change in Version 2.5.2
 - add JSS publication

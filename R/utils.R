@@ -152,19 +152,21 @@
       }
       # this creates the W matrix for the other entity model
       if(!is.null(OE.vars[[kk]])){
-        Wnew <- matrix(0,length(OE.vars[[kk]]),ncol(xglobal))
-        colnames(Wnew) <- colnames(xglobal)
-        rownames(Wnew) <- c(paste(OE.cN[kk],".",OE.vars[[kk]][!OE.vars[[kk]]%in%names(endo)],sep=""),
-                            OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)])
+        Wnew           = matrix(0,length(OE.vars[[kk]]),ncol(xglobal))
+        colnames(Wnew) = colnames(xglobal)
+        rownames(Wnew) = c(paste(OE.cN[kk],".",OE.vars[[kk]][!OE.vars[[kk]]%in%names(endo)],sep=""),
+                           OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)])
         if(OE.x>1){
           diag(Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")])<-1
         }else{
           Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")]<-1
         }
         vars <- OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)]
-        for(i in 1:length(vars)){
-          Wnew[vars[i],paste(names(OE.weights[[kk]]),".",vars[i],sep="")] <- OE.weights[[kk]]
-          Wnew[vars[i],]
+        if(length(vars)>1){
+          for(i in 1:length(vars)){
+            Wnew[vars[i],paste(names(OE.weights[[kk]]),".",vars[i],sep="")] <- OE.weights[[kk]]
+            Wnew[vars[i],]
+          }
         }
         # this creates the part if there are more than one other entities
         if(OE.sets>1 && kk < OE.sets){
@@ -263,14 +265,19 @@
 #' @noRd
 #' @importFrom utils capture.output
 .BVAR_linear_wrapper <- function(cc, cN, xglobal, gW, prior, lags, draws, burnin, trend, SV, thin, default_hyperpara, Ex, use_R, setting_store){
-  Yraw  = xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]
+  Yraw  = xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]; class(Yraw) = "numeric"
   W     = gW[[cc]]
   Exraw = matrix(NA_real_)
   if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
   all         = t(W%*%t(xglobal))
-  Wraw        = all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]
-  class(Yraw) = class(Wraw) <- "numeric"
-  Mstar       = ncol(Wraw)
+  if(ncol(Yraw) == ncol(all)){
+    Wraw = NULL
+    Mstar = 0
+  }else{
+    Wraw  = all[,(ncol(Yraw)+1):ncol(all),drop=FALSE]; class(Wraw) = "numeric"
+    Mstar = ncol(Wraw)
+  }
+  
   if(all(Wraw==0)){ # case of no exogenous variables -- always uses R version (not implemented in Rcpp)
     Wraw  = NULL
     wexo  = FALSE

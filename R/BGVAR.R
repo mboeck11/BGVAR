@@ -505,24 +505,28 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   country.res    <- lapply(globalpost,function(l) l$post$res_post)
   varNames       <- lapply(gW,function(x) dimnames(x)[[1]])
   for(cc in 1:N){
-    varx <- varNames[[cc]]
-    endo <- grep(cN[cc],varx)
-    exx  <- which(varx%in%names(exo))
-    wex  <- seq(1,length(varx))[-c(endo,exx)]
-    if(length(exx)>0){
-      wex0 <- c(paste(varx[wex],"*",sep=""),paste(varx[exx],"**",sep=""))
-    }else{
-      wex0 <- c(paste(varx[wex],"*",sep=""))
+    varx = varNames[[cc]]
+    endo = grep(cN[cc],varx)
+    exx  = which(varx%in%names(exo))
+    wex  = seq(1,length(varx))[-c(endo,exx)]
+    if(length(wex)>0 && length(exx)>0){
+      wex0 = c(paste(varx[wex],"*",sep=""),paste(varx[exx],"**",sep=""))
+    }else if(length(wex)>0 && length(exx)==0){
+      wex0 = c(paste(varx[wex],"*",sep=""))
+    }else if(length(wex)==0 && length(exx)==0){
+      wex0 = NULL
     }
-    wexL <- endoL <- c()
+    wexL = endoL = c()
     for(pp in 1:lags[1]){
-      endoL  <- c(endoL,paste(varx[endo],"_lag",pp,sep=""))
+      endoL = c(endoL,paste(varx[endo],"_lag",pp,sep=""))
     }
     for(pp in 1:lags[2]){
-      if(length(exx)>0){
-        wexL <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""), paste(varx[exx],"**_lag",pp,sep=""))
-      }else{
-        wexL   <- c(wexL, paste(varx[wex],"*_lag",pp,sep=""))
+      if(length(wex)>0 && length(exx)>0){
+        wexL = c(wexL, paste(varx[wex],"*_lag",pp,sep=""), paste(varx[exx],"**_lag",pp,sep=""))
+      }else if(length(wex)>0 && length(exx)==0){
+        wexL = c(wexL, paste(varx[wex],"*_lag",pp,sep=""))
+      }else if(length(wex)==0 && length(exx)==0){
+        wexL = NULL
       }
     }
     if(cN[cc]%in%names(Ex)){
@@ -531,8 +535,8 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     names <- c(endoL,wex0,wexL,tex,"cons")
     if(trend) names <- c(names,"trend")
     
-    rownames(country.coeffs[[cc]]) <- names
-    dimnames(country.sig[[cc]])[[2]]<-dimnames(country.sig[[cc]])[[3]]<-varx[endo]
+    rownames(country.coeffs[[cc]])   =  names
+    dimnames(country.sig[[cc]])[[2]] = dimnames(country.sig[[cc]])[[3]] = varx[endo]
   }
   cc.results <- list(coeffs=country.coeffs,sig=country.sig,theta=country.theta,res=country.res)
   if(prior=="MN"){
