@@ -5,6 +5,7 @@ Change in Version 2.5.3
 - update maintainer information (mail address)
 - change 'itemize' to 'describe' in markdown help files.
 - irf command returns plotted data in list format.
+- fixed a bug in .getweights().
 
 Change in Version 2.5.2
 - add JSS publication

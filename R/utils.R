@@ -77,7 +77,7 @@
     }
     
     # names of endo variables
-    endnames <- unlist(lapply(strsplit(colnames(xglobal)[grepl(cnames[[cc]],colnames(xglobal))],".",fixed=TRUE),
+    endnames <- unlist(lapply(strsplit(colnames(xglobal)[grepl(paste0("^",cnames[[cc]]),colnames(xglobal))],".",fixed=TRUE),
                               function(l)l[2]))
     Wnew <- matrix(0,length(varnames),ncol(xglobal));colnames(Wnew) <- colnames(xglobal);rownames(Wnew) <- varnames
     
