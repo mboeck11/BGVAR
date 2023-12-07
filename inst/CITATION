@@ -26,7 +26,7 @@ bibentry(bibtype = "Manual",
   header = "To cite the current version of BGVAR package please use:",
   entry = "manual",
   title = "{BGVAR}: {B}ayesian Global Vector Autoregressions",
-  author = personList(
+  author = c(
     person(given = "Maximilian", family = "Boeck", email = "maximilian.boeck@unibocconi.it"),
     person(given = "Martin", family = "Feldkircher", email = "martin.feldkircher@da-vienna.ac.at"),
     person(given = "Florian", family = "Huber", email = "florian.huber@sbg.ac.at")),
