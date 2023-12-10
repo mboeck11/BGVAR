@@ -482,8 +482,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       if(irep %% 50 == 0) gc() # free up memory
     }
     rm(imp.obj)
-  }else
-  { # cpp-version
+  }else{ # cpp-version
     #--------------------------------------------------------------
     # adjust indexes due to different indexation (starting with zero in cpp)
     shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l-1)
@@ -509,9 +508,9 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
     rm(temp)
     # transform back to R-version
-    shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l+1)
-    shocklist$shock.horz <- shocklist$shock.horz+1
-    shocklist$shock.order <- shocklist$shock.order+1
+    shocklist$shock.idx   = lapply(shocklist$shock.idx,function(l)l+1)
+    shocklist$shock.horz  = shocklist$shock.horz+1
+    shocklist$shock.order = shocklist$shock.order+1
   }
   end.comp <- Sys.time()
   diff.comp <- difftime(end.comp,start.comp,units="mins")

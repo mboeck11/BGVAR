@@ -97,6 +97,9 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
   }
   if(ident=="sign" && is.null(rotation.matrix)){
     rotation.matrix <- x$struc.obj$Rmed
+    if(is.null(Rmed)){
+      stop("No valid rotation matrix found. Please re-do impulse response computation with sign-restrictions identification!")
+    }
   }else if(ident=="chol"){
     rotation.matrix<-diag(bigK)
   }
