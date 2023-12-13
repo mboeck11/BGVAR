@@ -24,7 +24,7 @@
 #' library(BGVAR)
 #' data(testdata)
 #' model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
-#'                  draws=100,burnin=50,plag=1,eigen=TRUE)
+#'                  draws=200,burnin=50,plag=1,eigen=TRUE)
 #'                       
 #' # US monetary policy shock
 #' shockinfo <- get_shockinfo("chol")
@@ -49,25 +49,26 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
   start.fevd <- Sys.time()
   if(verbose) cat("Start computing forecast error variance decomposition of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  xglobal <- x$model.obj$xglobal
-  lags    <- x$model.obj$lags
-  pmax    <- max(lags)
-  ident   <- x$ident
-  Traw    <- nrow(xglobal)
-  bigK    <- ncol(xglobal)
-  xdat    <- xglobal[(pmax+1):Traw,,drop=FALSE]
-  bigT    <- nrow(x)
-  A       <- x$struc.obj$A
-  Fmat    <- x$struc.obj$Fmat
-  Ginv    <- x$struc.obj$Ginv
-  Smat    <- x$struc.obj$S
-  Sigma_u <- Ginv%*%Smat%*%t(Ginv)
-  horizon <- dim(x$posterior)[2]
-  varNames<- colnames(xglobal)
-  shock   <- x$shock
-  sign.constr <- x$sign.constr
-  cN <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  N  <- length(cN)
+  xglobal     = x$model.obj$xglobal
+  lags        = x$model.obj$lags
+  pmax        = max(lags)
+  ident       = x$ident
+  Traw        = nrow(xglobal)
+  bigK        = ncol(xglobal)
+  xdat        = xglobal[(pmax+1):Traw,,drop=FALSE]
+  bigT        = nrow(x)
+  A           = x$struc.obj$A
+  Fmat        = x$struc.obj$Fmat
+  Ginv        = x$struc.obj$Ginv
+  Smat        = x$struc.obj$S
+  Rmed        = x$struc.obj$Rmed
+  Sigma_u     = Ginv%*%Smat%*%t(Ginv)
+  horizon     = dim(x$posterior)[2]
+  varNames    = colnames(xglobal)
+  shock       = x$shock
+  sign.constr = x$sign.constr
+  cN          = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
+  N           = length(cN)
   if(ident=="sign"){
     if(verbose) cat("Identification scheme: Sign-restrictions provided.\n")
     shock.cN <- strsplit(unique(x$shockinfo$shock),".",fixed=TRUE)[[1]][1]
@@ -84,8 +85,12 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
       stop("One of the variables you want to decompose is not contained in the system. Please re-specify!")
     }
   }
-  if(is.null(x$struc.obj$Rmed) && ident == "sign"){
+  if((is.null(Rmed) || any(is.na(Rmed))) && ident == "sign"){
     stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
+  }else if(ident=="sign" && !is.null(Rmed)){
+    rotation.matrix = Rmed
+  }else{
+    rotation.matrix = diag(bigK)
   }
   if(is.null(var.slct)){
     if(verbose) cat("FEVD computed for all variables.\n\n")
@@ -95,15 +100,6 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
     if(length(var.slct)>1) for(kk in 2:length(var.slct)) var.print <- paste(var.print,", ",var.slct[kk],sep="")
     if(verbose) cat(paste("FEVD computed for the following variables: ",var.print,".\n",sep=""))
   }
-  if(ident=="sign" && is.null(rotation.matrix)){
-    rotation.matrix <- x$struc.obj$Rmed
-    if(is.null(rotation.matrix)){
-      stop("No valid rotation matrix found. Please re-do impulse response computation with sign-restrictions identification!")
-    }
-  }else if(ident=="chol"){
-    rotation.matrix<-diag(bigK)
-  }
-  rownames(rotation.matrix) <- colnames(rotation.matrix) <- varNames
   #----------------------------------------------------------------------------------------------------#
   P0G <- diag(bigK); colnames(P0G) <- rownames(P0G) <- varNames
   gcov <- Smat

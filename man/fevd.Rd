@@ -34,7 +34,7 @@ set.seed(123)
 library(BGVAR)
 data(testdata)
 model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
-                 draws=100,burnin=50,plag=1,eigen=TRUE)
+                 draws=200,burnin=50,plag=1,eigen=TRUE)
                       
 # US monetary policy shock
 shockinfo <- get_shockinfo("chol")

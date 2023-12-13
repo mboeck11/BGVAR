@@ -1,6 +1,5 @@
-Change in Version 2.5.4
+Change in Version 2.5.5
 - fix error on CRAN 
-
 
 Change in Version 2.5.3
 - small change in estimation procedure: countries can now have asymmetric effects, i.e., they are important for other countries
