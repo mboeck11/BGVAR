@@ -526,11 +526,11 @@ For that purpose, we can set up an `shockinfo` object, which contains informatio
 # US monetary policy shock - Cholesky
 shockinfo_chol<-get_shockinfo("chol")
 shockinfo_chol$shock<-"US.stir"
-shockinfo_chol$scale<--100
+shockinfo_chol$scale<--1 # corresponds to 1 percentage point or 100bp
 # US monetary policy shock - GIRF
 shockinfo_girf<-get_shockinfo("girf")
 shockinfo_girf$shock<-"US.stir"
-shockinfo_girf$scale<--100
+shockinfo_girf$scale<--1 # corresponds to 1 percentage point or 100bp
 ```
 
 The `shockinfo` objects for Cholesky and GIRFs look exactly the same but have additionally an attribute which classifies the particular identification scheme. If we compare them, we notice that both have three columns defining the shock, the scale and whether it is defined as global shock. But we also see that the attributes differ which is important for the identification in the `irf` function.

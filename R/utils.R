@@ -287,7 +287,7 @@
   default_hyperpara$Mstar <- Mstar
   prior_in <- ifelse(prior=="MN",1,ifelse(prior=="SSVS",2,ifelse(prior=="NG",3,4)))
   if(default_hyperpara[["tau_log"]]){
-    default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
+    if(ncol(Yraw)>1) default_hyperpara["tau_theta"] <- 1/log(ncol(Yraw))
   }
   # estimation
   if(!use_R){
@@ -401,7 +401,7 @@
   }
   # SSVS
   if(prior=="SSVS" & setting_store$shrink_SSVS){
-    gamma_store <- bvar$SSVS$gamma_store; dimnames(gamma_store) <- list(colnames(X),colnames(Y),NULL)
+    gamma_store <- bvar$SSVS$gamma_store; dimnames(gamma_store) <- list(xnames_end,colnames(Y),NULL)
     omega_store <- bvar$SSVS$omega_store; dimnames(omega_store) <- list(colnames(Y),colnames(Y),NULL)
     PIP         <- apply(gamma_store,c(1,2),mean)
     PIP_omega   <- apply(omega_store,c(1,2),mean)
@@ -808,7 +808,7 @@
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
   #---------------------------------------------------------------------------------------------------------
-  for (irep in 1:ntot){
+  for(irep in 1:ntot){
     #----------------------------------------------------------------------------
     # Step 1: Sample coefficients
     for(mm in 1:M){
@@ -884,45 +884,53 @@
     # MN
     if(prior==1){
       #Step for the first shrinkage parameter (own lags)
-      shrink1.prop <- exp(rnorm(1,0,scale1))*shrink1
-      theta1.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1.prop,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
-      post1.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
-      if ((post1.prop-post1)>log(runif(1,0,1))){
-        shrink1    <- shrink1.prop
-        theta      <- theta1.prop
-        post1      <- post1.prop
-        accept1    <- accept1+1
+      shrink1.prop = exp(rnorm(1,0,scale1))*shrink1
+      shrink1.prop = ifelse(shrink1.prop<1e-16,1e-16,shrink1.prop)
+      shrink1.prop = ifelse(shrink1.prop>1e+16,1e+16,shrink1.prop)
+      theta1.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1.prop,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
+      post1.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
+      if((post1.prop-post1)>log(runif(1,0,1))){
+        shrink1    = shrink1.prop
+        theta      = theta1.prop
+        post1      = post1.prop
+        accept1    = accept1+1
       }
       
       #Step for the second shrinkage parameter (cross equation)
-      shrink2.prop <- exp(rnorm(1,0,scale2))*shrink2
-      theta2.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2.prop,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
-      post2.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
-      if ((post2.prop-post2)>log(runif(1,0,1))){
-        shrink2    <- shrink2.prop
-        theta      <- theta2.prop
-        post2      <- post2.prop
-        accept2    <- accept2+1
+      shrink2.prop = exp(rnorm(1,0,scale2))*shrink2
+      shrink2.prop = ifelse(shrink2.prop<1e-16,1e-16,shrink2.prop)
+      shrink2.prop = ifelse(shrink2.prop>1e+16,1e+16,shrink2.prop)
+      theta2.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2.prop,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
+      post2.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
+      if((post2.prop-post2)>log(runif(1,0,1))){
+        shrink2    = shrink2.prop
+        theta      = theta2.prop
+        post2      = post2.prop
+        accept2    = accept2+1
       }
       
       #Step for the final shrinkage parameter (weakly exogenous)
-      shrink4.prop <- exp(rnorm(1,0,scale4))*shrink4
-      theta4.prop  <- .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
-      post4.prop   <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
-      if((post4.prop-post4)>log(runif(1,0,1))){
-        shrink4    <- shrink4.prop
-        theta      <- theta4.prop
-        post4      <- post4.prop
-        accept4    <- accept4+1
+      if(wexo){ # do only update if weakly exogenous are present
+        shrink4.prop = exp(rnorm(1,0,scale4))*shrink4
+        shrink4.prop = ifelse(shrink4.prop<1e-16,1e-16,shrink4.prop)
+        shrink4.prop = ifelse(shrink4.prop>1e+16,1e+16,shrink4.prop)
+        theta4.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
+        post4.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
+        if((post4.prop-post4)>log(runif(1,0,1))){
+          shrink4    = shrink4.prop
+          theta      = theta4.prop
+          post4      = post4.prop
+          accept4    = accept4+1
+        }
       }
       
       if (irep<(0.5*burnin)){
-        if((accept1/irep)<0.15) scale1 <- 0.99*scale1
-        if((accept1/irep)>0.3)  scale1 <- 1.01*scale1
-        if((accept2/irep)<0.15) scale2 <- 0.99*scale2
-        if((accept2/irep)>0.3)  scale2 <- 1.01*scale2
-        if((accept4/irep)<0.15) scale4 <- 0.99*scale4
-        if((accept4/irep)>0.3)  scale4 <- 1.01*scale4
+        if((accept1/irep)<0.15) scale1 = 0.99*scale1
+        if((accept1/irep)>0.3)  scale1 = 1.01*scale1
+        if((accept2/irep)<0.15) scale2 = 0.99*scale2
+        if((accept2/irep)>0.3)  scale2 = 1.01*scale2
+        if((accept4/irep)<0.15) scale4 = 0.99*scale4
+        if((accept4/irep)>0.3)  scale4 = 1.01*scale4
       }
     }
     # SSVS
@@ -977,11 +985,13 @@
         }
         if(sample_tau){
           #Sample L_tau through a simple RWMH step
-          L_tau_prop       <- exp(rnorm(1,0,L_tuning))*L_tau
-          post_L_tau_prop  <- .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-          post_L_tau_old   <- .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
-          post.diff    <- post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
-          post.diff    <- ifelse(is.nan(post.diff),-Inf,post.diff)
+          L_tau_prop       = exp(rnorm(1,0,L_tuning))*L_tau
+          L_tau_prop       = ifelse(L_tau_prop<1e-16,1e-16,L_tau_prop)
+          L_tau_prop       = ifelse(L_tau_prop>1e+16,1e+16,L_tau_prop)
+          post_L_tau_prop  = .atau_post(atau=L_tau_prop, thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post_L_tau_old   = .atau_post(atau=L_tau,      thetas=L_prior[lower.tri(L_prior)], k=v, lambda2=lambda2_L)
+          post.diff        = post_L_tau_prop-post_L_tau_old+log(L_tau_prop)-log(L_tau)
+          post.diff        = ifelse(is.nan(post.diff),-Inf,post.diff)
           if (post.diff > log(runif(1,0,1))){
             L_tau      <- L_tau_prop
             L_accept   <- L_accept+1
@@ -1022,11 +1032,13 @@
           
           if(sample_tau){
             #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
-            A_tau_prop       <- exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
-            post_A_tau_prop  <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-            post_A_tau_old   <- .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
-            post.diff        <- post_A_tau_prop - post_A_tau_old + log(A_tau_prop) - log(A_tau[ss+1,2])
-            post.diff        <- ifelse(is.nan(post.diff),-Inf,post.diff)
+            A_tau_prop       = exp(rnorm(1,0,A_tuning[ss+1,2]))*A_tau[ss+1,2]
+            A_tau_prop       = ifelse(A_tau_prop<1e-16,1e-16,A_tau_prop)
+            A_tau_prop       = ifelse(A_tau_prop>1e+16,1e+16,A_tau_prop)
+            post_A_tau_prop  = .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
+            post_A_tau_old   = .atau_post(atau=A_tau[ss+1,2], thetas=as.vector(theta.lag),lambda2 = prod(lambda2_A[1:(ss+1),2]))
+            post.diff        = post_A_tau_prop - post_A_tau_old + log(A_tau_prop) - log(A_tau[ss+1,2])
+            post.diff        = ifelse(is.nan(post.diff),-Inf,post.diff)
             if (post.diff > log(runif(1,0,1))){
               A_tau[ss+1,2]    <- A_tau_prop
               A_accept[ss+1,2] <- A_accept[ss+1,2]+1
@@ -1045,7 +1057,7 @@
         A.prior   <- A_prior[slct.i,,drop=FALSE]
         theta.lag <- theta[slct.i,,drop=FALSE]
         
-        if (ss==1){
+        if(ss==1){
           lambda2_A[ss+1,1] <- rgamma(n     = 1,
                                       shape = d_lambda + A_tau[ss+1,1]*M^2,
                                       rate  = e_lambda + A_tau[ss+1,1]/2*sum(theta.lag))
@@ -1064,16 +1076,18 @@
           }
         }
         theta[slct.i,] <- theta.lag
-        if (sample_tau){
+        if(sample_tau){
           #Sample a_tau through a simple RWMH step (on-line tuning of the MH scaling within the first 50% of the burn-in phase)
-          A_tau_prop <- exp(rnorm(1,0,A_tuning[ss+1,1]))*A_tau[ss+1,1]
-          post_A_tau_prop <- .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
-          post_A_tau_old  <- .atau_post(atau=A_tau[ss+1,1], thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
-          post.diff <- post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau[ss+1,1])
-          post.diff <- ifelse(is.nan(post.diff),-Inf,post.diff)
+          A_tau_prop      = exp(rnorm(1,0,A_tuning[ss+1,1]))*A_tau[ss+1,1]
+          A_tau_prop      = ifelse(A_tau_prop<1e-16,1e-16,A_tau_prop)
+          A_tau_prop      = ifelse(A_tau_prop>1e+16,1e+16,A_tau_prop)
+          post_A_tau_prop = .atau_post(atau=A_tau_prop,    thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
+          post_A_tau_old  = .atau_post(atau=A_tau[ss+1,1], thetas=as.vector(theta.lag),lambda2=prod(lambda2_A[2:(ss+1),1]))
+          post.diff       = post_A_tau_prop-post_A_tau_old+log(A_tau_prop)-log(A_tau[ss+1,1])
+          post.diff       = ifelse(is.nan(post.diff),-Inf,post.diff)
           if (post.diff > log(runif(1,0,1))){
-            A_tau[ss+1,1] <- A_tau_prop
-            A_accept[ss+1,1] <- A_accept[ss+1,1]+1
+            A_tau[ss+1,1]    = A_tau_prop
+            A_accept[ss+1,1] = A_accept[ss+1,1]+1
           }
           if (irep<(0.5*burnin)){
             if ((A_accept[ss+1,1]/irep)>0.3)  A_tuning[ss+1,1] <- 1.01*A_tuning[ss+1,1]
@@ -1179,9 +1193,9 @@
       if(wexo){
         A_tmp <- A_draw
       }else{
-        A_tmp[1:K,]          <- A_draw[1:K,]
-        if(cons) A_tmp[K+Kstar+1,] <- A_draw[K+1,]
-        if(trend) A_tmp[K+Kstar+ifelse(cons,1,0)+1,] <- A_draw[K+ifelse(cons,1,0)+1,]
+        A_tmp[1:K,] = A_draw[1:K,]
+        if(cons) A_tmp[K+Kstar+1,] = A_draw[K+1,]
+        if(trend) A_tmp[K+Kstar+ifelse(cons,1,0)+1,] = A_draw[K+ifelse(cons,1,0)+1,]
       }
       A_store[,,count]   = A_tmp
       L_store[,,count]   = L_draw
@@ -1197,7 +1211,15 @@
       }
       # SSVS
       if(save_shrink_SSVS){
-        gamma_store[,,count] = gamma
+        gamma_tmp = matrix(0, k_end, 1)
+        if(wexo){
+          gamma_tmp = gamma
+        }else{
+          gamma_tmp[1:K,] = gamma[1:K,]
+          if(cons) gamma_tmp[K+Kstar+1,] = gamma[K+1,]
+          if(trend) gamma_tmp[K+Kstar+ifelse(cons,1,0)+1,] = gamma[K+ifelse(cons,1,0)+1,]
+        }
+        gamma_store[,,count] = gamma_tmp
         omega_store[,,count] = omega
       }
       # NG

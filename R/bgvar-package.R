@@ -3,7 +3,6 @@
 #' @description The Bayesian Global Vector Autoregression (BGVAR) package allows to estimate Global Vector Autoregressions and consists of various tools for predicting and doing structural analysis.
 #' @details It provides a fully Bayesian implementation of Global Vector Autoregressions. It utilizes Markov chain Monte Carlo (MCMC) samplers to conduct inference by obtaining draws from the posterior distribution of parameters. One of the main advantages is the implementation of different shrinkage prior setups for estimating the model. The packages consists thus of various post-processing functions to carry out predictions or structural analysis. It is possible to perform structural identification via short-run or sign/zero restrictions. The available structural tools comprise impulse response functions, historical decompositions and forecast error variance decompositions. For all the aforementioned tools plotting functions are implemented. Furthermore, various functions of the package are intended to inspect the convergence properties of the MCMC chain and to do model evaluation. The main focus of this paper is to show the functionality of \code{BGVAR}. In addition, it provides a brief mathematical description of the model, an overview of the implemented sampling scheme, and several illustrative examples using global macroeconomic data.
 #' @importFrom utils data
-#' @docType package
 #' @seealso 
 #' \code{\link{bgvar}} for estimating a Bayesian GVAR.
 #' \code{\link{predict}} for doing predictions with a Bayesian GVAR.
