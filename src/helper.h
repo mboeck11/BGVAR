@@ -22,4 +22,6 @@ arma::vec dmvnrm_arma_fast(const arma::mat& x, const arma::mat& mean, const arma
 
 arma::vec dmvnrm_arma_old(arma::mat& x, arma::mat& mean, arma::mat& sigma, bool logd = false);
 
+arma::mat robust_chol(const arma::mat& V);
+
 #endif

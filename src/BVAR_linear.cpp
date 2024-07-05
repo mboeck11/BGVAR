@@ -356,7 +356,8 @@ List BVAR_linear(arma::mat Yraw,
       for(int i=0; i<k; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower;
+      mat V_p_chol_lower = robust_chol(V_p);
+      /*
       bool chol_success = chol(V_p_chol_lower, V_p, "lower");
       // Fall back on Rs chol if armadillo fails (it suppports pivoting)
       if(chol_success == false){
@@ -367,6 +368,7 @@ List BVAR_linear(arma::mat Yraw,
         V_p_chol_lower = cholV_tmp.cols(piv);
         V_p_chol_lower = V_p_chol_lower.t();
       }
+       */
       colvec A_m = A_p + V_p_chol_lower*rand_normal;
       
       A_draw.col(mm) = A_m;
@@ -389,7 +391,8 @@ List BVAR_linear(arma::mat Yraw,
       for(int i=0; i< mm; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower;
+      mat V_p_chol_lower = robust_chol(V_p);
+      /*
       bool chol_success = chol(V_p_chol_lower, V_p,"lower");
       // Fall back on Rs chol if armadillo fails (it suppports pivoting)
       if(chol_success == false){
@@ -400,6 +403,7 @@ List BVAR_linear(arma::mat Yraw,
         V_p_chol_lower = cholV_tmp.cols(piv);
         V_p_chol_lower = V_p_chol_lower.t();
       }
+       */
       colvec L_m = A_p + V_p_chol_lower*rand_normal;
       
       L_draw.submat(mm,0,mm,mm-1) = L_m;

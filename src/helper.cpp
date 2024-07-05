@@ -171,3 +171,30 @@ arma::vec dmvnrm_arma_old(mat& x,
     return out;
   return exp(out);
 }
+
+arma::mat robust_chol(const arma::mat& V){
+  // Note that this function returns the lower triangular form,
+  // i.e. cholV * cholV.t() = V;
+  
+  arma::mat cholV;
+  bool chol_success = arma::chol(cholV, V);
+  
+  if (chol_success == false) {
+    int max_tries = 1000;
+    int num_tries = 1;
+    double jitter = 1e-12 * arma::mean(V.diag());
+    // Jitter main diagonal to (potentially) solve numerical issues
+    while ((chol_success == false) & (num_tries <= max_tries) & !std::isinf(jitter)){
+      chol_success = arma::chol(cholV, V + jitter * arma::eye(arma::size(V)));
+      
+      jitter *= 1.1;
+      num_tries += 1;
+    }
+  }
+  
+  if (chol_success == true) {
+    return cholV.t();
+  } else {
+    return arma::mat(arma::size(V), arma::fill::none);
+  }
+}
