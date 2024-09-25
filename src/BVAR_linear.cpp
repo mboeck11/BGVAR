@@ -155,8 +155,8 @@ List BVAR_linear(arma::mat Yraw,
   mat V_prior(k,M); V_prior.fill(10);
   
   // SIMS stuff
-  double accept1 = 0, accept2 = 0, accept4 = 0;
-  double scale1 = 0.43, scale2 = 0.43, scale4 = 0.43;
+  double accept1 = 0, accept2 = 0, accept3 = 0;
+  double scale1 = 0.43, scale2 = 0.43, scale3 = 0.43;
   vec sigmas(M+Mstar, fill::zeros);
   for(int i=0; i < M; i++){
     mat Y_ = Yraw.col(i);
@@ -169,19 +169,19 @@ List BVAR_linear(arma::mat Yraw,
   if(prior==1) get_Vminnesota(V_prior, sigmas, shrink1, shrink2, shrink3, shrink4, cons, Mstar, plag, plagstar, trend);
   
   // initialize stuff for MN prior
-  mat V_prop1(k,M), V_prop2(k,M), V_prop4(k,M); 
-  double shrink_prop1, shrink_prop2, shrink_prop4;
-  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old4=0.0, post_prop4=0.0;
+  mat V_prop1(k,M), V_prop2(k,M), V_prop3(k,M); 
+  double shrink_prop1, shrink_prop2, shrink_prop3;
+  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old3=0.0, post_prop3=0.0;
   for(int i=0; i<k; i++){
     for(int j=0; j<M; j++){
-      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
-      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),std::sqrt(V_prior(i,j)),true);
-      post_old4 = post_old4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
+      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
+      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
+      post_old3 = post_old3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
     }
   }
   post_old1 = post_old1 + R::dgamma(shrink1,0.01,1/0.01,true) + log(shrink1); // add prior - shape scale parameterization!!!! + correction term
   post_old2 = post_old2 + R::dgamma(shrink2,0.01,1/0.01,true) + log(shrink2); // add prior - shape scale parameterization!!!! + correction term
-  post_old4 = post_old4 + R::dgamma(shrink4,0.01,1/0.01,true) + log(shrink4); // add prior - shape scale parameterization!!!! + correction term
+  post_old3 = post_old3 + R::dgamma(shrink3,0.01,1/0.01,true) + log(shrink4); // add prior - shape scale parameterization!!!! + correction term
   
   // SSVS stuff
   mat gamma(k,M, fill::ones);
@@ -521,22 +521,22 @@ List BVAR_linear(arma::mat Yraw,
         accept2 += 1;
       }
       
-      // fourth shrinkage parameter (weakly exogenous)
-      shrink_prop4 = exp(R::rnorm(0,scale4))*shrink4;
-      get_Vminnesota(V_prop4, sigmas, shrink1, shrink2, shrink3, shrink_prop4, cons, Mstar, plag, plagstar, trend);
+      // third shrinkage parameter (weakly exogenous)
+      shrink_prop3 = exp(R::rnorm(0,scale3))*shrink3;
+      get_Vminnesota(V_prop3, sigmas, shrink1, shrink2, shrink3, shrink_prop3, cons, Mstar, plag, plagstar, trend);
       // likelihood of each coefficient
       for(int i=0; i<k; i++){
         for(int j=0; j<M; j++){
-          post_prop4 = post_prop4 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop4(i,j)), true);
+          post_prop3 = post_prop3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop3(i,j)), true);
         }
       }
       // total likelihood 
-      post_prop4 = post_prop4 + R::dgamma(shrink_prop4,0.01,1/0.01,true) + log(shrink_prop4);  // add prior - shape scale parameterization!!!! + correction term
-      if((post_prop4-post_old4) > log(R::runif(0,1))){
-        shrink4 = shrink_prop4;
-        V_prior = V_prop4;
-        post_old4 = post_prop4;
-        accept4 += 1;
+      post_prop3 = post_prop3 + R::dgamma(shrink_prop3,0.01,1/0.01,true) + log(shrink_prop3);  // add prior - shape scale parameterization!!!! + correction term
+      if((post_prop3-post_old3) > log(R::runif(0,1))){
+        shrink3 = shrink_prop3;
+        V_prior = V_prop3;
+        post_old3 = post_prop3;
+        accept3 += 1;
       }
       
       if((irep+1) < 0.5*burnin){
@@ -544,8 +544,8 @@ List BVAR_linear(arma::mat Yraw,
         if(accept1/(irep+1) < 0.15){scale1 *= 0.99;}
         if(accept2/(irep+1) > 0.30){scale2 *= 1.01;}
         if(accept2/(irep+1) < 0.15){scale2 *= 0.99;}
-        if(accept4/(irep+1) > 0.30){scale4 *= 1.01;}
-        if(accept4/(irep+1) < 0.15){scale4 *= 0.99;}
+        if(accept3/(irep+1) > 0.30){scale3 *= 1.01;}
+        if(accept3/(irep+1) < 0.15){scale3 *= 0.99;}
       }  
     }
     // SSVS
@@ -815,7 +815,7 @@ List BVAR_linear(arma::mat Yraw,
         if(save_shrink_MN == true){
          shrink_store(0,0,(irep-burnin)/thin) = shrink1;
          shrink_store(1,0,(irep-burnin)/thin) = shrink2;
-         shrink_store(2,0,(irep-burnin)/thin) = shrink4;
+         shrink_store(2,0,(irep-burnin)/thin) = shrink3;
         }
         if(save_shrink_SSVS == true){
           gamma_store.slice((irep-burnin)/thin) = gamma;

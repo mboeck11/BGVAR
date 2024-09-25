@@ -76,7 +76,7 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
     for(int i=0; i < M; i++){ // equation - column
       for(int pp=0; pp <= plagstar; pp++){
         for(int j=0; j < Mstar; j++){
-          V(M*plag+pp*Mstar+j,i) = pow((shrink1 * shrink4)/static_cast<double>(pp+1),2.0) * sigmas(i)/(sigmas(M+j));
+          V(M*plag+pp*Mstar+j,i) = pow((shrink1 * shrink3)/static_cast<double>(pp+1),2.0) * sigmas(i)/(sigmas(M+j));
         }
       }
     }
@@ -84,8 +84,8 @@ void get_Vminnesota(mat& V, vec& sigmas, double shrink1, double shrink2, double 
   // deterministics
   if(cons){
     for(int i=0; i < M; i++){
-      V(k-1,i) = shrink3*sigmas(i);
-      if(trend) V(k-2,i) = shrink3*sigmas(i);
+      V(k-1,i) = shrink4*sigmas(i);
+      if(trend) V(k-2,i) = shrink4*sigmas(i);
     }
   }
 }

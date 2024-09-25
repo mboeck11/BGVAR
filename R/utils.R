@@ -648,10 +648,10 @@
   # MN stuff
   accept1 <- 0
   accept2 <- 0
-  accept4 <- 0
+  accept3 <- 0
   scale1  <- .43
   scale2  <- .43
-  scale4  <- .43
+  scale3  <- .43
   sigma_sq  <- matrix(0,M,1) #vector which stores the residual variance
   for (i in 1:M){
     Ylag_i        <- .mlag(Yraw[,i],plag)
@@ -680,7 +680,7 @@
     theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
     post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
     post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
-    post4 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink4,0.01,0.01,log=TRUE)+log(shrink4) # correction term
+    post3 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink3,0.01,0.01,log=TRUE)+log(shrink3) # correction term
   }
   
   # SSVS prior
@@ -911,16 +911,16 @@
       
       #Step for the final shrinkage parameter (weakly exogenous)
       if(wexo){ # do only update if weakly exogenous are present
-        shrink4.prop = exp(rnorm(1,0,scale4))*shrink4
-        shrink4.prop = ifelse(shrink4.prop<1e-16,1e-16,shrink4.prop)
-        shrink4.prop = ifelse(shrink4.prop>1e+16,1e+16,shrink4.prop)
-        theta4.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
-        post4.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta4.prop)),log=TRUE))+dgamma(shrink4.prop,0.01,0.01,log=TRUE)+log(shrink4.prop)
-        if((post4.prop-post4)>log(runif(1,0,1))){
-          shrink4    = shrink4.prop
-          theta      = theta4.prop
-          post4      = post4.prop
-          accept4    = accept4+1
+        shrink3.prop = exp(rnorm(1,0,scale4))*shrink4
+        shrink3.prop = ifelse(shrink3.prop<1e-16,1e-16,shrink3.prop)
+        shrink3.prop = ifelse(shrink3.prop>1e+16,1e+16,shrink3.prop)
+        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
+        post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(shrink3.prop,0.01,0.01,log=TRUE)+log(shrink3.prop)
+        if((post3.prop-post3)>log(runif(1,0,1))){
+          shrink3    = shrink3.prop
+          theta      = theta3.prop
+          post3      = post3.prop
+          accept3    = accept3+1
         }
       }
       
@@ -929,8 +929,8 @@
         if((accept1/irep)>0.3)  scale1 = 1.01*scale1
         if((accept2/irep)<0.15) scale2 = 0.99*scale2
         if((accept2/irep)>0.3)  scale2 = 1.01*scale2
-        if((accept4/irep)<0.15) scale4 = 0.99*scale4
-        if((accept4/irep)>0.3)  scale4 = 1.01*scale4
+        if((accept3/irep)<0.15) scale4 = 0.99*scale3
+        if((accept3/irep)>0.3)  scale4 = 1.01*scale3
       }
     }
     # SSVS
@@ -1207,7 +1207,7 @@
       }
       # MN
       if(save_shrink_MN){
-        shrink_store[,,count] = c(shrink1,shrink2,shrink4)
+        shrink_store[,,count] = c(shrink1,shrink2,shrink3)
       }
       # SSVS
       if(save_shrink_SSVS){
