@@ -914,7 +914,7 @@
         shrink3.prop = exp(rnorm(1,0,scale4))*shrink4
         shrink3.prop = ifelse(shrink3.prop<1e-16,1e-16,shrink3.prop)
         shrink3.prop = ifelse(shrink3.prop>1e+16,1e+16,shrink3.prop)
-        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4.prop,sigma_sq,sigma_wex,trend,wexo)
+        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink3.prop,sigma_sq,sigma_wex,trend,wexo)
         post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(shrink3.prop,0.01,0.01,log=TRUE)+log(shrink3.prop)
         if((post3.prop-post3)>log(runif(1,0,1))){
           shrink3    = shrink3.prop
