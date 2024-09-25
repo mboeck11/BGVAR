@@ -192,7 +192,7 @@
 
 #' @name .get_V
 #' @noRd
-.get_V <- function(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend=FALSE,wexo=TRUE){
+.get_V <- function(k=k,M=M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend=FALSE,wexo=TRUE){
   V_i <- matrix(0,k,M)
   # endogenous part
   for(i in 1:M){
@@ -200,10 +200,10 @@
       for(j in 1:M){
         if(i==j){
           #V_i[j+M*(pp-1),i] <- a_bar_1/(pp^2) ######
-          V_i[j+M*(pp-1),i] <- (shrink1/pp)^2
+          V_i[j+M*(pp-1),i] <- (lambda1/pp)^2
         }else{
           #V_i[j+M*(pp-1),i] <- (a_bar_2 * sigma_sq[i])/(pp^2*sigma_sq[j]) #####
-          V_i[j+M*(pp-1),i] <- (shrink1*shrink2/pp)^2 * (sigma_sq[i]/sigma_sq[j])
+          V_i[j+M*(pp-1),i] <- (lambda1*lambda2/pp)^2 * (sigma_sq[i]/sigma_sq[j])
         }
       }
     }
@@ -214,7 +214,7 @@
       for(pp in 0:plagstar){
         for(j in 1:Mstar){
           #V_i[M*p+pp*Mstar+j,i] <- a_bar_4 * sigma_sq[i]/(sigma_wex[j]*(pp+1)) #####
-          V_i[M*plag+pp*Mstar+j,i] <- (shrink1*shrink3/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
+          V_i[M*plag+pp*Mstar+j,i] <- (lambda1*lambda3/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
         }
       }
     }
@@ -222,9 +222,9 @@
   # deterministics
   for(i in 1:M){
     if(trend){
-      V_i[(k-1):k,i] <- shrink4 * sigma_sq[i]
+      V_i[(k-1):k,i] <- lambda4 * sigma_sq[i]
     }else{
-      V_i[k,i] <- shrink4 * sigma_sq[i]
+      V_i[k,i] <- lambda4 * sigma_sq[i]
     }
   }
   return(V_i)
@@ -394,10 +394,10 @@
   }
   # MN
   if(prior=="MN" & setting_store$shrink_MN){
-    shrink_store  <- bvar$MN$shrink_store; dimnames(shrink_store) <- list(c("shrink1","shrink2","shrink4"),NULL,NULL)
-    shrink_post   <- apply(shrink_store,c(1,2),median)
+    lambda_store  <- bvar$MN$lambda_store; dimnames(lambda_store) <- list(c("lambda1","lambda2","lambda4"),NULL,NULL)
+    lambda_post   <- apply(lambda_store,c(1,2),median)
   }else{
-    shrink_store  <- shrink_post <- NULL
+    lambda_store  <- lambda_post <- NULL
   }
   # SSVS
   if(prior=="SSVS" & setting_store$shrink_SSVS){
@@ -491,7 +491,7 @@
   post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,
                Phipost=Phipost,Expost=Expost,S_post=S_post,Sig=Sig,theta_post=theta_post,L_post=L_post,
                SIGMA_post=SIGMA_post,
-               vola_post=vola_post,pars_post=pars_post,res_post=res_post,shrink_post=shrink_post,
+               vola_post=vola_post,pars_post=pars_post,res_post=res_post,lambda_post=lambda_post,
                PIP=PIP,PIP_omega=PIP_omega,lambda2_post=lambda2_post,tau_post=tau_post,
                lambda_A_endo_post=lambda_A_endo_post,lambda_A_exo_post=lambda_A_exo_post,lambda_L_post=lambda_L_post,
                nu_A_endo_post=nu_A_endo_post,nu_A_exo_post=nu_A_exo_post,nu_L_post=nu_L_post,
@@ -501,7 +501,7 @@
   store <- list(a0store=a0store,a1store=a1store,Lambda0store=Lambda0store,Lambdastore=Lambdastore,
                 Phistore=Phistore,Exstore=Exstore,SIGMAmed_store=SIGMAmed_store,
                 L_store=L_store,theta_store=theta_store,vola_store=vola_store,pars_store=pars_store,
-                res_store=res_store,shrink_store=shrink_store,gamma_store=gamma_store,omega_store=omega_store,
+                res_store=res_store,lambda_store=lambda_store,gamma_store=gamma_store,omega_store=omega_store,
                 lambda2_store=lambda2_store,tau_store=tau_store,
                 lambda_A_endo_store=lambda_A_endo_store,lambda_A_exo_store=lambda_A_exo_store,lambda_L_store=lambda_L_store,
                 nu_A_endo_store=nu_A_endo_store,nu_A_exo_store=nu_A_exo_store,nu_L_store=nu_L_store,
@@ -580,40 +580,40 @@
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
   #---------------------------------------------------------------------------------------------------------
-  prmean    <- hyperpara$prmean
-  a_1       <- hyperpara$a_1
-  b_1       <- hyperpara$b_1
-  crit_eig  <- hyperpara$crit_eig
-  Bsigma    <- hyperpara$Bsigma
-  a0        <- hyperpara$a0
-  b0        <- hyperpara$b0
-  bmu       <- hyperpara$bmu
-  Bmu       <- hyperpara$Bmu
+  prmean      = hyperpara$prmean
+  a_1         = hyperpara$a_1
+  b_1         = hyperpara$b_1
+  crit_eig    = hyperpara$crit_eig
+  Bsigma      = hyperpara$Bsigma
+  a0          = hyperpara$a0
+  b0          = hyperpara$b0
+  bmu         = hyperpara$bmu
+  Bmu         = hyperpara$Bmu
   # prior == 1: MN
-  shrink1   <- hyperpara$shrink1
-  shrink2   <- hyperpara$shrink2
-  shrink3   <- hyperpara$shrink3
-  shrink4   <- hyperpara$shrink4
+  lambda1     = hyperpara$lambda1
+  lambda2     = hyperpara$lambda2
+  lambda3     = hyperpara$lambda3
+  lambda4     = hyperpara$lambda4
   # prior == 2: SSVS
-  tau00     <- hyperpara$tau0
-  tau11     <- hyperpara$tau1
-  p_i       <- hyperpara$p_i
-  kappa0    <- hyperpara$kappa0
-  kappa1    <- hyperpara$kappa1
-  q_ij      <- hyperpara$q_ij
+  tau00       = hyperpara$tau0
+  tau11       = hyperpara$tau1
+  p_i         = hyperpara$p_i
+  kappa0      = hyperpara$kappa0
+  kappa1      = hyperpara$kappa1
+  q_ij        = hyperpara$q_ij
   # prior == 3: NG
-  d_lambda    <- hyperpara$d_lambda
-  e_lambda    <- hyperpara$e_lambda
-  tau_theta   <- hyperpara$tau_theta
-  sample_tau  <- hyperpara$sample_tau
+  d_lambda    = hyperpara$d_lambda
+  e_lambda    = hyperpara$e_lambda
+  tau_theta   = hyperpara$tau_theta
+  sample_tau  = hyperpara$sample_tau
   #---------------------------------------------------------------------------------------------------------
   # STORE SETTINGS
   #---------------------------------------------------------------------------------------------------------
-  save_shrink_MN   <- setting_store$shrink_MN
-  save_shrink_SSVS <- setting_store$shrink_SSVS
-  save_shrink_NG   <- setting_store$shrink_NG
-  save_shrink_HS   <- setting_store$shrink_HS
-  save_vola_pars   <- setting_store$vola_pars
+  save_shrink_MN   = setting_store$shrink_MN
+  save_shrink_SSVS = setting_store$shrink_SSVS
+  save_shrink_NG   = setting_store$shrink_NG
+  save_shrink_HS   = setting_store$shrink_HS
+  save_vola_pars   = setting_store$vola_pars
   #---------------------------------------------------------------------------------------------------------
   # OLS Quantitites
   #---------------------------------------------------------------------------------------------------------
@@ -677,10 +677,10 @@
   
   # MN prior
   if(prior == 1){
-    theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
-    post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink1,0.01,0.01,log=TRUE)+log(shrink1) # correction term
-    post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink2,0.01,0.01,log=TRUE)+log(shrink2) # correction term
-    post3 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(shrink3,0.01,0.01,log=TRUE)+log(shrink3) # correction term
+    theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+    post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda1,0.01,0.01,log=TRUE)+log(lambda1) # correction term
+    post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda2,0.01,0.01,log=TRUE)+log(lambda2) # correction term
+    post3 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda3,0.01,0.01,log=TRUE)+log(lambda3) # correction term
   }
   
   # SSVS prior
@@ -766,9 +766,9 @@
   }
   # MN
   if(save_shrink_MN){
-    shrink_store <- array(NA_real_, c(3,1,thindraws))
+    lambda_store <- array(NA_real_, c(3,1,thindraws))
   }else{
-    shrink_store <- NULL
+    lambda_store <- NULL
   }
   # SSVS
   if(save_shrink_SSVS){
@@ -884,26 +884,26 @@
     # MN
     if(prior==1){
       #Step for the first shrinkage parameter (own lags)
-      shrink1.prop = exp(rnorm(1,0,scale1))*shrink1
-      shrink1.prop = ifelse(shrink1.prop<1e-16,1e-16,shrink1.prop)
-      shrink1.prop = ifelse(shrink1.prop>1e+16,1e+16,shrink1.prop)
-      theta1.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1.prop,shrink2,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
-      post1.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(shrink1.prop,0.01,0.01,log=TRUE)+log(shrink1.prop) # correction term
+      lambda1.prop = exp(rnorm(1,0,scale1))*lambda1
+      lambda1.prop = ifelse(lambda1.prop<1e-16,1e-16,lambda1.prop)
+      lambda1.prop = ifelse(lambda1.prop>1e+16,1e+16,lambda1.prop)
+      theta1.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1.prop,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+      post1.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(lambda1.prop,0.01,0.01,log=TRUE)+log(lambda1.prop) # correction term
       if((post1.prop-post1)>log(runif(1,0,1))){
-        shrink1    = shrink1.prop
+        lambda1    = lambda1.prop
         theta      = theta1.prop
         post1      = post1.prop
         accept1    = accept1+1
       }
       
       #Step for the second shrinkage parameter (cross equation)
-      shrink2.prop = exp(rnorm(1,0,scale2))*shrink2
-      shrink2.prop = ifelse(shrink2.prop<1e-16,1e-16,shrink2.prop)
-      shrink2.prop = ifelse(shrink2.prop>1e+16,1e+16,shrink2.prop)
-      theta2.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2.prop,shrink3,shrink4,sigma_sq,sigma_wex,trend,wexo)
-      post2.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(shrink2.prop,0.01,0.01,log=TRUE)+log(shrink2.prop) # correction term
+      lambda2.prop = exp(rnorm(1,0,scale2))*lambda2
+      lambda2.prop = ifelse(lambda2.prop<1e-16,1e-16,lambda2.prop)
+      lambda2.prop = ifelse(lambda2.prop>1e+16,1e+16,lambda2.prop)
+      theta2.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1,lambda2.prop,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+      post2.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(lambda2.prop,0.01,0.01,log=TRUE)+log(lambda2.prop) # correction term
       if((post2.prop-post2)>log(runif(1,0,1))){
-        shrink2    = shrink2.prop
+        lambda2    = lambda2.prop
         theta      = theta2.prop
         post2      = post2.prop
         accept2    = accept2+1
@@ -911,13 +911,13 @@
       
       #Step for the final shrinkage parameter (weakly exogenous)
       if(wexo){ # do only update if weakly exogenous are present
-        shrink3.prop = exp(rnorm(1,0,scale4))*shrink4
-        shrink3.prop = ifelse(shrink3.prop<1e-16,1e-16,shrink3.prop)
-        shrink3.prop = ifelse(shrink3.prop>1e+16,1e+16,shrink3.prop)
-        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,shrink1,shrink2,shrink3,shrink3.prop,sigma_sq,sigma_wex,trend,wexo)
-        post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(shrink3.prop,0.01,0.01,log=TRUE)+log(shrink3.prop)
+        lambda3.prop = exp(rnorm(1,0,scale3))*lambda3
+        lambda3.prop = ifelse(lambda3.prop<1e-16,1e-16,lambda3.prop)
+        lambda3.prop = ifelse(lambda3.prop>1e+16,1e+16,lambda3.prop)
+        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda3.prop,sigma_sq,sigma_wex,trend,wexo)
+        post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(lambda3.prop,0.01,0.01,log=TRUE)+log(lambda3.prop)
         if((post3.prop-post3)>log(runif(1,0,1))){
-          shrink3    = shrink3.prop
+          lambda3    = lambda3.prop
           theta      = theta3.prop
           post3      = post3.prop
           accept3    = accept3+1
@@ -929,8 +929,8 @@
         if((accept1/irep)>0.3)  scale1 = 1.01*scale1
         if((accept2/irep)<0.15) scale2 = 0.99*scale2
         if((accept2/irep)>0.3)  scale2 = 1.01*scale2
-        if((accept3/irep)<0.15) scale4 = 0.99*scale3
-        if((accept3/irep)>0.3)  scale4 = 1.01*scale3
+        if((accept3/irep)<0.15) scale3 = 0.99*scale3
+        if((accept3/irep)>0.3)  scale3 = 1.01*scale3
       }
     }
     # SSVS
@@ -1207,7 +1207,7 @@
       }
       # MN
       if(save_shrink_MN){
-        shrink_store[,,count] = c(shrink1,shrink2,shrink3)
+        lambda_store[,,count] = c(lambda1,lambda2,lambda3)
       }
       # SSVS
       if(save_shrink_SSVS){
@@ -1254,7 +1254,7 @@
   
   ret <- list(Y=Y,X=X,A_store=A_store,L_store=L_store,Sv_store=Sv_store,pars_store=pars_store,res_store=res_store,
               MN=list(
-                shrink_store=shrink_store
+                lambda_store=lambda_store
                 ),
               SSVS=list(
                 gamma_store=gamma_store,

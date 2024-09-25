@@ -39,10 +39,10 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{\code{b0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape2 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{b0=1.5}.}
 \item{\code{Bsigma}}{ If \code{SV=TRUE}, this is the hyperparameter for the Gamma prior on the variance of the log-volatilities. Default is set to \code{Bsigma=1}.}
 \item{"MN"}{\describe{
-      \item{\code{shrink1}}{ Starting value of \code{shrink1}. Default set to 0.1.}
-      \item{\code{shrink2}}{ Starting value of \code{shrink2}. Default set to 0.2.}
-      \item{\code{shrink3}}{ Hyperparameter of \code{shrink3}. Default set to 100.}
-      \item{\code{shrink4}}{ Starting value of \code{shrink4}. Default set to 0.1.}
+      \item{\code{lambda1}}{ Starting value of \code{lambda1}. Default set to 0.1.}
+      \item{\code{lambda2}}{ Starting value of \code{lambda2}. Default set to 0.2.}
+      \item{\code{lambda3}}{ Hyperparameter of \code{lambda3}. Default set to 100.}
+      \item{\code{lambda4}}{ Starting value of \code{lambda4}. Default set to 0.1.}
       }}
 \item{"SSVS"}{\describe{
       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}

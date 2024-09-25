@@ -31,10 +31,10 @@
 #' \item{\code{b0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape2 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{b0=1.5}.}
 #' \item{\code{Bsigma}}{ If \code{SV=TRUE}, this is the hyperparameter for the Gamma prior on the variance of the log-volatilities. Default is set to \code{Bsigma=1}.}
 #' \item{"MN"}{\describe{
-#'       \item{\code{shrink1}}{ Starting value of \code{shrink1}. Default set to 0.1.}
-#'       \item{\code{shrink2}}{ Starting value of \code{shrink2}. Default set to 0.2.}
-#'       \item{\code{shrink3}}{ Hyperparameter of \code{shrink3}. Default set to 100.}
-#'       \item{\code{shrink4}}{ Starting value of \code{shrink4}. Default set to 0.1.}
+#'       \item{\code{lambda1}}{ Starting value of \code{lambda1}. Default set to 0.1.}
+#'       \item{\code{lambda2}}{ Starting value of \code{lambda2}. Default set to 0.2.}
+#'       \item{\code{lambda3}}{ Hyperparameter of \code{lambda3}. Default set to 100.}
+#'       \item{\code{lambda4}}{ Starting value of \code{lambda4}. Default set to 0.1.}
 #'       }}
 #' \item{"SSVS"}{\describe{
 #'       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
@@ -408,11 +408,11 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(verbose) cat("Hyperparameter setup: \n")
   default_hyperpara <- list(a_1=3,b_1=0.3, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
-                            shrink1=0.1,shrink2=0.2,shrink3=0.1,shrink4=100, # MN
+                            lambda1=0.1, shrink1=0.1,lambda2=0.2, shrink2=0.2,lambda3=0.1, shrink3=0.1,lambda4=100, shrink4=100, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
                             d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=TRUE,tau_log=TRUE) # NG
-  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",
-                 "shrink4","tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
+  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3","shrink4","lambda1","lambda2","lambda3","lambda4",
+                 "tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
     printtext <- paste0(printtext, "\t No hyperparameters are chosen, default setting applied.\n")
     if(verbose) cat("\t No hyperparameters are chosen, default setting applied.\n")
@@ -428,10 +428,16 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
     printtext <- paste0(printtext, "Default values for chosen hyperparamters overwritten.\n")
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
+    if(any(grepl("shrink",names(hyperpara)))){
+      warning(paste0("Note that parameters 'shrink1', 'shrink2', 'shrink3', and 'shrink4' are depreciated. Use 'lambda1', 'lambda2', 'lambda3', or 'lambda4' instead. Values from shrink are taken over to lambda."))
+      default_hyerpara["lambda1"] = default_hyperpara["shrink1"]
+      default_hyerpara["lambda2"] = default_hyperpara["shrink2"]
+      default_hyerpara["lambda3"] = default_hyperpara["shrink3"]
+      default_hyerpara["lambda4"] = default_hyperpara["shrink4"]
+    }
   }
   # store setting
-  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE, shrink_HS = FALSE,
-                        vola_pars = FALSE)
+  setting_store <- list(shrink_MN = FALSE, shrink_SSVS = FALSE, shrink_NG = FALSE, shrink_HS = FALSE, vola_pars = FALSE)
   if(expert.list$save.shrink.store)
     setting_store[[paste0("shrink_",prior)]] <- TRUE
   if(expert.list$save.vola.store)
