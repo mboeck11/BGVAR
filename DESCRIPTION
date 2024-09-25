@@ -1,13 +1,13 @@
 Package: BGVAR
 Type: Package
 Title: Bayesian Global Vector Autoregressions
-Version: 2.5.7
+Version: 2.5.8
 Author: 
     Maximilian Boeck [aut, cre] (<https://orcid.org/0000-0001-6024-8305>),
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
     Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
     Darjus Hosszejni [ctb] (<https://orcid.org/0000-0002-3803-691X>)
-Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.boeck@unibocconi.it",
+Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.boeck@fau.de",
                     comment = c(ORCID = "0000-0001-6024-8305")),
              person("Martin","Feldkircher", role="aut",
                     comment = c(ORCID = "0000-0002-5511-9215")),
@@ -15,7 +15,7 @@ Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.b
                     comment = c(ORCID = "0000-0002-2896-7921")),
              person("Darjus","Hosszejni", role="ctb",
                     comment = c(ORCID = "0000-0002-3803-691X")))
-Maintainer: Maximilian Boeck <maximilian.boeck@unibocconi.it>
+Maintainer: Maximilian Boeck <maximilian.boeck@fau.de>
 Description: Estimation of Bayesian Global Vector Autoregressions (BGVAR) with different prior setups and the possibility to introduce stochastic volatility. Built-in priors include the Minnesota, the stochastic search variable selection and Normal-Gamma (NG) prior. For a reference see also Crespo Cuaresma, J., Feldkircher, M. and F. Huber (2016) "Forecasting with Global Vector Autoregressive Models: a Bayesian Approach", Journal of Applied Econometrics, Vol. 31(7), pp. 1371-1391 <doi:10.1002/jae.2504>. Post-processing functions allow for doing predictions, structurally identify the model with short-run or sign-restrictions and compute impulse response functions, historical decompositions and forecast error variance decompositions. Plotting functions are also available. The package has a companion paper: Boeck, M., Feldkircher, M. and F. Huber (2022) "BGVAR: Bayesian Global Vector Autoregressions with Shrinkage Priors in R", Journal of Statistical Software, Vol. 104(9), pp. 1-28 <doi:10.18637/jss.v104.i09>.
 Encoding: UTF-8
 License: GPL-3

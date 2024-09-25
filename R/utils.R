@@ -214,7 +214,7 @@
       for(pp in 0:plagstar){
         for(j in 1:Mstar){
           #V_i[M*p+pp*Mstar+j,i] <- a_bar_4 * sigma_sq[i]/(sigma_wex[j]*(pp+1)) #####
-          V_i[M*plag+pp*Mstar+j,i] <- (shrink1*shrink4/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
+          V_i[M*plag+pp*Mstar+j,i] <- (shrink1*shrink3/(pp+1))^2 * (sigma_sq[i]/sigma_wex[j])
         }
       }
     }
@@ -222,9 +222,9 @@
   # deterministics
   for(i in 1:M){
     if(trend){
-      V_i[(k-1):k,i] <- shrink3 * sigma_sq[i]
+      V_i[(k-1):k,i] <- shrink4 * sigma_sq[i]
     }else{
-      V_i[k,i] <- shrink3 * sigma_sq[i]
+      V_i[k,i] <- shrink4 * sigma_sq[i]
     }
   }
   return(V_i)

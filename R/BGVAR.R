@@ -408,7 +408,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(verbose) cat("Hyperparameter setup: \n")
   default_hyperpara <- list(a_1=3,b_1=0.3, prmean=0,# Gamma hyperparameter SIGMA (homoskedastic case) and mean
                             Bsigma=1, a0=25, b0=1.5, bmu=0, Bmu=100^2, # SV hyper parameter
-                            shrink1=0.1,shrink2=0.2,shrink3=10^2,shrink4=0.1, # MN
+                            shrink1=0.1,shrink2=0.2,shrink3=0.1,shrink4=100, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
                             d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=TRUE,tau_log=TRUE) # NG
   paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3",

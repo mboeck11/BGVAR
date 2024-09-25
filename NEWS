@@ -1,3 +1,7 @@
+Change in Version 2.5.8
+- update mail adress of maintainer
+- fix for hyperparameters of Minnesota prior
+
 Change in Version 2.5.6
 - some minor bug fixes (numerical issues when estimating single-VARs)
 
