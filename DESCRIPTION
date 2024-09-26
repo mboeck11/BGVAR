@@ -7,7 +7,7 @@ Author:
     Martin Feldkircher [aut] (<https://orcid.org/0000-0002-5511-9215>),
     Florian Huber [aut] (<https://orcid.org/0000-0002-2896-7921>),
     Darjus Hosszejni [ctb] (<https://orcid.org/0000-0002-3803-691X>)
-Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"),email="maximilian.boeck@fau.de",
+Authors@R: c(person("Maximilian","Boeck",role=c("aut","cre"), email="maximilian.boeck@fau.de",
                     comment = c(ORCID = "0000-0001-6024-8305")),
              person("Martin","Feldkircher", role="aut",
                     comment = c(ORCID = "0000-0002-5511-9215")),

@@ -1,4 +1,4 @@
-#define STRICT_R_HEADERS
+//#define STRICT_R_HEADERS
 #include <float.h>
 #include <Rcpp.h>
 #include <math.h>
