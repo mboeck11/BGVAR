@@ -592,7 +592,7 @@ List BVAR_linear(arma::mat Yraw,
           prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp-1,1)));
         }
         dl = d_lambda + A_tau(pp,1)*M*Mstar;
-        el = e_lambda + 0.5*A_tau(pp,1)*accu(V_exo)*prodlambda;
+        el = e_lambda + 0.5*A_tau(pp,1)*arma::accu(V_exo)*prodlambda;
         lambda2_A(pp,1) = R::rgamma(dl, 1/el);
         
         // sample theta
@@ -645,7 +645,7 @@ List BVAR_linear(arma::mat Yraw,
           prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
         }
         dl = d_lambda + A_tau(pp+1,0)*std::pow(M,2);
-        el = e_lambda + 0.5*A_tau(pp+1,0)*accu(V_end)*prodlambda;
+        el = e_lambda + 0.5*A_tau(pp+1,0)*arma::accu(V_end)*prodlambda;
         lambda2_A(pp+1,0) = R::rgamma(dl, 1/el);
         
         // sample theta
@@ -692,7 +692,7 @@ List BVAR_linear(arma::mat Yraw,
       
       // sample lambda
       dl = d_lambda + L_tau*v;
-      el = e_lambda + 0.5*L_tau*accu(L_vec);
+      el = e_lambda + 0.5*L_tau*arma::accu(L_vec);
       lambda2_L = R::rgamma(dl, 1/el);
       
       // sample theta

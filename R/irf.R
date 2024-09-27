@@ -51,7 +51,7 @@
 #' library(BGVAR)
 #' data(testdata)
 #' # US monetary policy shock
-#' model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
+#' model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50, 
 #'                  plag=1, prior="SSVS", eigen=TRUE)
 #'
 #' # generalized impulse responses
