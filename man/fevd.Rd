@@ -29,12 +29,12 @@ This function calculates the forecast error variance decomposition (FEVDs) for C
 Since the calculations are very time consuming, the FEVDs are based on the posterior median only (as opposed to calculating FEVDs for each MCMC sweep). In case the underlying shock has been identified via sign restrictions, the rotation matrix corresponds to the one that fulfills the sign restrictions at the posterior median of the estimated coefficients. More precisely, the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 }
 \examples{
-\dontshow{
+\donttest{
 set.seed(123)
 library(BGVAR)
 data(testdata)
 model.eer<-bgvar(Data=testdata,W=W.test,prior="MN",
-                 draws=200,burnin=50,plag=1,eigen=TRUE)
+                 draws=50,burnin=50,plag=1,eigen=TRUE)
                       
 # US monetary policy shock
 shockinfo <- get_shockinfo("chol")

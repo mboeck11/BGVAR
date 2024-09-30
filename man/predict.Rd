@@ -49,6 +49,7 @@ A function that computes predictions and conditional predictions based on a obje
 Predictions are performed up to an horizon of \code{n.ahead}. Note that conditional forecasts need a fully identified system. Therefore this function utilizes short-run restrictions via the Cholesky decomposition on the global solution of the variance-covariance matrix of the Bayesian GVAR.
 }
 \examples{
+\donttest{
 library(BGVAR)
 data(testdata)
 model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
@@ -67,6 +68,7 @@ colnames(constr_sd) <- colnames(model.ssvs$xglobal)
 constr_sd[1:5,"US.Dp"] <- 0.001
 
 fcast_cond <- predict(model.ssvs, n.ahead=8, constr=constr, constr_sd=constr_sd)
+}
 }
 \references{
 Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.

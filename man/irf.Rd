@@ -50,12 +50,13 @@ Returns a list of class \code{bgvar.irf} with the following elements: \describe{
 This function calculates three alternative ways of dynamic responses, namely generalized impulse response functions (GIRFs) as in Pesaran and Shin (1998), orthogonalized impulse response functions using a Cholesky decomposition and finally impulse response functions given a set of user-specified sign restrictions.
 }
 \examples{
+\donttest{
 oldpar <- par(no.readonly = TRUE)
 # First example, a US monetary policy shock, quarterly data
 library(BGVAR)
 data(testdata)
 # US monetary policy shock
-model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
+model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50, 
                  plag=1, prior="SSVS", eigen=TRUE)
 
 # generalized impulse responses
@@ -76,7 +77,6 @@ shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.
                            sign=c("<","<"), horizon=c(1,1), scale=1, prob=1)
 irf.sign.us.mp<-irf(model.eer, n.ahead=24, shockinfo=shockinfo)
 
-\donttest{
 # sign restrictions
 shockinfo <- get_shockinfo("sign")
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", restriction=c("US.y","US.Dp"), 

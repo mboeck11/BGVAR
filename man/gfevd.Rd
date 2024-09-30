@@ -33,7 +33,7 @@ This function calculates a complete generalized forecast error variance decompos
 \dontshow{
 library(BGVAR)
 data(testdata)
-model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100,
+model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50,
                  plag=1, prior="SSVS", eigen=TRUE)
                       
 GFEVD<-gfevd(model.eer, n.ahead=24)

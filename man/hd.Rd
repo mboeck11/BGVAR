@@ -28,10 +28,10 @@ A function that calculates historical decomposition (HD) of the time series and 
 To save computational time as well as due to storage limits, both functions are based on the posterior median (as opposed to calculating HDs and the structural error for each draw of the MCMC chain). In case the shock has been identified via sign restrictions, a rotation matrix has to be selected to calculate both statistics. If not specified otherwise (via \code{R}), the algorithm searches for 50 rotation matrices that fulfill the sign restrictions at the \emph{posterior median} of the coefficients and then singles out the rotation matrix that minimizes the distance to the median of the impulse responses as suggested in Fry and Pagan (2011).
 }
 \examples{
-\dontshow{
+\donttest{
 library(BGVAR)
 data(testdata)
-model.eer<-bgvar(Data=testdata, W=W.test, draws=100, burnin=100, 
+model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50, 
                  plag=1, prior="SSVS", eigen=TRUE)
                  
 # US monetary policy shock

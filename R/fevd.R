@@ -19,7 +19,7 @@
 #' @author Maximilian Boeck, Martin Feldkircher, Florian Huber
 #' @seealso \code{\link{bgvar}}, \code{\link{irf}}
 #' @examples
-#' \dontshow{
+#' \donttest{
 #' set.seed(123)
 #' library(BGVAR)
 #' data(testdata)

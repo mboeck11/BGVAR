@@ -18,6 +18,7 @@
 #' \item{\code{hold.out}}{ if \code{h} is not set to zero, this contains the hold-out sample.}
 #' }
 #' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
@@ -36,6 +37,7 @@
 #' constr_sd[1:5,"US.Dp"] <- 0.001
 #' 
 #' fcast_cond <- predict(model.ssvs, n.ahead=8, constr=constr, constr_sd=constr_sd)
+#' }
 #' @references 
 #' Jarocinski, M. (2010) \emph{Conditional forecasts and uncertainty about forecasts revisions in vector autoregressions.} Economics Letters, Vol. 108(3), pp. 257-259.
 #' 
