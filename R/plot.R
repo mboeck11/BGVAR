@@ -10,13 +10,12 @@
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @export
 #' @examples
-#' \dontshow{
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
 #'                     prior="SSVS",eigen=TRUE)
-#' }
-#' \donttest{
+#'
 #' # example for class 'bgvar'
 #' plot(model.ssvs, resp=c("EA.y","US.Dp"))
 #' }

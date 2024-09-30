@@ -30,7 +30,7 @@ Returns a list with two elements \describe{
 This function calculates a complete generalized forecast error variance decomposition (GFEVDs) based on generalized impulse response functions akin to Lanne-Nyberg (2016). The Lanne-Nyberg (2016) corrected GFEVD sum up to unity.
 }
 \examples{
-\dontshow{
+\donttest{
 library(BGVAR)
 data(testdata)
 model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50,

@@ -19,12 +19,14 @@ Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h t
 Computes and prints root mean squared errors (RMSEs) of an object of class \code{bgvar.predict}.
 }
 \examples{
+\donttest{
 library(BGVAR)
 data(testdata)
 model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 rmse <- rmse(fcast)
+}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher

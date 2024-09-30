@@ -271,13 +271,15 @@ print.bgvar.pred <- function(x, ...){
 #' @param object An object of class \code{bgvar.predict}.
 #' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
-#' @examples 
+#' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' lps <- lps(fcast)
+#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export
@@ -311,12 +313,14 @@ lps.bgvar.pred <- function(object, ...){
 #' @param ... Additional arguments.
 #' @return Returns an object of class \code{bgvar.rmse}, which is a matrix of dimension h times K, whereas h is the forecasting horizon and K is the number of variables in the system.
 #' @examples
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
 #'                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 #' fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 #' rmse <- rmse(fcast)
+#' }
 #' @author Maximilian Boeck, Martin Feldkircher
 #' @importFrom stats dnorm
 #' @export

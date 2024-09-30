@@ -19,12 +19,14 @@ Returns an object of class \code{bgvar.lps}, which is a matrix of dimension h ti
 Computes and prints log-predictive score of an object of class \code{bgvar.predict}.
 }
 \examples{
+\donttest{
 library(BGVAR)
 data(testdata)
 model.ssvs.eer<-bgvar(Data=testdata,W=W.test,draws=100,burnin=100,
                       plag=1,prior="SSVS",eigen=TRUE,hold.out=8)
 fcast <- predict(model.ssvs.eer,n.ahead=8,save.store=TRUE)
 lps <- lps(fcast)
+}
 }
 \author{
 Maximilian Boeck, Martin Feldkircher

@@ -189,7 +189,7 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
 #' Lanne, M. and H. Nyberg (2016) \emph{Generalized Forecast Error Variance Decomposition for Linear and Nonlinear Multivariate Models.} Oxford Bulletin of Economics and Statistics, Vol. 78(4), pp. 595-603.
 #' @seealso \code{\link{bgvar}}.
 #' @examples 
-#' \dontshow{
+#' \donttest{
 #' library(BGVAR)
 #' data(testdata)
 #' model.eer<-bgvar(Data=testdata, W=W.test, draws=50, burnin=50,

@@ -52,13 +52,12 @@ No return value.
 Plotting function for fitted values, residuals, predictions, impulse responses and forecast error variance decompositions created with the \code{BGVAR} package.
 }
 \examples{
-\dontshow{
+\donttest{
 library(BGVAR)
 data(testdata)
 model.ssvs <- bgvar(Data=testdata,W=W.test,plag=1,draws=100,burnin=100,
                     prior="SSVS",eigen=TRUE)
-}
-\donttest{
+
 # example for class 'bgvar'
 plot(model.ssvs, resp=c("EA.y","US.Dp"))
 }
