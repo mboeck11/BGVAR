@@ -24,7 +24,7 @@
 #' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \describe{
 #' \item{\code{a_1}}{ is the prior hyperparameter for the inverted gamma prior (shape) (set a_1 = b_1 to a small value for the standard uninformative prior). Default is set to \code{a_1=0.01}.}
 #' \item{\code{b_1}}{ is the prior hyperparameter for the inverted gamma prior (rate). Default is set to \code{b_1=0.01}.}
-#' \item{\code{prmean}}{ Prior mean on the first lag of the autoregressive coefficients, standard value is \code{prmean=1} for non-stationary data. Prior mean for the remaining autoregressive coefficients automatically set to 0.}
+#' \item{\code{prmean}}{ Prior mean on the first lag of the autoregressive coefficients, default value is \code{prmean=0}. This sets the prior mean for all first own lag coefficients.}
 #' \item{\code{bmu}}{ If \code{SV=TRUE}, this is the prior hyperparameter for the mean of the the mean of the log-volatilities. Default is \code{bmu=0}.}
 #' \item{\code{Bmu}}{ If \code{SV=TRUE}, this is the prior hyperparameter for the variance of the mean of the log-volatilities. Default is \code{Bmu=100}.}
 #' \item{\code{a0}}{ If \code{SV=TRUE}, this is the hyperparameter of the shape1 parameter for the Beta prior on the persistence parameter of the log-volatilities. Default is \code{a0=25}.}
