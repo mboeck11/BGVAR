@@ -1,6 +1,8 @@
 Change in Version 2.5.9
 - updated documentation regarding 'prmean'
-- fix bug in .getweights
+- fixed bug in .getweights
+- fixed bug in irfs
+- fixed bug regarding weakly exogenous variables
 
 Change in Version 2.5.8
 - update mail adress of maintainer
