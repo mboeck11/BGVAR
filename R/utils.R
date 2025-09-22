@@ -162,7 +162,7 @@
           Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")]<-1
         }
         vars <- OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)]
-        if(length(vars)>1){
+        if(length(vars)>0){
           for(i in 1:length(vars)){
             Wnew[vars[i],paste(names(OE.weights[[kk]]),".",vars[i],sep="")] <- OE.weights[[kk]]
             Wnew[vars[i],]
@@ -172,7 +172,7 @@
         if(OE.sets>1 && kk < OE.sets){
           aux <- Wnew
           xx <- lapply(OE[(kk+1):OE.sets],function(l)ncol(l))
-          xx <- sum(unlist(xx[!OE.cN%in%OE.cN[(kk+1):OE.sets]]))
+          xx <- sum(unlist(xx))
           names <- c()
           for(kkk in (kk+1):OE.sets){
             names <- c(names,paste(OE.cN[kkk],".",colnames(OE[[kkk]]),sep=""))
