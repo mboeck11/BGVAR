@@ -476,7 +476,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
         imp.obj[[1]] <- NULL
       }else{
         IRF_store[,,,irep] <- imp.obj[[1]]$impl
-        if(ident=="sign") R_store[,,,irep] <- imp.obj[[1]]$rot
+        if(ident=="sign") R_store[,,irep] <- imp.obj[[1]]$rot
         imp.obj[[1]] <- NULL
       }
       if(irep %% 50 == 0) gc() # free up memory
