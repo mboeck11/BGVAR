@@ -76,6 +76,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 \item{\code{weights}}{ Vector of weights with names relating to the countries for which data should be aggregated. Can also relate to a subset of countries contained in the data.}
 \item{\code{variables}}{ Vector of variables names that should be included in the additional country model. Variables that are not contained in the data slot of the extra country model are assumed to be weakly exogenous for the additional country model (aggregated with \code{weight}).}
 \item{\code{exo}}{ Vector of variable names that should be fed into the other countries as (weakly) exogenous variables.}
+\item{\code{OE.exo}}{ Vector of variable names to allow exogenous variables from other entities to influence the model. Note that this is without weights.}
 }}
 \item{\code{Wex.restr}}{ Character vector containing variables that should be excluded from being used as weakly exogenous from all unit models. An example that has often been used in the literature is to place these restrictions on nominal exchange rates. Default is \code{NULL} in which case all weakly exogenous variables are treated symmetrically.}
 \item{\code{save.country.store}}{ If set to \code{TRUE} then function also returns the container of all draws of the individual country models. Significantly raises object size of output and default is thus set to \code{FALSE}.}

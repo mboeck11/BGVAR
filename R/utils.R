@@ -38,7 +38,8 @@
     if(!all(unlist(lapply(OE.vars,function(l)l%in%c(names(exo),names(endo)))))){
       stop("Please specify for the additional entities variables which are also contained in the data. Please respecify.")
     }
-    OE.exo <- lapply(OE.weights,function(l)l$exo)
+    OE.exo  <- lapply(OE.weights,function(l)l$exo)     # to be fed into other countries as (weakly) exogenous
+    OE.exo2 <- lapply(OE.weights,function(l)l$OE.exo)  # allow OE exogenous variables to affect other OE's as weakly exogenous
     for(kk in 1:OE.sets){
       if(is.null(OE.exo[[kk]])) OE.exo[[kk]] <- colnames(OE[[kk]])
     }
@@ -48,6 +49,9 @@
     OE.weights <- lapply(OE.weights,function(l)l$weights)
     if(any(unlist(lapply(OE.weights,function(l)is.null(names(l))||!all(names(l)%in%names(Data)))))){
       stop("Either you have not provided names attached to the weights of other entities or the ones you are provided are not contained in the country data. Please respecify.")
+    }
+    if(!all(unlist(OE.exo2)%in%unlist(sapply(1:length(OE.vars), function(ll) paste0(names(OE.vars)[ll],".",OE.vars[[ll]]))))){
+      stop("Please provide only other entities' variable names in the argument 'OE.exo'. Please respecify.")
     }
   }
   #------------------------------------- build W matrix -----------------------------------------------------#
@@ -152,14 +156,21 @@
       }
       # this creates the W matrix for the other entity model
       if(!is.null(OE.vars[[kk]])){
-        Wnew           = matrix(0,length(OE.vars[[kk]]),ncol(xglobal))
+        OE.x2          = length(OE.exo2[[kk]])
+        Wnew           = matrix(0,length(OE.vars[[kk]])+length(OE.exo2[[kk]]),ncol(xglobal))
         colnames(Wnew) = colnames(xglobal)
         rownames(Wnew) = c(paste(OE.cN[kk],".",OE.vars[[kk]][!OE.vars[[kk]]%in%names(endo)],sep=""),
-                           OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)])
+                           OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)],
+                           OE.exo2[[kk]])
         if(OE.x>1){
-          diag(Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")])<-1
+          diag(Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")]) = 1
         }else{
-          Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")]<-1
+          Wnew[paste(OE.cN[kk],".",OEnames,sep=""),paste(OE.cN[kk],".",OEnames,sep="")] = 1
+        }
+        if(OE.x2>1){
+          diag(Wnew[OE.exo2[[kk]],OE.exo2[[kk]]]) = 1
+        }else{
+          Wnew[OE.exo2[[kk]],OE.exo2[[kk]]] = 1
         }
         vars <- OE.vars[[kk]][OE.vars[[kk]]%in%names(endo)]
         if(length(vars)>0){

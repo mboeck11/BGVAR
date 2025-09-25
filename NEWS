@@ -1,3 +1,7 @@
+Change in Version 2.6.0
+- added new argument in function 'bgvar', within the 'expert' settings of 'OE.weights': OE.exo
+- this new argument manipulates the 'getweights' function to allow other entities exogenous variables to influence other entities as well
+
 Change in Version 2.5.9
 - updated documentation regarding 'prmean'
 - fixed bug in .getweights
