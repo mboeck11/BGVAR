@@ -327,6 +327,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   # check truly exogenous variables
   if(!is.null(Ex)){
     if(is.matrix(Ex)){
+      if(is.null(colnames(Ex))){
+        stop("Please provide column names for Ex.")
+      }
       if(any(is.na(Ex))){
         stop("The data for exogenous variables you have submitted contains NAs. Please check the data.")
       }
@@ -343,6 +346,16 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       ExN  <- length(ExcN)
       if(!all(nchar(ExcN)>1)){
         stop("Please provide entity names with minimal two characters.")
+      }
+      check_exo <- apply(Ex,2,function(ee)unlist(lapply(Data, function(dd) any(apply(dd,2,function(ddd)all(ddd==ee))))))
+      if(any(check_exo)){
+        string_exo = ""
+        for(nn in 1:ncol(check_exo)){
+          if(!any(check_exo[,nn])) next
+          string_exo = paste0(string_exo," ",cN[which(check_exo[,nn])])
+        }
+        stop(paste0("BGVAR detects that one of your exogenous variables is also contained in one of your country data stored in 'Data'. Please check and respecify! In more detail,
+             it suspect that the problems occur in the following country models: ",string_exo))
       }
       temp <- list()
       for(cc in 1:ExN){

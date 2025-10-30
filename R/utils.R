@@ -203,7 +203,7 @@
 
 #' @name .get_V
 #' @noRd
-.get_V <- function(k=k,M=M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend=FALSE,wexo=TRUE){
+.get_V <- function(k=k,M=M,Mstar,Mex,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend=FALSE,wexo=TRUE){
   V_i <- matrix(0,k,M)
   # endogenous part
   for(i in 1:M){
@@ -230,13 +230,10 @@
       }
     }
   }
+  k_end = M*plag + Mstar*(plagstar+1)
   # deterministics
   for(i in 1:M){
-    if(trend){
-      V_i[(k-1):k,i] <- lambda4 * sigma_sq[i]
-    }else{
-      V_i[k,i] <- lambda4 * sigma_sq[i]
-    }
+    V_i[k_end:k,i] = lambda4 * sigma_sq[i]
   }
   return(V_i)
 }
@@ -584,7 +581,7 @@
   }
   
   k     <- ncol(X)
-  k_end <- ncol(Ylag) + Kstar + ifelse(cons,1,0) + ifelse(trend,1,0)
+  #k_end <- ncol(Ylag) + Kstar + ifelse(cons,1,0) + ifelse(trend,1,0)
   v     <- (M*(M-1))/2
   n     <- K*M
   nstar <- Kstar*M
@@ -688,7 +685,7 @@
   
   # MN prior
   if(prior == 1){
-    theta <- .get_V(k=k,M=M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+    theta <- .get_V(k=k,M=M,Mstar,Mex=Mex,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
     post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda1,0.01,0.01,log=TRUE)+log(lambda1) # correction term
     post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda2,0.01,0.01,log=TRUE)+log(lambda2) # correction term
     post3 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda3,0.01,0.01,log=TRUE)+log(lambda3) # correction term
@@ -743,78 +740,78 @@
   omega[upper.tri(omega)] <- 0; diag(omega) <- 0
   
   # NG
-  lambda2_L <- 0.01
-  L_tau     <- tau_theta
-  L_accept  <- 0
-  L_tuning  <- .43
+  lambda2_L = 0.01
+  L_tau     = tau_theta
+  L_accept  = 0
+  L_tuning  = .43
   #------------------------------------
   # SV quantities
   #------------------------------------
-  Sv_draw <- matrix(-3,bigT,M)
-  pars_var <- matrix(c(-3,.9,.2,-3),4,M,dimnames=list(c("mu","phi","sigma","latent0"),NULL))
-  Sv_priors <- specify_priors(mu=sv_normal(mean=bmu, sd=Bmu), phi=sv_beta(a0,b0), sigma2=sv_gamma(shape=0.5,rate=1/(2*Bsigma)))
+  Sv_draw   = matrix(-3,bigT,M)
+  pars_var  = matrix(c(-3,.9,.2,-3),4,M,dimnames=list(c("mu","phi","sigma","latent0"),NULL))
+  Sv_priors = specify_priors(mu=sv_normal(mean=bmu, sd=Bmu), phi=sv_beta(a0,b0), sigma2=sv_gamma(shape=0.5,rate=1/(2*Bsigma)))
   #---------------------------------------------------------------------------------------------------------
   # SAMPLER MISCELLANEOUS
   #---------------------------------------------------------------------------------------------------------
-  ntot  <- draws+burnin
+  ntot  = draws+burnin
   
   # thinning
-  count        <- 0
-  thindraws    <- draws/thin
-  thin.draws   <- seq(burnin+1,ntot,by=thin)
+  count        = 0
+  thindraws    = draws/thin
+  thin.draws   = seq(burnin+1,ntot,by=thin)
   #---------------------------------------------------------------------------------------------------------
   # STORAGES
   #---------------------------------------------------------------------------------------------------------
-  A_store      <- array(0,        c(k_end,M,thindraws))
-  L_store      <- array(NA_real_, c(M,M,thindraws))
-  res_store    <- array(NA_real_, c(bigT,M,thindraws))
+  A_store      = array(0,        c(k,M,thindraws))
+  L_store      = array(NA_real_, c(M,M,thindraws))
+  res_store    = array(NA_real_, c(bigT,M,thindraws))
   # SV
-  Sv_store     <- array(NA_real_, c(bigT,M,thindraws))
+  Sv_store     = array(NA_real_, c(bigT,M,thindraws))
   if(save_vola_pars){
-    pars_store <- array(NA_real_, c(4,M,thindraws))
+    pars_store = array(NA_real_, c(4,M,thindraws))
   }else{
-    pars_store <- NULL
+    pars_store = NULL
   }
   # MN
   if(save_shrink_MN){
-    lambda_store <- array(NA_real_, c(3,1,thindraws))
+    lambda_store = array(NA_real_, c(3,1,thindraws))
   }else{
-    lambda_store <- NULL
+    lambda_store = NULL
   }
   # SSVS
   if(save_shrink_SSVS){
-    gamma_store  <- array(0,        c(k_end,M,thindraws))
-    omega_store  <- array(NA_real_, c(M,M,thindraws))
+    gamma_store  = array(0,        c(k,M,thindraws))
+    omega_store  = array(NA_real_, c(M,M,thindraws))
   }else{
-    gamma_store <- omega_store <- NULL
+    gamma_store = omega_store = NULL
   }
   # NG
   if(save_shrink_NG){
-    theta_store  <- array(0,        c(k_end,M,thindraws))
-    lambda2_store<- array(NA_real_, c(pmax+1,3,thindraws))
-    tau_store    <- array(NA_real_, c(pmax+1,3,thindraws))
+    theta_store   = array(0,        c(k,M,thindraws))
+    lambda2_store = array(NA_real_, c(pmax+1,3,thindraws))
+    tau_store     = array(NA_real_, c(pmax+1,3,thindraws))
   }else{
-    theta_store <- lambda2_store <- tau_store <- NULL
+    theta_store = lambda2_store = tau_store = NULL
   }
   # HS
   if(save_shrink_HS){
-    lambda_A_endo_store <- array(0, c(n, thindraws))
-    lambda_A_exo_store  <- array(0, c(nstar, thindraws))
-    lambda_L_store      <- array(0, c(v, thindraws))
-    nu_A_endo_store     <- array(0, c(n, thindraws))
-    nu_A_exo_store      <- array(0, c(nstar, thindraws))
-    nu_L_store          <- array(0, c(v, thindraws))
-    tau_A_endo_store    <- array(0, c(1, thindraws))
-    tau_A_exo_store     <- array(0, c(1, thindraws))
-    tau_L_store         <- array(0, c(1, thindraws))
-    zeta_A_endo_store   <- array(0, c(1, thindraws))
-    zeta_A_exo_store    <- array(0, c(1, thindraws))
-    zeta_L_store        <- array(0, c(1, thindraws))
+    lambda_A_endo_store = array(0, c(n, thindraws))
+    lambda_A_exo_store  = array(0, c(nstar, thindraws))
+    lambda_L_store      = array(0, c(v, thindraws))
+    nu_A_endo_store     = array(0, c(n, thindraws))
+    nu_A_exo_store      = array(0, c(nstar, thindraws))
+    nu_L_store          = array(0, c(v, thindraws))
+    tau_A_endo_store    = array(0, c(1, thindraws))
+    tau_A_exo_store     = array(0, c(1, thindraws))
+    tau_L_store         = array(0, c(1, thindraws))
+    zeta_A_endo_store   = array(0, c(1, thindraws))
+    zeta_A_exo_store    = array(0, c(1, thindraws))
+    zeta_L_store        = array(0, c(1, thindraws))
   }else{
-    lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
-    nu_A_endo_store     <- nu_A_exo_store     <- nu_L_store     <- NULL
-    tau_A_endo_store    <- tau_A_exo_store    <- tau_L_store    <- NULL
-    zeta_A_endo_store   <- zeta_A_exo_store   <- zeta_L_store   <- NULL
+    lambda_A_endo_store = lambda_A_exo_store = lambda_L_store = NULL
+    nu_A_endo_store     = nu_A_exo_store     = nu_L_store     = NULL
+    tau_A_endo_store    = tau_A_exo_store    = tau_L_store    = NULL
+    zeta_A_endo_store   = zeta_A_exo_store   = zeta_L_store   = NULL
   }
   #---------------------------------------------------------------------------------------------------------
   # MCMC LOOP
@@ -824,7 +821,7 @@
     # Step 1: Sample coefficients
     for(mm in 1:M){
       A0_draw = A_draw
-      A0_draw[,mm] <- 0
+      A0_draw[,mm] = 0
       
       ztilde <- as.vector((Y - X%*%A0_draw)%*%t(L_drawinv[mm:M,,drop=FALSE])) * exp(-0.5*as.vector(Sv_draw[,mm:M,drop=FALSE]))
       xtilde <- (L_drawinv[mm:M,mm,drop=FALSE] %x% X) * exp(-0.5*as.vector(Sv_draw[,mm:M,drop=FALSE]))
@@ -898,7 +895,7 @@
       lambda1.prop = exp(rnorm(1,0,scale1))*lambda1
       lambda1.prop = ifelse(lambda1.prop<1e-16,1e-16,lambda1.prop)
       lambda1.prop = ifelse(lambda1.prop>1e+16,1e+16,lambda1.prop)
-      theta1.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1.prop,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+      theta1.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1.prop,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
       post1.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(lambda1.prop,0.01,0.01,log=TRUE)+log(lambda1.prop) # correction term
       if((post1.prop-post1)>log(runif(1,0,1))){
         lambda1    = lambda1.prop
@@ -911,7 +908,7 @@
       lambda2.prop = exp(rnorm(1,0,scale2))*lambda2
       lambda2.prop = ifelse(lambda2.prop<1e-16,1e-16,lambda2.prop)
       lambda2.prop = ifelse(lambda2.prop>1e+16,1e+16,lambda2.prop)
-      theta2.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1,lambda2.prop,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
+      theta2.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1,lambda2.prop,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
       post2.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(lambda2.prop,0.01,0.01,log=TRUE)+log(lambda2.prop) # correction term
       if((post2.prop-post2)>log(runif(1,0,1))){
         lambda2    = lambda2.prop
@@ -925,7 +922,7 @@
         lambda3.prop = exp(rnorm(1,0,scale3))*lambda3
         lambda3.prop = ifelse(lambda3.prop<1e-16,1e-16,lambda3.prop)
         lambda3.prop = ifelse(lambda3.prop>1e+16,1e+16,lambda3.prop)
-        theta3.prop  = .get_V(k,M,Mstar,plag,plagstar,lambda1,lambda2,lambda3,lambda3.prop,sigma_sq,sigma_wex,trend,wexo)
+        theta3.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1,lambda2,lambda3,lambda3.prop,sigma_sq,sigma_wex,trend,wexo)
         post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(lambda3.prop,0.01,0.01,log=TRUE)+log(lambda3.prop)
         if((post3.prop-post3)>log(runif(1,0,1))){
           lambda3    = lambda3.prop
@@ -1200,7 +1197,7 @@
     # Step 4: store draws
     if(irep %in% thin.draws){
       count <- count+1
-      A_tmp <- matrix(0, k_end, M)
+      A_tmp <- matrix(0, k, M)
       if(wexo){
         A_tmp <- A_draw
       }else{
@@ -1222,13 +1219,14 @@
       }
       # SSVS
       if(save_shrink_SSVS){
-        gamma_tmp = matrix(0, k_end, 1)
+        gamma_tmp = matrix(0, k, 1)
         if(wexo){
           gamma_tmp = gamma
         }else{
           gamma_tmp[1:K,] = gamma[1:K,]
-          if(cons) gamma_tmp[K+Kstar+1,] = gamma[K+1,]
-          if(trend) gamma_tmp[K+Kstar+ifelse(cons,1,0)+1,] = gamma[K+ifelse(cons,1,0)+1,]
+          if(texo) gamma_tmp[(K+Kstar+1):(K+Kstar+Mex),] = gamma[(K+Kstar+1):(K+Kstar+Mex),]
+          if(cons) gamma_tmp[K+Kstar+Mex+1,] = gamma[K+Kstar+Mex+1,]
+          if(trend) gamma_tmp[K+Kstar+Mex+ifelse(cons,1,0)+1,] = gamma[K+Kstar+Mex+ifelse(cons,1,0)+1,]
         }
         gamma_store[,,count] = gamma_tmp
         omega_store[,,count] = omega
