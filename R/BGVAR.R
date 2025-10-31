@@ -397,6 +397,15 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       if(ExTraw!=args$Traw){
         stop("Provided data and truly exogenous data not equally long. Please check.")
       }
+      check_exo <- unlist(lapply(cN,function(cc) any(apply(Ex[[cc]],2,function(ee) apply(Data[[cc]],2,function(dd)all(dd==ee))))))
+      if(any(check_exo)){
+        string_exo = ""
+        for(nn in 1:length(check_exo)){
+          if(!check_exo[nn]) next
+          string_exo = paste0(string_exo," ",cN[nn])
+        }
+        stop(paste0("BGVAR detects that one of your exogenous variables is also contained in one of your country data stored in 'Data'. Please check and respecify! In more detail, it suspect that the problems occur in the following country models: ",string_exo))
+      }
     }
   }
   args$Ex <- Ex
