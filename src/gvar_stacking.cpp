@@ -10,7 +10,7 @@ using namespace arma;
 //' @noRd
 //[[Rcpp::export]]
 List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List globalpost, const int draws, const int thin,
-                   const bool trend, const bool eigen, const bool verbose) {
+                   const bool trend, const int nex, const bool eigen, const bool verbose) {
   //----------------------------------------------------------------------------------------------------------------------
   // GET INPUTS
   //----------------------------------------------------------------------------------------------------------------------
@@ -20,15 +20,17 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
   const int thindraws = draws/thin;
   vec F_eigen(thindraws, fill::zeros);
   
-  int number_determinants = 1; // cons
-  if(trend){number_determinants += 1;}
+  int number_det_exo = 1; // cons
+  if(trend){number_det_exo += 1;} // trend
+  number_det_exo += nex; // exo
   
-  arma::cube A_large(bigK,bigK*plag+number_determinants,thindraws);
+  arma::cube A_large(bigK,bigK*plag+number_det_exo,thindraws);
   arma::cube S_large(bigK,bigK,thindraws);
   arma::cube Ginv_large(bigK,bigK,thindraws);
   arma::cube F_large(bigK,bigK*plag,thindraws);
   
   arma::vec a1, b1;
+  arma::mat a2, b2;
   //---------------------------------------------------------------------------------------------
   //vec prog_rep_points = round(linspace(0, thindraws, 50));
   //bool display_progress = true;
@@ -55,6 +57,10 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
     if(trend){
       mat a1store = store["a1store"];
       a1 = a1store.col(irep);
+    }
+    if(nex>0){
+      cube a2store = store["Exstore"];
+      a2           = a2store.slice(irep).t();
     }
     List H(plag);
     for(int pp=0; pp < plag; pp++){
@@ -90,8 +96,11 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
       a0 = join_cols(a0,a01);
       if(trend){
         mat a1store = store["a1store"];
-        vec a11 = a1store.col(irep);
-        a1 = join_cols(a1,a11);
+        a1 = join_cols(a1,a1store.col(irep));
+      }
+      if(nex>0){
+        cube a2store = store["Exstore"];
+        a2           = join_cols(a2,a2store.slice(irep).t());
       }
       mat S0(S.n_cols,M,fill::zeros);
       S  = join_rows(S,S0);
@@ -113,6 +122,7 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
     mat Ginv = G.i();
     vec b0   = Ginv*a0;
     if(trend){b1 = Ginv*a1;}
+    if(nex>0){b2 = Ginv*a2;}
     arma::mat F, A;
     for(int pp=0; pp < plag; pp++){
       arma::mat temp = H[pp];
@@ -120,7 +130,7 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
     }
     A = join_rows(A,b0);
     if(trend){A = join_rows(A,b1);}
-    
+    if(nex>0){A = join_rows(A,b2);}
     
     // save
     F_large.slice(irep) = F;

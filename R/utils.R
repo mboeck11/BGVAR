@@ -1294,15 +1294,15 @@
 #' @importFrom stats median
 #' @importFrom utils memory.limit
 #' @noRd
-.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,eigen,trim,verbose){
+.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,nex,eigen,trim,verbose){
   results <- tryCatch(
     {
-      bigT      <- nrow(xglobal)
-      bigK      <- ncol(xglobal)
-      cN        <- names(globalpost)
-      thindraws <- draws/thin
-      F_large   <- array(NA, dim=c(bigK,bigK,plag,thindraws))
-      trim.info <- "No trimming"
+      bigT      = nrow(xglobal)
+      bigK      = ncol(xglobal)
+      cN        = names(globalpost)
+      thindraws = draws/thin
+      F_large   = array(NA_real_, dim=c(bigK,bigK,plag,thindraws))
+      trim.info = "No trimming"
       
       ## call Rcpp
       # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
@@ -1312,36 +1312,40 @@
                            draws      = as.integer(draws),
                            thin       = as.integer(thin), 
                            trend      = trend, 
+                           nex        = nex,
                            eigen      = TRUE, 
                            verbose    = verbose)
-      A_large    <- out$A_large
+      A_large = out$A_large
       for(pp in 1:plag){
         F_large[,,pp,] <- out$F_large[,((bigK*(pp-1))+1):(bigK*pp),,drop=FALSE]
       }
-      S_large    <- out$S_large
-      Ginv_large <- out$Ginv_large
-      F.eigen    <- out$F_eigen
+      S_large    = out$S_large
+      Ginv_large = out$Ginv_large
+      F.eigen    = out$F_eigen
+      
+      # naming
       dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
       names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
       if(trend) names <- c(names,"trend")
+      if(nex>0) names <- c(names,paste0("exo.",seq(1,nex)))
       dimnames(A_large)[[2]]<-names
       
       # kick out in-stable draws
       if(eigen){
-        idx<-which(F.eigen<trim)
+        idx=which(F.eigen<trim)
         
-        F_large     <- F_large[,,,idx,drop=FALSE]
-        S_large     <- S_large[,,idx,drop=FALSE]
-        Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
-        A_large     <- A_large[,,idx,drop=FALSE]
-        F.eigen     <- F.eigen[idx]
+        F_large    = F_large[,,,idx,drop=FALSE]
+        S_large    = S_large[,,idx,drop=FALSE]
+        Ginv_large = Ginv_large[,,idx,drop=FALSE]
+        A_large    = A_large[,,idx,drop=FALSE]
+        F.eigen    = F.eigen[idx]
         
         if(length(idx)<10){
           stop("Less than 10 stable draws have been found. Please re-estimate the model.")
         }
         
-        trim.info <- round((length(idx)/thindraws)*100,2)
-        trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
+        trim.info = round((length(idx)/thindraws)*100,2)
+        trim.info = paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
       }
       
       results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
@@ -1419,27 +1423,29 @@
       if(nex>0) a2 = rbind(a2,t(adrop(VAR$store$Exstore[,,irep,drop=FALSE],drop=3)))
       S_post[[cc]] = adrop(VAR$store$SIGMAmed_store[,,irep,drop=FALSE],drop=3)
     }
-    G.inv  <- solve(G)
-    S_large[,,irep] <- as.matrix(bdiag(S_post))
-    b0     <- G.inv%*%a0
-    if(trend) b1 <- G.inv%*%a1 else b1 <- NULL
-    if(nex>0) b2 <- G.inv%*%a2 else b2 <- NULL
-    Ginv_large[,,irep] <- G.inv
+    G.inv              = solve(G)
+    Ginv_large[,,irep] = G.inv
+    S_large[,,irep]    = as.matrix(bdiag(S_post))
+    b0                 = G.inv %*% a0
+    
+    if(trend) b1 = G.inv %*% a1 else b1 = NULL
+    if(nex>0) b2 = G.inv %*% a2 else b2 = NULL
+    
     
     ALPHA <- NULL
     for (kk in 1:plag){
       assign(paste("F",kk,sep=""),G.inv%*%get(paste("H",kk,sep="")))
       F_large[,,kk,irep] <- get(paste("F",kk,sep=""))
-      ALPHA <- cbind(ALPHA,F_large[,,kk,irep])
+      ALPHA = cbind(ALPHA,F_large[,,kk,irep])
     }
     
-    ALPHA <- cbind(ALPHA,b0,b1,b2)
-    A_large[,,irep]<-ALPHA
+    ALPHA           = cbind(ALPHA,b0,b1,b2)
+    A_large[,,irep] = ALPHA
     
     if(eigen){
-      MM  <- .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1)+nex,plag))$MM
-      aux <- suppressWarnings(eigen(MM[1:(bigK*plag),1:(bigK*plag)]))
-      F.eigen[irep] <- max(abs(Re(aux$values)))
+      MM            = .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1)+nex,plag))$MM
+      aux           = suppressWarnings(eigen(MM[1:(bigK*plag),1:(bigK*plag)]))
+      F.eigen[irep] = max(abs(Re(aux$values)))
     }
     # if(stats){
     #   X_large         <- cbind(.mlag(xglobal,plag),1)
@@ -1456,18 +1462,18 @@
     if(trim==TRUE) trim <- 1.05
     idx<-which(F.eigen<trim)
     
-    F_large     <- F_large[,,,idx,drop=FALSE]
-    S_large     <- S_large[,,idx,drop=FALSE]
-    Ginv_large  <- Ginv_large[,,idx,drop=FALSE]
-    A_large     <- A_large[,,idx,drop=FALSE]
-    F.eigen     <- F.eigen[idx]
+    F_large    = F_large[,,,idx,drop=FALSE]
+    S_large    = S_large[,,idx,drop=FALSE]
+    Ginv_large = Ginv_large[,,idx,drop=FALSE]
+    A_large    = A_large[,,idx,drop=FALSE]
+    F.eigen    = F.eigen[idx]
     
     if(length(idx)<10){
       stop("Less than 10 stable draws have been found. Please re-estimate the model.")
     }
     
-    trim.info <- round((length(idx)/thindraws)*100,2)
-    trim.info <- paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
+    trim.info = round((length(idx)/thindraws)*100,2)
+    trim.info = paste("Trimming leads to ",length(idx) ," (",trim.info,"%) stable draws out of ",thindraws," total draws.",sep="")
   }
   
   results<-list(S_large=S_large,F_large=F_large,Ginv_large=Ginv_large,A_large=A_large,F.eigen=F.eigen,trim.info=trim.info)
