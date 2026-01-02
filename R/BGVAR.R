@@ -475,6 +475,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   #---------------------------------hold out sample------------------------------------------------------------#
   args$yfull <- xglobal
   xglobal    <- xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
+  nex        <- 0L
   if(!is.null(Ex)){
     Ex <- lapply(Ex,function(l)l[1:(nrow(l)-hold.out),,drop=FALSE])
     nex <- max(unlist(lapply(Ex, ncol)))

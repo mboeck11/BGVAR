@@ -1377,34 +1377,35 @@
 #' @importFrom stats median
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @noRd
-.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,eigen=FALSE,trim=NULL,verbose=TRUE){
+.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,nex,eigen=FALSE,trim=NULL,verbose=TRUE){
   # initialize objects here
-  bigT <- nrow(xglobal) 
-  bigK <- ncol(xglobal)
-  cN   <- names(globalpost)
+  bigT = nrow(xglobal) 
+  bigK = ncol(xglobal)
+  cN   = names(globalpost)
   
-  thindraws <- draws/thin
-  F.eigen   <- numeric(thindraws)
-  trim.info <- "No trimming"
+  thindraws = draws/thin
+  F.eigen   = numeric(thindraws)
+  trim.info = "No trimming"
   
-  A_large     <- array(NA_real_, dim=c(bigK,bigK*plag+1+ifelse(trend,1,0),thindraws))
-  S_large     <- array(NA_real_, dim=c(bigK,bigK,thindraws))
-  Ginv_large  <- array(NA_real_, dim=c(bigK,bigK,thindraws))
-  F_large     <- array(NA_real_, dim=c(bigK,bigK,plag,thindraws))
+  A_large    = array(NA_real_, dim=c(bigK,bigK*plag+1+ifelse(trend,1,0)+nex,thindraws))
+  S_large    = array(NA_real_, dim=c(bigK,bigK,thindraws))
+  Ginv_large = array(NA_real_, dim=c(bigK,bigK,thindraws))
+  F_large    = array(NA_real_, dim=c(bigK,bigK,plag,thindraws))
   dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
   
-  pb <- txtProgressBar(min = 0, max = thindraws, style = 3)
+  pb = txtProgressBar(min = 0, max = thindraws, style = 3)
   for (irep in 1:thindraws){
-    a0     <- NULL
-    a1     <- NULL
-    G      <- NULL
-    x      <- NULL
-    S_post <- list()
+    a0     = NULL
+    a1     = NULL
+    a2     = NULL
+    G      = NULL
+    x      = NULL
+    S_post = list()
     
     for (cc in 1:length(cN)){
-      VAR <- globalpost[[cc]]
-      W   <- VAR$W
-      A   <- cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[,,irep,drop=FALSE],drop=3)))
+      VAR = globalpost[[cc]]
+      W   = VAR$W
+      A   = cbind(diag(ncol(VAR$Y)),-t(adrop(VAR$store$Lambda0store[,,irep,drop=FALSE],drop=3)))
       
       for(pp in 1:plag){
         assign(paste("B",pp,sep=""),cbind(t(adrop(VAR$store$Phistore[[pp]][,,irep,drop=FALSE],drop=3)),
@@ -1412,15 +1413,17 @@
         if(cc==1) assign(paste("H",pp,sep=""), get(paste("B",pp,sep=""))%*%W)
         if(cc>1)  assign(paste("H",pp,sep=""), rbind(get(paste("H",pp,sep="")),get(paste("B",pp,sep=""))%*%W))
       }
-      G            <- rbind(G,A%*%W)
-      a0           <- rbind(a0,VAR$store$a0store[,irep,drop=FALSE])
-      if(trend) a1 <- rbind(a1,VAR$store$a1store[,irep,drop=FALSE])
-      S_post[[cc]] <- adrop(VAR$store$SIGMAmed_store[,,irep,drop=FALSE],drop=3)
+      G            = rbind(G,A%*%W)
+      a0           = rbind(a0,VAR$store$a0store[,irep,drop=FALSE])
+      if(trend) a1 = rbind(a1,VAR$store$a1store[,irep,drop=FALSE])
+      if(nex>0) a2 = rbind(a2,t(adrop(VAR$store$Exstore[,,irep,drop=FALSE],drop=3)))
+      S_post[[cc]] = adrop(VAR$store$SIGMAmed_store[,,irep,drop=FALSE],drop=3)
     }
     G.inv  <- solve(G)
     S_large[,,irep] <- as.matrix(bdiag(S_post))
     b0     <- G.inv%*%a0
     if(trend) b1 <- G.inv%*%a1 else b1 <- NULL
+    if(nex>0) b2 <- G.inv%*%a2 else b2 <- NULL
     Ginv_large[,,irep] <- G.inv
     
     ALPHA <- NULL
@@ -1430,11 +1433,11 @@
       ALPHA <- cbind(ALPHA,F_large[,,kk,irep])
     }
     
-    ALPHA <- cbind(ALPHA,b0,b1)
+    ALPHA <- cbind(ALPHA,b0,b1,b2)
     A_large[,,irep]<-ALPHA
     
     if(eigen){
-      MM  <- .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1),plag))$MM
+      MM  <- .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1)+nex,plag))$MM
       aux <- suppressWarnings(eigen(MM[1:(bigK*plag),1:(bigK*plag)]))
       F.eigen[irep] <- max(abs(Re(aux$values)))
     }
@@ -1482,7 +1485,7 @@
   
   Jm <- matrix(0,nkk,nn)
   Jm[1:nn,1:nn] <- diag(nn)
-  if (nd>0){
+  if(nd>0){
     MM <- rbind(Beta_,cbind(diag((nl-1)*nn), matrix(0,(nl-1)*nn,nn+nd)),cbind(matrix(0,nd,nn*nl),diag(nd)))
   }else{
     MM <- rbind(Beta_,cbind(diag((nl-1)*nn),matrix(0,(nl-1)*nn,nn)))
