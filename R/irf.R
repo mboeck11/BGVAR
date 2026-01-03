@@ -159,8 +159,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   applyfun    = expert.list$applyfun
   cores       = expert.list$cores
   #---------------------------- identification schemes --------------------------------------------#
-  if(ident=="chol")
-  {
+  if(ident=="chol"){
     if(verbose){
       cat("Identification scheme: Short-run identification via Cholesky decomposition.\n")
     }
@@ -180,6 +179,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     shocks <- shocknames <- unique(shockinfo$shock)
     select_shocks <- NULL
     for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
+    select_scale = select_shocks
     scale <- shockinfo$scale[!duplicated(shockinfo$shock)]
     shock.cN  <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[1])
     shock.var <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[2])
@@ -212,8 +212,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       scale <- scale.new
     }
     shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
-  }else if(ident=="exo")
-  {
+  }else if(ident=="exo"){
     if(verbose){
       cat("Identification scheme: Short-run identification via external variables.\n")
     }
@@ -229,7 +228,8 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }
     irf.fun  = .irf.exo
     shock.nr = nrow(shockinfo)
-    select_shocks <- seq(1,shock.nr)
+    select_shocks = seq(1,shock.nr)
+    select_scale  = which(shockinfo_exo$scale.var == varNames)
     # shock details
     shocks <- shocknames <- unique(shockinfo$shock)
     scale      = shockinfo$scale[!duplicated(shockinfo$shock)]
@@ -265,6 +265,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     shock.nr <- length(shocks)
     select_shocks <- NULL
     for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
+    select_scale = select_shocks
     shock.idx <- list()
     for(cc in 1:N) shock.idx[[cc]] <- grep(cN[cc],varNames)
     shock.cidx <- rep(FALSE,N)
@@ -315,6 +316,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     shock.nr <- length(shocks)
     select_shocks <- NULL
     for(ss in 1:shock.nr) select_shocks <- c(select_shocks,which(shocks[ss] == varNames))
+    select_scale = select_shocks
     shock.cN  <- unique(sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[1]))
     shock.var <- sapply(strsplit(shockinfo$shock,".",fixed=TRUE),function(x)x[2])
     shock.idx <- list()
@@ -565,10 +567,10 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     # subset posterior draws
     #IRF_store <- IRF_store[,,,idx,drop=FALSE]
     #R_store   <- R_store[,,idx,drop=FALSE]
-    Ginv_large<-Ginv_large[,,idx,drop=FALSE]
-    A_large   <- A_large[,,idx,drop=FALSE]
-    S_large   <- S_large[,,idx,drop=FALSE]
-    thindraws <- length(idx)
+    Ginv_large = Ginv_large[,,idx,drop=FALSE]
+    A_large    = A_large[,,idx,drop=FALSE]
+    S_large    = S_large[,,idx,drop=FALSE]
+    thindraws  = length(idx)
   }
   # Subset to shocks under consideration
   if(Global){
@@ -586,7 +588,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   }else{
     IRF_store <- IRF_store[,select_shocks,,,drop=FALSE]
     for(ss in 1:shock.nr){
-      Mean<-IRF_store[select_shocks[ss],ss,1,]
+      Mean<-IRF_store[select_scale[ss],ss,1,]
       for(irep in 1:thindraws){
         IRF_store[,ss,,irep]<-(IRF_store[,ss,,irep]/Mean[irep])*scale[ss]
       }
@@ -677,7 +679,7 @@ get_shockinfo <- function(ident="chol", nr_rows=1){
     df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
     attr(df, "ident") <- "chol"
   }else if(ident == "exo"){
-    df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
+    df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),scale.var=rep(NA,nr_rows))
     attr(df, "ident") <- "exo"
   }else if(ident == "girf"){
     df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
