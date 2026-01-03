@@ -23,7 +23,7 @@ Language: en-US
 URL: https://github.com/mboeck11/BGVAR
 BugReports: https://github.com/mboeck11/BGVAR/issues
 Depends: R (>= 3.5.0)
-SystemRequirements: GNU make
+SystemRequirements: GNU make, C++14
 Imports:
    abind, bayesm, coda, GIGrvg, graphics, knitr, MASS, Matrix, methods, parallel, 
    Rcpp (>= 1.0.3), RcppParallel, readxl, stats, stochvol (>= 3.0.3), utils, xts, zoo
@@ -31,5 +31,5 @@ Suggests:
     rmarkdown, testthat (>= 2.1.0)
 LazyData: true
 LinkingTo: Rcpp, RcppArmadillo, RcppProgress, RcppParallel, stochvol, GIGrvg
-RoxygenNote: 7.3.2
+RoxygenNote: 7.3.3
 VignetteBuilder: knitr
