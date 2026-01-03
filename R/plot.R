@@ -23,22 +23,25 @@
 #' @importFrom stats median quantile plot.ts
 plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   # reset user par settings on exit
-  oldpar   <- par(no.readonly=TRUE)
+  oldpar   = par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  plag     <- x$args$plag
-  xglobal  <- x$xglobal
-  trend    <- x$args$trend
-  XX       <- .mlag(xglobal,plag[1])
-  YY       <- xglobal[-c(1:plag[1]),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:plag[1]),,drop=FALSE],1)
-  bigT     <- nrow(YY)
-  if(trend) XX <- cbind(XX,seq(1,bigT))
-  time     <- .timelabel(x$args$time)
-  varNames <- dimnames(xglobal)[[2]]
-  cN   <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  bigK <- length(vars)
-  Ki   <- unlist(lapply(cN,function(x)length(grep(x,varNames))))
+  plag     = x$args$plag
+  xglobal  = x$xglobal
+  eglobal  = x$args$eglobal
+  trend    = x$args$trend
+  exo      = !is.null(x$args$Ex)
+  XX       = .mlag(xglobal,plag[1])
+  YY       = xglobal[(plag[1]+1):nrow(xglobal),,drop=FALSE]
+  XX       = cbind(XX[(plag[1]+1):nrow(XX),,drop=FALSE],1)
+  bigT     = nrow(YY)
+  if(trend) XX = cbind(XX,seq(1,bigT))
+  if(exo) XX = cbind(XX,eglobal[(plag[1]+1):nrow(eglobal),,drop=FALSE])
+  time     = .timelabel(x$args$time)
+  varNames = dimnames(xglobal)[[2]]
+  cN   = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
+  vars = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+  bigK = length(vars)
+  Ki   = unlist(lapply(cN,function(x)length(grep(x,varNames))))
   if(global){
     A_post <- apply(x$stacked.results$A_large,c(1,2),median)
     fit    <- XX%*%t(A_post)

@@ -65,7 +65,7 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
 
 \item{Ex}{For including truly exogenous variables to the model. Either a \describe{
 \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
-\item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
+\item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The naming convention decides how the truly exogenous variables are included to the country models: 1) If the column names consist of two parts (first country/entity name and then variable name, separated by a \code{.}, i.e., a dot), then it is included only to those countries specified. 2) If the column name consists only of the variable name, the truly exogenous variable will be included to all countries. Country/Entity and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 }}
 
 \item{trend}{If set to \code{TRUE} a deterministic trend is added to the country models.}

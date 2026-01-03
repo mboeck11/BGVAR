@@ -100,7 +100,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     ident <- "chol"
   }
   #--------------- checks ------------------------------------------------------------------------------------#
-  if(!ident%in%c("chol","girf","sign")){
+  if(!ident%in%c("chol","girf","sign","exo")){
     stop("Please choose available identification scheme!")
   }
   if(is.null(shockinfo) && ident=="sign"){
@@ -118,28 +118,32 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   #-----------------------------------------------------------------------------------------------------------#
   if(verbose) cat("Start computing impulse response functions of Bayesian Global Vector Autoregression.\n\n")
   #------------------------------ get stuff -------------------------------------------------------#
-  lags        <- x$args$lags
-  pmax        <- max(lags)
-  xglobal     <- x$xglobal
-  Traw        <- nrow(xglobal)
-  bigK        <- ncol(xglobal)
-  bigT        <- Traw-pmax
-  A_large     <- x$stacked.results$A_large
-  F_large     <- x$stacked.results$F_large
-  S_large     <- x$stacked.results$S_large
-  Ginv_large  <- x$stacked.results$Ginv_large
-  F.eigen     <- x$stacked.results$F.eigen
-  thindraws   <- length(F.eigen) ### prior: draws
-  Global      <- FALSE
-  if(!is.null(shockinfo)) Global <- ifelse(any(shockinfo$global),TRUE,FALSE)
-  Rmed        <- NULL
-  rot.nr      <- NULL
-  xdat        <- xglobal[(pmax+1):Traw,,drop=FALSE]
-  varNames    <- colnames(xdat)
-  cN          <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
-  vars        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
-  N           <- length(cN)
-  Q           <- length(quantiles)
+  lags       = x$args$lags
+  pmax       = max(lags)
+  xglobal    = x$xglobal
+  exo        = !is.null(x$args$Ex)
+  eglobal    = x$args$eglobal
+  enames     = x$args$enames
+  Traw       = nrow(xglobal)
+  bigK       = ncol(xglobal)
+  bigT       = Traw-pmax
+  A_large    = x$stacked.results$A_large
+  F_large    = x$stacked.results$F_large
+  S_large    = x$stacked.results$S_large
+  Ginv_large = x$stacked.results$Ginv_large
+  F.eigen    = x$stacked.results$F.eigen
+  thindraws  = length(F.eigen) ### prior: draws
+  Global     = FALSE
+  if(!is.null(shockinfo)) Global = ifelse(any(shockinfo$global),TRUE,FALSE)
+  Rmed       = NULL
+  rot.nr     = NULL
+  xdat       = xglobal[(pmax+1):Traw,,drop=FALSE]
+  if(exo) edat = eglobal[(pmax+1):Traw,,drop=FALSE] else edat = NULL
+  varNames   = colnames(xdat)
+  cN         = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[1]))
+  vars       = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x)x[2]))
+  N          = length(cN)
+  Q          = length(quantiles)
   # expert settings
   expert.list <- list(MaxTries=100, save.store=FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
@@ -149,11 +153,11 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     for(n in names(expert))
       expert.list[[n]] <- expert[[n]]
   }
-  MaxTries    <- expert.list$MaxTries
-  save.store  <- expert.list$save.store
-  use_R       <- expert.list$use_R
-  applyfun    <- expert.list$applyfun
-  cores       <- expert.list$cores
+  MaxTries    = expert.list$MaxTries
+  save.store  = expert.list$save.store
+  use_R       = expert.list$use_R
+  applyfun    = expert.list$applyfun
+  cores       = expert.list$cores
   #---------------------------- identification schemes --------------------------------------------#
   if(ident=="chol")
   {
@@ -208,6 +212,33 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       scale <- scale.new
     }
     shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries)
+  }else if(ident=="exo")
+  {
+    if(verbose){
+      cat("Identification scheme: Short-run identification via external variables.\n")
+    }
+    if(is.null(shockinfo)){
+      shockinfo <- get_shockinfo("exo", nr_rows = length(varNames))
+      shockinfo$shock <- varNames
+    }
+    if(!all(c("shock","scale")%in%colnames(shockinfo))){
+      stop("Please provide appropriate dataframe for argument 'shockinfo'. Respecify.")
+    }
+    if(!all(shockinfo$shock%in%enames)){
+      stop("Please provide shock of 'shockinfo' only to variables available in the dataset used for estimation. Respecify.")
+    }
+    irf.fun  = .irf.exo
+    shock.nr = nrow(shockinfo)
+    select_shocks <- seq(1,shock.nr)
+    # shock details
+    shocks <- shocknames <- unique(shockinfo$shock)
+    scale      = shockinfo$scale[!duplicated(shockinfo$shock)]
+    shock.var  = shockinfo$shock
+    shock.idx  = NULL
+    shock.cidx = NULL
+    shocklist = list(shock.idx=shock.idx,shock.cidx=shock.cidx,plag=pmax,MaxTries=MaxTries,shock.var=shock.var)
+    # exo only runs on R for now
+    use_R = TRUE
   }else if(ident=="girf")
   {
     if(verbose){
@@ -443,8 +474,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   }else{
     R_store <- NULL
   }
-  IRF_store     <- array(NA_real_, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
-  imp_posterior <- array(NA_real_, dim=c(bigK,n.ahead+1,shock.nr,Q))
+  if(exo){
+    IRF_store     = array(NA_real_, dim=c(bigK,length(shocklist$shock.var),n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",shocklist$shock.var),seq(0,n.ahead),NULL))
+  }else{
+    IRF_store     = array(NA_real_, dim=c(bigK,bigK,n.ahead+1,thindraws), dimnames=list(colnames(xglobal),paste0("shock_",colnames(xglobal)),seq(0,n.ahead),NULL))
+  }
+  imp_posterior = array(NA_real_, dim=c(bigK,n.ahead+1,shock.nr,Q))
   dimnames(imp_posterior) <- list(colnames(xglobal),seq(0,n.ahead),shocknames,paste0("Q",quantiles*100))
   #------------------------------ start computing irfs  ---------------------------------------------------#
   start.comp <- Sys.time()
@@ -453,12 +488,13 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   {
     #--------------------------------------------------------------
     # r-version
-    counter <- numeric(length=thindraws)
-    imp.obj <- applyfun(1:thindraws,function(irep){
-      Ginv <- Ginv_large[,,irep]
-      Fmat <- adrop(F_large[,,,irep,drop=FALSE],drop=4)
-      Smat <- S_large[,,irep]
-      imp.obj <- irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist)
+    counter = numeric(length=thindraws)
+    imp.obj = applyfun(1:thindraws,function(irep){
+      Amat    = A_large[,,irep]
+      Ginv    = Ginv_large[,,irep]
+      Fmat    = adrop(F_large[,,,irep,drop=FALSE],drop=4)
+      Smat    = S_large[,,irep]
+      imp.obj = irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,Amat=Amat,shocklist=shocklist)
       if(verbose){
         if(ident=="sign"){
           if(!any(is.null(imp.obj$rot))){
@@ -485,13 +521,13 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   }else{ # cpp-version
     #--------------------------------------------------------------
     # adjust indexes due to different indexation (starting with zero in cpp)
-    shocklist$shock.idx<-lapply(shocklist$shock.idx,function(l)l-1)
-    shocklist$shock.horz <- shocklist$shock.horz-1
-    shocklist$shock.order <- shocklist$shock.order-1
+    shocklist$shock.idx   = lapply(shocklist$shock.idx,function(l)l-1)
+    shocklist$shock.horz  = shocklist$shock.horz-1
+    shocklist$shock.order = shocklist$shock.order-1
     # type
-    type <- ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
-    counter <- numeric(length=thindraws)
-    save_rot <- ifelse(ident=="sign",TRUE,FALSE)
+    type     = ifelse(ident=="chol",1,ifelse(ident=="girf",2,3))
+    counter  = numeric(length=thindraws)
+    save_rot = ifelse(ident=="sign",TRUE,FALSE)
     # Rcpp::sourceCpp("./src/irf.cpp")
     # Rcpp::sourceCpp("/users/mboeck/documents/packages/bgvar/src/irf.cpp")
     temp = compute_irf(A_large=A_large,S_large=S_large,Ginv_large=Ginv_large,type=type,nhor=n.ahead+1,thindraws=thindraws,shocklist_in=shocklist,save_rot=save_rot,verbose=verbose)
@@ -556,7 +592,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
       }
     }
   }
-  # Normalization
+  # compute posterior
   for(ss in 1:shock.nr){
     for(qq in 1:Q){
       imp_posterior[,,ss,qq] <- apply(IRF_store[,ss,,],c(1,2),quantile,quantiles[qq],na.rm=TRUE)
@@ -564,11 +600,11 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   }
   # calculate objects needed for HD and struc shock functions later---------------------------------------------
   # median quantitities
-  A       <- apply(A_large,c(1,2),median)
-  Fmat    <- apply(F_large,c(1,2,3),median)
-  Ginv    <- apply(Ginv_large,c(1,2),median)
-  Smat    <- apply(S_large,c(1,2),median)
-  Sigma_u <- Ginv%*%Smat%*%t(Ginv)
+  A       = apply(A_large,c(1,2),median)
+  Fmat    = apply(F_large,c(1,2,3),median)
+  Ginv    = apply(Ginv_large,c(1,2),median)
+  Smat    = apply(S_large,c(1,2),median)
+  Sigma_u = Ginv%*%Smat%*%t(Ginv)
   if(ident=="sign")
   {
     imp.obj    <- try(irf.fun(xdat=xdat,plag=pmax,n.ahead=n.ahead,Ginv=Ginv,Fmat=Fmat,Smat=Smat,shocklist=shocklist),silent=TRUE)
@@ -630,7 +666,7 @@ print.bgvar.irf <- function(x, ...){
 #' @name get_shockinfo
 #' @title Create \code{shockinfo} argument 
 #' @description Creates dummy \code{shockinfo} argument for appropriate use in  \code{irf} function.
-#' @param ident Definition of identification scheme, either \code{chol}, \code{girf} or \code{sign}.
+#' @param ident Definition of identification scheme, either \code{chol}, \code{girf} or \code{sign}, or \code{exo}.
 #' @param nr_rows Number of rows in the created dataframe.
 #' @details Depending on the identification scheme a different \code{shockinfo} argument in the \code{irf} function is needed. To handle this convenient, an appropriate data.frame with is created with this function.
 #' @usage get_shockinfo(ident="chol", nr_rows=1)
@@ -640,6 +676,9 @@ get_shockinfo <- function(ident="chol", nr_rows=1){
   if(ident == "chol"){
     df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
     attr(df, "ident") <- "chol"
+  }else if(ident == "exo"){
+    df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
+    attr(df, "ident") <- "exo"
   }else if(ident == "girf"){
     df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
     attr(df, "ident") <- "girf"

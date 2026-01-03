@@ -59,27 +59,34 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   if(!is.numeric(quantiles)){
     stop("Please provide 'quantiles' as numeric vector.")
   }
+  exo        = !is.null(object$args$Ex)
+  if(exo & n.ahead>1){
+    warning("Note that n.ahead=1 as multi-step ahead forecasting is not available in the presence of truly exogenous regressors.")
+    n.ahead=1
+  }
   if(verbose) cat("Start computing predictions of Bayesian Global Vector Autoregression.\n\n")
-  thindraws  <- object$args$thindraws
-  lags       <- object$args$lags
-  pmax       <- max(lags)
-  xglobal    <- object$xglobal
-  S_large    <- object$stacked.results$S_large
-  F_large    <- object$stacked.results$F_large
-  A_large    <- object$stacked.results$A_large
-  Ginv_large <- object$stacked.results$Ginv_large
-  F.eigen    <- object$stacked.results$F.eigen
-  varNames   <- colnames(xglobal)
-  cN         <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
-  vars       <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
-  N          <- length(cN)
-  Traw       <- nrow(xglobal)
-  bigT       <- Traw-pmax
-  bigK       <- ncol(xglobal)
-  cons       <- 1
-  trend      <- ifelse(object$args$trend,1,0)
-  Q          <- length(quantiles)
-  flag_cond  <- FALSE
+  thindraws  = object$args$thindraws
+  lags       = object$args$lags
+  pmax       = max(lags)
+  xglobal    = object$xglobal
+  eglobal    = object$args$eglobal
+  S_large    = object$stacked.results$S_large
+  F_large    = object$stacked.results$F_large
+  A_large    = object$stacked.results$A_large
+  Ginv_large = object$stacked.results$Ginv_large
+  F.eigen    = object$stacked.results$F.eigen
+  varNames   = colnames(xglobal)
+  cN         = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
+  vars       = unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
+  N          = length(cN)
+  Traw       = nrow(xglobal)
+  bigT       = Traw-pmax
+  bigK       = ncol(xglobal)
+  cons       = 1
+  trend      = ifelse(object$args$trend,1,0)
+  nex        = object$args$nex
+  Q          = length(quantiles)
+  flag_cond  = FALSE
   #---------------------check conditional predictions--------------------------------#
   if(!is.null(constr)){
     if(!all(dim(constr)==c(n.ahead,bigK))){
@@ -96,14 +103,15 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
     flag_cond <- TRUE
   }
   #---------------------------------------------------------------------------------#
-  varndxv <- c(bigK,cons+trend,pmax)
-  nkk     <- (pmax*bigK)+cons+trend
+  varndxv = c(bigK,cons+trend+nex,pmax)
+  nkk     = (pmax*bigK)+cons+trend+nex
   
-  Yn <- xglobal
-  Xn <- cbind(.mlag(Yn,pmax),1)
-  Xn <- Xn[(pmax+1):Traw,,drop=FALSE]
-  Yn <- Yn[(pmax+1):Traw,,drop=FALSE]
+  Yn = xglobal
+  Xn = cbind(.mlag(Yn,pmax),1)
+  Xn = Xn[(pmax+1):Traw,,drop=FALSE]
+  Yn = Yn[(pmax+1):Traw,,drop=FALSE]
   if(trend) Xn <- cbind(Xn,seq(1,bigT))
+  if(exo) Xn <- cbind(Xn,eglobal[(pmax+1):Traw,,drop=FALSE])
   
   pred_store <- array(NA,dim=c(thindraws,bigK,n.ahead))
   # start loop here
@@ -115,14 +123,14 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   }
   for(irep in 1:thindraws){
     #Step I: Construct a global VC matrix Omega_t
-    Ginv    <- Ginv_large[,,irep]
-    Sig_t   <- Ginv%*%(S_large[,,irep])%*%t(Ginv)
-    Sig_t   <- as.matrix(Sig_t)
-    zt      <- Xn[bigT,]
-    z1      <- zt
-    Mean00  <- zt
-    Sigma00 <- matrix(0,nkk,nkk)
-    y2      <- NULL
+    Ginv    = Ginv_large[,,irep]
+    Sig_t   = Ginv%*%(S_large[,,irep])%*%t(Ginv)
+    Sig_t   = as.matrix(Sig_t)
+    zt      = Xn[bigT,]
+    z1      = zt
+    Mean00  = zt
+    Sigma00 = matrix(0,nkk,nkk)
+    y2      = NULL
     
     #gets companion form
     aux   <- .get_companion(A_large[,,irep],varndxv)
@@ -215,9 +223,9 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   if(hold.out>n.ahead) hold.out <- n.ahead
   yfull <- object$args$yfull
   if(hold.out>0){
-    lps.stats <- array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
-    lps.stats[,"mean",] <- apply(pred_store[,,1:hold.out],c(2:3),mean,na.rm=TRUE)
-    lps.stats[,"sd",]   <- apply(pred_store[,,1:hold.out],c(2:3),sd,na.rm=TRUE)
+    lps.stats = array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
+    lps.stats[,"mean",] = apply(pred_store[,,1:hold.out,drop=FALSE],c(2:3),mean,na.rm=TRUE)
+    lps.stats[,"sd",]   = apply(pred_store[,,1:hold.out,drop=FALSE],c(2:3),sd,na.rm=TRUE)
     hold.out.sample<-yfull[(nrow(yfull)+1-hold.out):nrow(yfull),,drop=FALSE]
   }else{
     lps.stats<-NULL

@@ -276,7 +276,7 @@
   Yraw  = xglobal[,substr(colnames(xglobal),1,2)==cN[cc],drop=FALSE]; class(Yraw) = "numeric"
   W     = gW[[cc]]
   Exraw = matrix(NA_real_)
-  if(!is.null(Ex)) if(cN[cc]%in%names(Ex)) Exraw <- Ex[[cN[cc]]]
+  if(!is.null(Ex[[cc]])) Exraw <- Ex[[cN[cc]]]
   all         = t(W%*%t(xglobal))
   if(ncol(Yraw) == ncol(all)){
     Wraw = NULL
@@ -320,41 +320,45 @@
     #stop()
   }
   #------------------------------------------------ get data ----------------------------------------#
-  Y <- bvar$Y; colnames(Y) <- colnames(Yraw); X <- bvar$X
-  M <- ncol(Y); bigT <- nrow(Y); K <- ncol(X)
-  plag <- lags[1]; plagstar <- lags[2]; pmax <- max(lags)
-  if(!any(is.na(Exraw))) Mex <- ncol(Exraw)
+  Y = bvar$Y; colnames(Y) = colnames(Yraw); X = bvar$X
+  thindraws = draws/thin
+  M = ncol(Y); bigT = nrow(Y); K = ncol(X)
+  plag = lags[1]; plagstar = lags[2]; pmax <- max(lags)
+  if(!any(is.na(Exraw))) Mex = ncol(Exraw) else Mex = 0
+  if(!is.null(Ex)) nex = length(unique(unlist(lapply(Ex,colnames)))) else nex = 0
   if(wexo){
-    xnames <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
+    xnames = c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
                 paste(rep("Wexlag",Mstar),rep(seq(1,plagstar),each=Mstar),sep=""))
-    if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
-    xnames <- c(xnames,"cons")
+    if(!any(is.na(Exraw))) xnames <- c(xnames,rep("Tex",Mex))
+    xnames = c(xnames,"cons")
     if(trend) xnames <- c(xnames,"trend")
-    xnames_end <- xnames
+    xnames_end = xnames
   }else{
     xnames <- c(paste0(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""))
-    if(!any(is.na(Exraw))) xnames <- c(xnames,paste(rep("Tex",Mex)))
+    if(!any(is.na(Exraw))) xnames <- c(xnames,rep("Tex",Mex))
     xnames <- c(xnames,"cons")
     if(trend) xnames <- c(xnames,"trend")
     
     xnames_end <- c(paste(rep("Ylag",M),rep(seq(1,plag),each=M),sep=""),rep("Wex",Mstar),
                     paste(rep("Wexlag",Mstar),rep(seq(1,plagstar),each=Mstar),sep=""))
-    if(!any(is.na(Exraw))) xnames_end <- c(xnames_end,paste(rep("Tex",Mex)))
+    if(!any(is.na(Exraw))) xnames_end <- c(xnames_end,rep("Tex",Mex))
     xnames_end <- c(xnames_end,"cons")
     if(trend) xnames_end <- c(xnames_end,"trend")
   }
   colnames(X) <- xnames
   #-----------------------------------------get containers ------------------------------------------#
-  A_store <- bvar$A_store; dimnames(A_store)[[1]] <- xnames_end; dimnames(A_store)[[2]] <- colnames(Y)
+  A_store = bvar$A_store; dimnames(A_store)[[1]] = xnames_end; dimnames(A_store)[[2]] = colnames(Y)
   # splitting up stores
-  dims          <- dimnames(A_store)[[1]]
-  a0store       <- adrop(A_store[which(dims=="cons"),,,drop=FALSE],drop=1)
-  a1store <- Exstore <- NULL
+  dims          = dimnames(A_store)[[1]]
+  a0store       = adrop(A_store[which(dims=="cons"),,,drop=FALSE],drop=1)
+  a1store = Exstore = NULL
   if(trend){
-    a1store     <- adrop(A_store[which(dims=="trend"),,,drop=FALSE],drop=1)
+    a1store     = adrop(A_store[which(dims=="trend"),,,drop=FALSE],drop=1)
   }
   if(!any(is.na(Exraw))){
-    Exstore     <- A_store[which(dims=="Tex"),,,drop=FALSE]
+    Exstore     = A_store[which(dims=="Tex"),,,drop=FALSE]
+  }else if(nex>0){ # if some country has exogenous variables create a zero vector of coefficients for other countries
+    Exstore     = array(0, c(nex, M, thindraws), dimnames=list(rep("Tex",Mex),colnames(Y),NULL))
   }
   Lambda0store  <- A_store[which(dims=="Wex"),,,drop=FALSE]
   Lambdastore   <- NULL
@@ -430,70 +434,72 @@
     theta_store <- lambda2_store <- tau_store <- theta_post <- lambda2_post <- tau_post <- NULL
   }
   # HS
-  lambda_A_endo_store <- lambda_A_exo_store <- lambda_L_store <- NULL
-  nu_A_endo_store     <- nu_A_exo_store     <- nu_L_store     <- NULL
-  tau_A_endo_store    <- tau_A_exo_store    <- tau_L_store    <- NULL
-  zeta_A_endo_store   <- zeta_A_exo_store   <- zeta_L_store   <- NULL
-  lambda_A_endo_post  <- lambda_A_exo_post  <- lambda_L_post  <- NULL
-  nu_A_endo_post      <- nu_A_exo_post      <- nu_L_post      <- NULL
-  tau_A_endo_post     <- tau_A_exo_post     <- tau_L_post     <- NULL
-  zeta_A_endo_post    <- zeta_A_exo_post    <- zeta_L_post    <- NULL
+  lambda_A_endo_store = lambda_A_exo_store = lambda_L_store = NULL
+  nu_A_endo_store     = nu_A_exo_store     = nu_L_store     = NULL
+  tau_A_endo_store    = tau_A_exo_store    = tau_L_store    = NULL
+  zeta_A_endo_store   = zeta_A_exo_store   = zeta_L_store   = NULL
+  lambda_A_endo_post  = lambda_A_exo_post  = lambda_L_post  = NULL
+  nu_A_endo_post      = nu_A_exo_post      = nu_L_post      = NULL
+  tau_A_endo_post     = tau_A_exo_post     = tau_L_post     = NULL
+  zeta_A_endo_post    = zeta_A_exo_post    = zeta_L_post    = NULL
   if(prior=="HS" & setting_store$shrink_HS){
-    lambda_A_endo_store <- bvar$HS$lambda_A_endo_store
-    lambda_A_exo_store  <- bvar$HS$lambda_A_exo_store
-    lambda_L_store      <- bvar$HS$lambda_L_store
-    nu_A_endo_store     <- bvar$HS$nu_A_endo_store
-    nu_A_exo_store      <- bvar$HS$nu_A_exo_store
-    nu_L_store          <- bvar$HS$nu_L_store
-    tau_A_endo_store    <- bvar$HS$tau_A_endo_store
-    tau_A_exo_store     <- bvar$HS$tau_A_exo_store
-    tau_L_store         <- bvar$HS$tau_L_store
-    zeta_A_endo_store   <- bvar$HS$zeta_A_endo_store
-    zeta_A_exo_store    <- bvar$HS$zeta_A_exo_store
-    zeta_L_store        <- bvar$HS$zeta_L_store
+    lambda_A_endo_store = bvar$HS$lambda_A_endo_store
+    lambda_A_exo_store  = bvar$HS$lambda_A_exo_store
+    lambda_L_store      = bvar$HS$lambda_L_store
+    nu_A_endo_store     = bvar$HS$nu_A_endo_store
+    nu_A_exo_store      = bvar$HS$nu_A_exo_store
+    nu_L_store          = bvar$HS$nu_L_store
+    tau_A_endo_store    = bvar$HS$tau_A_endo_store
+    tau_A_exo_store     = bvar$HS$tau_A_exo_store
+    tau_L_store         = bvar$HS$tau_L_store
+    zeta_A_endo_store   = bvar$HS$zeta_A_endo_store
+    zeta_A_exo_store    = bvar$HS$zeta_A_exo_store
+    zeta_L_store        = bvar$HS$zeta_L_store
     
-    lambda_A_endo_post  <- apply(lambda_A_endo_store, 1, median)
-    lambda_A_exo_post   <- apply(lambda_A_exo_store, 1, median) 
-    lambda_L_post       <- apply(lambda_L_store, 1, median)
-    nu_A_endo_post      <- apply(nu_A_endo_store, 1, median)
-    nu_A_exo_post       <- apply(nu_A_exo_store, 1, median)
-    nu_L_post           <- apply(nu_L_store, 1, median)
-    tau_A_endo_post     <- apply(tau_A_endo_store, 1, median)
-    tau_A_exo_post      <- apply(tau_A_exo_store, 1, median)
-    tau_L_post          <- apply(tau_L_store, 1, median)
-    zeta_A_endo_post    <- apply(zeta_A_endo_store, 1, median)
-    zeta_A_exo_post     <- apply(zeta_A_exo_store, 1, median)
-    zeta_L_post         <- apply(zeta_L_store, 1, median)
+    lambda_A_endo_post  = apply(lambda_A_endo_store, 1, median)
+    lambda_A_exo_post   = apply(lambda_A_exo_store, 1, median) 
+    lambda_L_post       = apply(lambda_L_store, 1, median)
+    nu_A_endo_post      = apply(nu_A_endo_store, 1, median)
+    nu_A_exo_post       = apply(nu_A_exo_store, 1, median)
+    nu_L_post           = apply(nu_L_store, 1, median)
+    tau_A_endo_post     = apply(tau_A_endo_store, 1, median)
+    tau_A_exo_post      = apply(tau_A_exo_store, 1, median)
+    tau_L_post          = apply(tau_L_store, 1, median)
+    zeta_A_endo_post    = apply(zeta_A_endo_store, 1, median)
+    zeta_A_exo_post     = apply(zeta_A_exo_store, 1, median)
+    zeta_L_post         = apply(zeta_L_store, 1, median)
   }
   #------------------------------------ compute posteriors -------------------------------------------#
-  A_post      <- apply(A_store, c(1,2), median)
-  L_post      <- apply(L_store, c(1,2), median)
-  SIGMA_post  <- apply(SIGMA_store,c(1,2,3),median)
-  S_post      <- apply(SIGMA_post,c(1,2),mean)
-  Sig         <- S_post/(bigT-K)
-  res_post    <- apply(res_store,c(1,2),median)
+  A_post      = apply(A_store, c(1,2), median)
+  L_post      = apply(L_store, c(1,2), median)
+  SIGMA_post  = apply(SIGMA_store,c(1,2,3),median)
+  S_post      = apply(SIGMA_post,c(1,2),mean)
+  Sig         = S_post/(bigT-K)
+  res_post    = apply(res_store,c(1,2),median)
   # splitting up posteriors
-  a0post      <- A_post[which(dims=="cons"),,drop=FALSE]
-  a1post <- Expost <- NULL
+  a0post      = A_post[which(dims=="cons"),,drop=FALSE]
+  a1post = Expost = NULL
   if(trend){
-    a1post    <- A_post[which(dims=="trend"),,drop=FALSE]
+    a1post    = A_post[which(dims=="trend"),,drop=FALSE]
   }
   if(!any(is.na(Exraw))){
-    Expost    <- A_post[which(dims=="Tex"),,drop=FALSE]
+    Expost    = A_post[which(dims=="Tex"),,drop=FALSE]
+  }else if(nex>0){ # if some country has exogenous variables create a zero vector of coefficients for other countries
+    Expost    = matrix(0, nex, M, dimnames=list(rep("Tex",Mex),colnames(Y)))
   }
-  Lambda0post <- A_post[which(dims=="Wex"),,drop=FALSE]
-  Lambdapost  <- NULL
-  Phipost     <- NULL
+  Lambda0post = A_post[which(dims=="Wex"),,drop=FALSE]
+  Lambdapost  = NULL
+  Phipost     = NULL
   for(pp in 1:pmax){
     if(pp %in% seq(plag)){
-      Phipost <- rbind(Phipost,A_post[which(dims==paste("Ylag",pp,sep="")),,drop=FALSE])
+      Phipost = rbind(Phipost,A_post[which(dims==paste("Ylag",pp,sep="")),,drop=FALSE])
     }else{
-      Phipost <- rbind(Phipost, matrix(0, M, M, dimnames=list(rep(paste0("Ylag",pp),M),colnames(Y))))
+      Phipost = rbind(Phipost, matrix(0, M, M, dimnames=list(rep(paste0("Ylag",pp),M),colnames(Y))))
     }
     if(pp %in% seq(plagstar)){
-      Lambdapost <- rbind(Lambdapost,A_post[which(dims==paste("Wexlag",pp,sep="")),,drop=FALSE])
+      Lambdapost = rbind(Lambdapost,A_post[which(dims==paste("Wexlag",pp,sep="")),,drop=FALSE])
     }else{
-      Lambdapost <- rbind(Lambdapost, matrix(0, Mstar, M, dimnames=list(rep(paste0("Wexlag",pp),Mstar),colnames(Y))))
+      Lambdapost = rbind(Lambdapost, matrix(0, Mstar, M, dimnames=list(rep(paste0("Wexlag",pp),Mstar),colnames(Y))))
     }
   }
   post <- list(A_post=A_post,a0post=a0post,a1post=a1post,Lambda0post=Lambda0post,Lambdapost=Lambdapost,
@@ -545,46 +551,46 @@
   wexnameslags <- NULL
   for (ii in 1:plagstar) wexnameslags <- c(wexnameslags,rep(paste("Wexlag",ii,sep=""),Mstar))
   if(!is.null(Wraw)){
-    wexo             <- TRUE
-    Wexlag           <- .mlag(Wraw,plagstar)
-    colnames(Wraw)   <- wexnames
-    colnames(Wexlag) <- wexnameslags
+    wexo             = TRUE
+    Wexlag           = .mlag(Wraw,plagstar)
+    colnames(Wraw)   = wexnames
+    colnames(Wexlag) = wexnameslags
   }else{
-    wexo             <- FALSE
-    Wexlag           <- NULL
+    wexo             = FALSE
+    Wexlag           = NULL
   }
   
-  texo <- FALSE; Mex <- 0; exnames <- NULL
+  texo = FALSE; Mex = 0; exnames = NULL
   if(nrow(Exraw) != 1){
-    Mex             <- ncol(Exraw)
-    texo            <- TRUE
-    exnames         <- rep("Tex",Mex)
-    colnames(Exraw) <- exnames
+    Mex             = ncol(Exraw)
+    texo            = TRUE
+    exnames         = rep("Tex",Mex)
+    colnames(Exraw) = exnames
   }
-  nameslags_end <- c(nameslags,wexnames,wexnameslags,exnames)
+  nameslags_end = c(nameslags,wexnames,wexnameslags,exnames)
   
-  Xraw          <- cbind(Ylag,Wraw,Wexlag)
-  if(texo) Xraw <- cbind(Xraw,Exraw)
-  X             <- Xraw[(pmax+1):nrow(Xraw),,drop=FALSE]
-  Y             <- Yraw[(pmax+1):Traw,,drop=FALSE]
-  bigT          <- nrow(X)
+  Xraw          = cbind(Ylag,Wraw,Wexlag)
+  if(texo) Xraw = cbind(Xraw,Exraw)
+  X             = Xraw[(pmax+1):nrow(Xraw),,drop=FALSE]
+  Y             = Yraw[(pmax+1):Traw,,drop=FALSE]
+  bigT          = nrow(X)
   
   if(cons){
-    X                    <- cbind(X,1)
-    colnames(X)[ncol(X)] <- "cons"
-    nameslags_end        <- c(nameslags_end,"cons")
+    X                    = cbind(X,1)
+    colnames(X)[ncol(X)] = "cons"
+    nameslags_end        = c(nameslags_end,"cons")
   }
   if(trend){
-    X                    <- cbind(X,seq(1,bigT))
-    colnames(X)[ncol(X)] <- "trend"
-    nameslags_end        <- c(nameslags_end,"trend")
+    X                    = cbind(X,seq(1,bigT))
+    colnames(X)[ncol(X)] = "trend"
+    nameslags_end        = c(nameslags_end,"trend")
   }
   
-  k     <- ncol(X)
+  k     = ncol(X)
   #k_end <- ncol(Ylag) + Kstar + ifelse(cons,1,0) + ifelse(trend,1,0)
-  v     <- (M*(M-1))/2
-  n     <- K*M
-  nstar <- Kstar*M
+  v     = (M*(M-1))/2
+  n     = K*M
+  nstar = Kstar*M
   #---------------------------------------------------------------------------------------------------------
   # HYPERPARAMETERS
   #---------------------------------------------------------------------------------------------------------
@@ -1169,28 +1175,28 @@
     # Step 3: Sample variances
     if(sv){
       for (mm in 1:M){
-        para   <- as.list(pars_var[,mm])
-        para$nu = Inf; para$rho=0; para$beta<-0
-        svdraw <- svsample_fast_cpp(y=Em_str[,mm], draws=1, burnin=0, designmatrix=matrix(NA_real_), 
+        para   = as.list(pars_var[,mm])
+        para$nu = Inf; para$rho=0; para$beta=0
+        svdraw = svsample_fast_cpp(y=Em_str[,mm], draws=1, burnin=0, designmatrix=matrix(NA_real_), 
                                     priorspec=Sv_priors, thinpara=1, thinlatent=1, keeptime="all", 
                                     startpara=para, startlatent=Sv_draw[,mm], 
                                     keeptau=FALSE, print_settings=list(quiet=TRUE, n_chains=1, chain=1), 
                                     correct_model_misspecification=FALSE, interweave=TRUE, myoffset=0, 
                                     fast_sv=get_default_fast_sv())
-        para$mu       <- svdraw$para[1,"mu"]
-        para$phi      <- svdraw$para[1,"phi"]
-        para$sigma    <- svdraw$para[1,"sigma"]
-        para$latent0  <- svdraw$latent0[1,"h_0"]
-        pars_var[,mm] <- unlist(para[c("mu","phi","sigma","latent0")])
-        Sv_draw[,mm]  <- svdraw$latent[1,]
+        para$mu       = svdraw$para[1,"mu"]
+        para$phi      = svdraw$para[1,"phi"]
+        para$sigma    = svdraw$para[1,"sigma"]
+        para$latent0  = svdraw$latent0[1,"h_0"]
+        pars_var[,mm] = unlist(para[c("mu","phi","sigma","latent0")])
+        Sv_draw[,mm]  = svdraw$latent[1,]
       }
     }else{
       for (jj in 1:M){
-        S_1 <- a_1+bigT/2
-        S_2 <- b_1+crossprod(Em_str[,jj])/2
+        S_1 = a_1+bigT/2
+        S_2 = b_1+crossprod(Em_str[,jj])/2
         
-        sig_eta <- 1/rgamma(1,S_1,S_2)
-        Sv_draw[,jj] <- log(sig_eta)
+        sig_eta = 1/rgamma(1,S_1,S_2)
+        Sv_draw[,jj] = log(sig_eta)
       }
     }
     #----------------------------------------------------------------------------
@@ -1207,7 +1213,7 @@
       }
       A_store[,,count]   = A_tmp
       L_store[,,count]   = L_draw
-      res_store[,,count] = Y-X%*%A_draw
+      res_store[,,count] = Y - X %*% A_draw
       # SV
       Sv_store[,,count] = Sv_draw
       if(save_vola_pars){
@@ -1294,7 +1300,7 @@
 #' @importFrom stats median
 #' @importFrom utils memory.limit
 #' @noRd
-.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,nex,eigen,trim,verbose){
+.gvar.stacking.wrapper<-function(xglobal,plag,globalpost,draws,thin,trend,nex,enames,eigen,trim,verbose){
   results <- tryCatch(
     {
       bigT      = nrow(xglobal)
@@ -1327,7 +1333,7 @@
       dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
       names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
       if(trend) names <- c(names,"trend")
-      if(nex>0) names <- c(names,paste0("exo.",seq(1,nex)))
+      if(nex>0) names <- c(names,enames)
       dimnames(A_large)[[2]]<-names
       
       # kick out in-stable draws
@@ -1381,7 +1387,7 @@
 #' @importFrom stats median
 #' @importFrom utils txtProgressBar setTxtProgressBar
 #' @noRd
-.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,nex,eigen=FALSE,trim=NULL,verbose=TRUE){
+.gvar.stacking<-function(xglobal,plag,globalpost,draws,thin,trend,nex,enames,eigen=FALSE,trim=NULL,verbose=TRUE){
   # initialize objects here
   bigT = nrow(xglobal) 
   bigK = ncol(xglobal)
@@ -1431,7 +1437,6 @@
     if(trend) b1 = G.inv %*% a1 else b1 = NULL
     if(nex>0) b2 = G.inv %*% a2 else b2 = NULL
     
-    
     ALPHA <- NULL
     for (kk in 1:plag){
       assign(paste("F",kk,sep=""),G.inv%*%get(paste("H",kk,sep="")))
@@ -1456,6 +1461,13 @@
     # }
     if(verbose) setTxtProgressBar(pb, irep)
   }
+  
+  # naming
+  dimnames(S_large)[[1]]<-dimnames(S_large)[[2]]<-dimnames(Ginv_large)[[1]]<-dimnames(Ginv_large)[[2]]<-dimnames(A_large)[[1]]<-colnames(xglobal)
+  names <- c(paste(rep(colnames(xglobal),plag),".",rep(seq(1,plag),each=bigK),sep=""),"cons")
+  if(trend) names <- c(names,"trend")
+  if(nex>0) names <- c(names,enames)
+  dimnames(A_large)[[2]]<-names
   
   # kick out in-stable draws
   if(!is.null(trim)){
@@ -1652,7 +1664,7 @@
 #' @importFrom MASS Null
 #' @importFrom stats rnorm
 #' @noRd
-.irf.sign.zero <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,shocklist,...){
+.irf.sign.zero <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,Amat,shocklist,...){
   bigT          <- nrow(xdat)
   bigK          <- ncol(xdat)
   varNames      <- colnames(xdat)
@@ -1786,7 +1798,7 @@
 
 #' @name .irf.chol
 #' @noRd
-.irf.chol <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,shocklist,...){
+.irf.chol <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,Amat,shocklist,...){
   bigT       <- nrow(xdat)
   bigK       <- ncol(xdat)
   varNames   <- colnames(xdat)
@@ -1804,7 +1816,7 @@
     }
   }
   # create dynamic multiplier
-  PHIx <- array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx = array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] = dimnames(PHIx)[[2]] = varNames
   PHIx[,,plag+1] <- diag(bigK)
   for (ihor in (plag+2):(plag+n.ahead+1)){
     acc = matrix(0,bigK,bigK)
@@ -1817,7 +1829,44 @@
   # compute shock
   invGSigma_u  <- Ginv%*%P0G
   # computing impulse response function
-  irfa  <- array(0,c(bigK,bigK,n.ahead+1)); dimnames(irfa)[[2]] <- varNames
+  irfa  <- array(0,c(bigK,bigK,n.ahead+1)); dimnames(irfa)[[1]] = varNames; dimnames(irfa)[[2]] = varNames
+  for (ihor in 1:(n.ahead+1)){
+    irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
+  }
+  # define output
+  out <- list(impl=irfa,rot=NULL,icounter=1)
+  return(out)
+}
+
+#' @name .irf.exo
+#' @noRd
+.irf.exo <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,Amat,shocklist,...){
+  bigT       = nrow(xdat)
+  bigK       = ncol(xdat)
+  varNames   = colnames(xdat)
+  shock.idx  = shocklist$shock.idx
+  shock.cidx = shocklist$shock.cidx
+  shock.var  = shocklist$shock.var
+  shock.n    = length(shock.var)
+  
+  # create P0G
+  P0G = Amat[,shock.var,drop=FALSE]
+  
+  # create dynamic multiplier
+  PHIx <- array(0,c(bigK,bigK,plag+n.ahead+1)); dimnames(PHIx)[[1]] <- dimnames(PHIx)[[2]] <- varNames
+  PHIx[,,plag+1] <- diag(bigK)
+  for (ihor in (plag+2):(plag+n.ahead+1)){
+    acc = matrix(0,bigK,bigK)
+    for (pp in 1:plag){
+      acc  <-  acc + Fmat[,,pp]%*%PHIx[,,ihor-pp]
+    }
+    PHIx[,,ihor]  <-  acc
+  }
+  PHI  <-  PHIx[,,(plag+1):(plag+n.ahead+1)]
+  # compute shock
+  invGSigma_u = P0G # we already use the global solution
+  # computing impulse response function
+  irfa  <- array(0,c(bigK,shock.n,n.ahead+1)); dimnames(irfa)[[1]] = varNames; dimnames(irfa)[[2]] <- shock.var
   for (ihor in 1:(n.ahead+1)){
     irfa[,,ihor] <- PHI[,,ihor]%*%invGSigma_u
   }
@@ -1828,7 +1877,7 @@
 
 #' @name .irf.girf
 #' @noRd
-.irf.girf <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat, ...){
+.irf.girf <- function(xdat,plag,n.ahead,Ginv,Fmat,Smat,Amat,...){
   bigT     <- nrow(xdat)
   bigK     <- ncol(xdat)
   varNames <- colnames(xdat)

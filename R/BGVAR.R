@@ -18,7 +18,7 @@
 #' @param thin Is a thinning interval of the MCMC chain. As a rule of thumb, workspaces get large if draws/thin>500. Default set to \code{thin=1}.
 #' @param Ex For including truly exogenous variables to the model. Either a \describe{
 #' \item{\code{list object}}{ of maximum length \code{N} that contains the data. Each element of the list refers to a country/entity and has to match the country/entity names in \code{Data}. If no truly exogenous variables are added to the respective country/entity model, omit the entry. The \code{T} rows (i.e., number of time observations), however, need to be the same for each country. Country and variable names are not allowed to contain a dot \code{.} (i.e., a dot) since this is our naming convention.}
-#' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The column names should consist of two parts, separated by a \code{.} (i.e., a dot). The first part should denote the country / entity name and the second part the name of the variable. Country and variable names are not allowed to contain a \code{.} (i.e., a dot).}
+#' \item{\code{matrix object}}{ of dimension \code{T} times number of truly exogenous variables. The naming convention decides how the truly exogenous variables are included to the country models: 1) If the column names consist of two parts (first country/entity name and then variable name, separated by a \code{.}, i.e., a dot), then it is included only to those countries specified. 2) If the column name consists only of the variable name, the truly exogenous variable will be included to all countries. Country/Entity and variable names are not allowed to contain a \code{.} (i.e., a dot).}
 #' }
 #' @param trend If set to \code{TRUE} a deterministic trend is added to the country models.
 #' @param hyperpara Is a list object that defines the hyperparameters when the prior is set to either \code{MN}, \code{SSVS}, \code{NG}, or \code{HS}. \describe{
@@ -336,16 +336,18 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       if(nrow(Ex)!=args$Traw){
         stop("Provided data and truly exogenous data not equally long. Please check.")
       }
-      if(!all(grepl("\\.",colnames(Ex)))){
-        stop("Please separate country- and variable names with a point.")
-      }
-      ExcN <- unique(unlist(lapply(strsplit(colnames(Ex),".",fixed=TRUE),function(l) l[1])))
-      if(!all(ExcN%in%cN)){
-        stop("Provided country names in data and truly exogenous data not equal. Please check.")
-      }
-      ExN  <- length(ExcN)
-      if(!all(nchar(ExcN)>1)){
-        stop("Please provide entity names with minimal two characters.")
+      if(grepl("\\.",colnames(Ex))){
+        if(!all(grepl("\\.",colnames(Ex)))){
+          stop("Please separate country- and variable names with a point.")
+        }
+        ExcN <- unique(unlist(lapply(strsplit(colnames(Ex),".",fixed=TRUE),function(l) l[1])))
+        if(!all(ExcN%in%cN)){
+          stop("Provided country names in data and truly exogenous data not equal. Please check.")
+        }
+        ExN  <- length(ExcN)
+        if(!all(nchar(ExcN)>1)){
+          stop("Please provide entity names with minimal two characters.")
+        }
       }
       check_exo <- apply(Ex,2,function(ee)unlist(lapply(Data, function(dd) any(apply(dd,2,function(ddd)all(ddd==ee))))))
       if(any(check_exo)){
@@ -357,12 +359,19 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
         stop(paste0("BGVAR detects that one of your exogenous variables is also contained in one of your country data stored in 'Data'. Please check and respecify! In more detail,
              it suspect that the problems occur in the following country models: ",string_exo))
       }
-      temp <- list()
-      for(cc in 1:ExN){
-        temp[[cc]] <- Ex[,grepl(ExcN[cc],colnames(Ex)),drop=FALSE]
-        colnames(temp[[cc]]) <- unlist(lapply(strsplit(colnames(temp[[cc]]),".",fixed=TRUE),function(l)l[2]))
+      temp = vector(mode="list", length=N); names(temp) = cN
+      if(grepl("\\.",colnames(Ex))){
+        for(cc in 1:ExN){
+          if(any(grepl(ExcN[cc],colnames(Ex)))){
+            temp[[cc]] = Ex[,grepl(ExcN[cc],colnames(Ex)),drop=FALSE]
+            colnames(temp[[cc]]) <- unlist(lapply(strsplit(colnames(temp[[cc]]),".",fixed=TRUE),function(l)l[2]))
+          }
+        }
+      }else{
+        for(cc in 1:N){
+          temp[[cc]] = Ex
+        }
       }
-      names(temp)<-ExcN
       Ex <- temp
     }else if(is.list(Ex)){
       # check for NAs
@@ -408,7 +417,18 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       }
     }
   }
-  args$Ex <- Ex
+  if(!is.null(Ex)){
+    enames  = unique(unlist(lapply(Ex, colnames)))
+    nex     = length(enames)
+    eglobal = do.call("cbind",Ex)[,enames,drop=FALSE]
+  }else{
+    enames  = NULL
+    nex     = 0L
+    eglobal = NULL
+  }
+  args$Ex      = Ex
+  args$nex     = nex
+  args$enames  = enames
   # check thinning factor
   if(thin<1){
     printtext <- paste0(printtext, paste("Thinning factor of ",thin," not possible. Adjusted to ",round(1/thin,2),".\n",sep=""))
@@ -473,14 +493,18 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   gW            = xglobal$gW
   xglobal       = xglobal$bigx
   #---------------------------------hold out sample------------------------------------------------------------#
-  args$yfull <- xglobal
-  xglobal    <- xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
-  nex        <- 0L
+  args$yfull = xglobal
+  xglobal    = xglobal[1:(nrow(xglobal)-hold.out),,drop=FALSE]
   if(!is.null(Ex)){
-    Ex <- lapply(Ex,function(l)l[1:(nrow(l)-hold.out),,drop=FALSE])
-    nex <- max(unlist(lapply(Ex, ncol)))
+    for(cc in 1:N){
+      if(!is.null(Ex[[cc]])){
+        Ex[[cc]] = Ex[[cc]][1:(nrow(Ex[[cc]])-hold.out),,drop=FALSE]
+      }
+    }
+    eglobal      = eglobal[1:(nrow(eglobal)-hold.out),,drop=FALSE]
+    args$eglobal = eglobal
   }
-  args$time  <- args$time[1:(length(args$time)-hold.out)]
+  args$time = args$time[1:(length(args$time)-hold.out)]
   #------------------------------ prepare applyfun --------------------------------------------------------#
   if(is.null(applyfun)) {
     applyfun <- if(is.null(cores)) {
@@ -523,7 +547,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(verbose) cat("Stacking of global model starts... \n")
   # insert stacking function here
   # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
-  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=max(lags),globalpost=globalpost,draws=draws,thin=thin,trend=trend,nex=nex,eigen=eigen,trim=trim,verbose=verbose)
+  stacked.results <- .gvar.stacking.wrapper(xglobal=xglobal,plag=max(lags),globalpost=globalpost,draws=draws,thin=thin,trend=trend,nex=nex,enames=enames,eigen=eigen,trim=trim,verbose=verbose)
   if(!is.null(trim)) {args$thindraws <- length(stacked.results$F.eigen)}
   if(verbose) cat("\nStacking finished.\n")
   if(verbose) cat(paste0("Computation of BGVAR yields ",args$thindraws," (",round(args$thindraws/(draws/thin),2)*100,"%) draws (",
@@ -676,13 +700,14 @@ summary.bgvar <- function(object, ...){
     return(invisible(object))
   }
   
-  CD  <- conv.diag(object)
-  res <- resid.corr.test(object,lag.cor=1,alpha=0.95)
-  cross.corr <- avg.pair.cc(object)
-  out  <- structure(list("object"=object,
-                         "CD"=CD,
-                         "res"=res,
-                         "cross.corr"=cross.corr), class = "bgvar.summary")
+  CD         = conv.diag(object)
+  res        = resid.corr.test(object,lag.cor=1,alpha=0.95)
+  cross.corr = avg.pair.cc(object)
+  
+  out = structure(list("object"=object,
+                       "CD"=CD,
+                       "res"=res,
+                       "cross.corr"=cross.corr), class = "bgvar.summary")
   return(out)
 }
 
@@ -774,19 +799,21 @@ residuals.bgvar <- function(object, ...){
     return(invisible(object))
   }
   
-  G.mat   <- object$stacked.results$Ginv_large
-  A.mat   <- object$stacked.results$A_large
-  lags    <- object$args$lags
-  pmax    <- max(lags)
-  draws   <- object$args$thindraws
-  time    <- object$args$time
-  trend   <- object$args$trend
-  xglobal <- object$xglobal
-  YY      <- xglobal[(pmax+1):nrow(xglobal),]
-  XX      <- cbind(.mlag(xglobal,pmax),1)
-  XX      <- XX[(pmax+1):nrow(XX),]
-  if(trend) XX <- cbind(XX,seq(1,nrow(XX)))
-  
+  G.mat   = object$stacked.results$Ginv_large
+  A.mat   = object$stacked.results$A_large
+  lags    = object$args$lags
+  pmax    = max(lags)
+  draws   = object$args$thindraws
+  time    = object$args$time
+  trend   = object$args$trend
+  exo     = !is.null(object$args$Ex)
+  xglobal = object$xglobal
+  eglobal = object$args$eglobal
+  YY      = xglobal[(pmax+1):nrow(xglobal),]
+  XX      = cbind(.mlag(xglobal,pmax),1)
+  XX      = XX[(pmax+1):nrow(XX),]
+  if(trend) XX = cbind(XX,seq(1,nrow(XX)))
+  if(exo) XX = cbind(XX,eglobal[(pmax+1):nrow(eglobal),,drop=FALSE])
   rownames(YY) <- as.character(time[-c(1:pmax)])
   res.array.country<-res.array.global<-array(0,dim=c(draws,dim(YY)))
   for(irep in 1:draws){
@@ -909,20 +936,23 @@ fitted.bgvar<-function(object, ..., global=TRUE){
     return(invisible(object))
   }
   
-  lags     <- object$args$lags
-  pmax     <- max(lags)
-  xglobal  <- object$xglobal
-  trend    <- object$args$trend
-  XX       <- .mlag(xglobal,pmax)
-  YY       <- xglobal[-c(1:pmax),,drop=FALSE]
-  XX       <- cbind(XX[-c(1:pmax),,drop=FALSE],1)
-  bigT     <- nrow(YY)
-  if(trend) XX <- cbind(XX,seq(1,bigT))
+  lags    = object$args$lags
+  pmax    = max(lags)
+  exo     = !is.null(object$args$Ex)
+  xglobal = object$xglobal
+  eglobal = object$args$eglobal
+  trend   = object$args$trend
+  XX      = .mlag(xglobal,pmax)
+  YY      = xglobal[(pmax+1):nrow(xglobal),,drop=FALSE]
+  XX      = cbind(XX[(pmax+1):nrow(XX),,drop=FALSE],1)
+  bigT    = nrow(YY)
+  if(trend) XX = cbind(XX,seq(1,bigT))
+  if(exo) XX = cbind(XX,eglobal[(pmax+1):nrow(eglobal),,drop=FALSE])
   if(global){
-    A_post <- apply(object$stacked.results$A_large,c(1,2),median)
-    fit    <- XX%*%t(A_post)
+    A_post = apply(object$stacked.results$A_large,c(1,2),median)
+    fit    = XX%*%t(A_post)
   }else{
-    fit <- YY-do.call("cbind",object$cc.results$res)
+    fit = YY-do.call("cbind",object$cc.results$res)
   }
   return(fit)
 }
@@ -959,21 +989,25 @@ logLik.bgvar<-function(object, ..., quantile=.50){
   
   temp <- object$args$logLik
   if(is.null(temp)){
-    xglobal   <- object$xglobal
-    lags      <- object$args$lags
-    pmax      <- max(lags)
-    trend     <- object$args$trend
-    bigT      <- nrow(xglobal)
-    bigK      <- ncol(xglobal)
-    thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
-    A_large   <- object$stacked.results$A_large
-    S_large   <- object$stacked.results$S_large
-    Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- try(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik,silent=TRUE)
+    xglobal   = object$xglobal
+    lags      = object$args$lags
+    pmax      = max(lags)
+    trend     = object$args$trend
+    exo       = !is.null(object$args$Ex)
+    eglobal   = object$args$eglobal
+    bigT      = nrow(xglobal)
+    bigK      = ncol(xglobal)
+    thindraws = object$args$thindraws
+    X_large   = cbind(.mlag(xglobal,pmax),1)
+    if(trend) X_large = cbind(X_large,seq(1:bigT))
+    if(exo) X_large = cbind(X_large,eglobal)
+    Y_large    = xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large    = X_large[(pmax+1):bigT,,drop=FALSE]
+    A_large    = object$stacked.results$A_large
+    S_large    = object$stacked.results$S_large
+    Ginv_large = object$stacked.results$Ginv_large
+    # Rcpp::sourceCpp("./src/gvar_stacking.cpp")
+    globalLik  = try(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik,silent=TRUE)
     
    # if(all(as.numeric(globalLik)==-Inf)){
    #   for(irep in 1:thindraws){
@@ -1036,28 +1070,31 @@ dic.bgvar <- function(object, ...){
   if(!is.null(object$args$dic)){
     out <- object$args$dic
   }else{
-    xglobal   <- object$xglobal
-    lags      <- object$args$lags
-    pmax      <- max(lags)
-    trend     <- object$args$trend
-    bigT      <- nrow(xglobal)
-    bigK      <- ncol(xglobal)
-    thindraws <- object$args$thindraws
-    X_large   <- cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
-    Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
-    X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
-    A_large   <- object$stacked.results$A_large
-    S_large   <- object$stacked.results$S_large
-    Ginv_large<- object$stacked.results$Ginv_large
-    globalLik <- c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
-    A_mean     <- apply(A_large,c(1,2),mean)
-    S_mean     <- apply(S_large,c(1,2),mean)
-    Ginv_mean  <- apply(Ginv_large,c(1,2),mean)
+    xglobal   = object$xglobal
+    lags      = object$args$lags
+    pmax      = max(lags)
+    trend     = object$args$trend
+    exo       = !is.null(object$args$Ex)
+    eglobal   = object$args$eglobal
+    bigT      = nrow(xglobal)
+    bigK      = ncol(xglobal)
+    thindraws = object$args$thindraws
+    X_large   = cbind(.mlag(xglobal,pmax),1)
+    if(trend) X_large = cbind(X_large,seq(1:bigT))
+    if(exo) X_large = cbind(X_large,eglobal)
+    Y_large    = xglobal[(pmax+1):bigT,,drop=FALSE]
+    X_large    = X_large[(pmax+1):bigT,,drop=FALSE]
+    A_large    = object$stacked.results$A_large
+    S_large    = object$stacked.results$S_large
+    Ginv_large = object$stacked.results$Ginv_large
+    globalLik  = c(globalLik(Y_in=Y_large,X_in=X_large,A_in=A_large,S_in=S_large,Ginv_in=Ginv_large,thindraws=thindraws)$globalLik)
+    A_mean     = apply(A_large,c(1,2),mean)
+    S_mean     = apply(S_large,c(1,2),mean)
+    Ginv_mean  = apply(Ginv_large,c(1,2),mean)
     
-    Dbar <- -2*mean(globalLik,na.rm=TRUE)
-    pD   <- Dbar+2*sum(dmvnrm_arma_fast(Y_large,X_large%*%t(A_mean),Ginv_mean%*%S_mean%*%t(Ginv_mean),TRUE))
-    out <- Dbar+pD
+    Dbar = -2*mean(globalLik,na.rm=TRUE)
+    pD   = Dbar+2*sum(dmvnrm_arma_fast(Y_large,X_large%*%t(A_mean),Ginv_mean%*%S_mean%*%t(Ginv_mean),TRUE))
+    out  = Dbar+pD
   }
   if(is.null(object$args$dic)){
     eval.parent(substitute(object$args$dic<-out))
