@@ -324,7 +324,7 @@ matrix_to_list <- function(datamat){
   }
   datalist <- list()
   for(cc in 1:N){
-    datalist[[cN[cc]]] <- datamat[,grepl(cN[cc],colnames(datamat)),drop=FALSE]
+    datalist[[cN[cc]]] <- datamat[,vapply(strsplit(colnames(datamat), ".", fixed=TRUE), `[`, "", 1L) == cN[cc],drop=FALSE]
     colnames(datalist[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(datalist[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
   }
   return(datalist)
@@ -381,15 +381,17 @@ excel_to_list <- function(file, first_column_as_time=TRUE, skipsheet=NULL, ...){
   if(!grepl("(xls|xlsx)$",file))
     stop("Please provide a path to an excel filesheet (ending with xls/xlsx).")
   
-  skiptype <- typeof(skipsheet)
-  if(!(skiptype %in% c("numeric","character","NULL")))
+  if(!(is.null(skipsheet) || is.numeric(skipsheet) || is.character(skipsheet)))
     stop("Please provide skipsheet argument in right format.")
   cN <- excel_sheets(file)
-  if(skiptype == "character")
-    cN <- cN[!cN%in%skipsheet]
-  if(skiptype == "numeric")
-    cN <- cN[-skipsheet]
-  
+  if(is.character(skipsheet)) cN <- cN[!cN %in% skipsheet]
+  if(is.numeric(skipsheet) && length(skipsheet)){
+    if(any(!is.finite(skipsheet)) || any(skipsheet != floor(skipsheet)) ||
+       any(skipsheet < 1 | skipsheet > length(cN)))
+      stop("skipsheet indices must be positive integers within the sheet range.")
+    cN <- cN[-unique(skipsheet)]
+  }
+
   format <- excel_format(file)
   datalist <- list()
   for(cc in cN){

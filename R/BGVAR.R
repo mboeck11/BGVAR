@@ -37,12 +37,12 @@
 #'       \item{\code{lambda4}}{ Starting value of \code{lambda4}. Default set to 0.1.}
 #'       }}
 #' \item{"SSVS"}{\describe{
-#'       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
-#'       \item{\code{tau1}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is  included (slab, tau1 should be large).}
-#'       \item{\code{kappa0}}{ is the prior variance associated with the normal prior on the covariances if a covariance equals zero (spike, kappa0 should be close to zero).}
-#'       \item{\code{kappa1}}{  is the prior variance associated with the normal prior on the covariances if a covariance is  unequal to zero (slab, kappa1 should be large).}
-#'       \item{\code{p_i}}{ is the prior inclusion probability for each regression coefficient whether it is included in the model (default set to \code{p_i=0.5}).}
-#'       \item{\code{q_ij}}{ is the prior inclusion probability for each covariance whether it is included in the model (default set to \code{q_ij=0.5}).}
+#'       \item{\code{tau0}}{ Standard deviation multiplier for the spike component of the regression coefficient prior. The component’s standard deviation is \code{tau0} times the coefficient’s OLS standard error. Choose a small positive value to impose strong shrinkage toward the prior mean.}
+#'       \item{\code{tau1}}{ Standard deviation multiplier for the slab component of the regression coefficient prior. The component’s standard deviation is \code{tau1} times the coefficient’s OLS standard error. Choose a value larger than tau0 to allow weaker shrinkage.}
+#'       \item{\code{kappa0}}{ Prior standard deviation for the spike component of the off-diagonal coefficients in the triangular decomposition of the error covariance matrix. Choose a small positive value to impose strong shrinkage toward zero.}
+#'       \item{\code{kappa1}}{ Prior standard deviation for the slab component of these coefficients. Choose a value larger than kappa0 to allow weaker shrinkage.}
+#'       \item{\code{p_i}}{ Prior probability that a regression coefficient belongs to the slab component (gamma = 1). The spike probability is \code{1-p_i}. Larger values favor inclusion and weaker shrinkage. Default: \code{p_i=0.5}.}
+#'       \item{\code{q_ij}}{ Prior probability that an off-diagonal coefficient in the triangular decomposition of the error covariance matrix belongs to the slab component (omega = 1). The spike probability is \code{1-q_ij}. Larger values favor inclusion and weaker shrinkage. Default: \code{q_ij=0.5}.}
 #'       }}
 #' \item{"NG":}{\describe{
 #'       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
@@ -191,11 +191,24 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(!length(plag)%in%c(1,2)){
     stop("Please specify number of lags accordingly. One lag length parameter for the whole model.")
   }
+  if(any(!is.finite(plag)) || any(plag<1 | plag!=floor(plag))){
+    stop("Please specify number of lags as finite positive integers.")
+  }
   if(!is.numeric(draws) | !is.numeric(burnin)){
     stop("Please specify number of draws and burnin as numeric.")
   }
-  if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
-    stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
+  if(!.is_integer_count(draws, minimum=1) || !.is_integer_count(burnin)){
+    stop("Please specify number of draws and burnin accordingly: draws must be a finite positive integer and burnin a finite nonnegative integer.")
+  }
+  if(!.is_integer_count(hold.out)){
+    stop("'hold.out' must be a finite nonnegative integer.")
+  }
+  if(!is.numeric(thin) || length(thin)!=1L || !is.finite(thin) || thin<=0){
+    stop("'thin' must be a finite positive thinning interval.")
+  }
+  normalized_thin <- if(thin<1) 1/thin else thin
+  if(!.is_integer_count(normalized_thin, minimum=1)){
+    stop("'thin' must be a positive integer or the reciprocal of a positive integer.")
   }
   if(!prior%in%c("MN","SSVS","NG","HS")){
     stop("Please selecte one of the following prior options: MN, SSVS, NG, or HS.")
@@ -204,9 +217,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   # expert settings
   expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, save.shrink.store = FALSE, save.vola.store = FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
-    if(!(is.null(expert$cores) || is.numeric(expert$cores))){
-      stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
-    }
+    expert$cores <- .normalize_cores(expert$cores)
     for(n in names(expert))
       expert.list[[n]] <- expert[[n]]
   }
@@ -247,7 +258,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
     temp <- list()
     for(cc in 1:N){
-      temp[[cN[cc]]] <- Data[,grepl(cN[cc],colnames(Data))]
+      temp[[cN[cc]]] <- Data[,vapply(strsplit(colnames(Data), ".", fixed=TRUE), `[`, "", 1L) == cN[cc],drop=FALSE]
       colnames(temp[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
     }
     Data <- temp
@@ -261,7 +272,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     N <- length(Data)
     # check names
     if(is.null(names(Data))){
-      names(Data)<-paste(c,1:length(Data),sep="")
+      stop("Please provide country names for every element of Data.")
     }
     cN <- names(Data)
     if(!all(nchar(cN)==2)){
@@ -296,6 +307,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     args$Traw <- length(timeindex)
   }
   args$Data <- Data
+  if(any(vapply(Data, nrow, integer(1))-hold.out <= max(lags))){
+    stop("'hold.out' must leave more observations than the maximum lag order.")
+  }
   # check Weight matrix if matrix
   if(is.matrix(W)){
     W.aux<-list();W.aux$W<-W;W<-W.aux;rm(W.aux) # convert W into a list
@@ -336,7 +350,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       if(nrow(Ex)!=args$Traw){
         stop("Provided data and truly exogenous data not equally long. Please check.")
       }
-      if(grepl("\\.",colnames(Ex))){
+      if(any(grepl("\\.",colnames(Ex)))){
         if(!all(grepl("\\.",colnames(Ex)))){
           stop("Please separate country- and variable names with a point.")
         }
@@ -360,11 +374,11 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
              it suspect that the problems occur in the following country models: ",string_exo))
       }
       temp = vector(mode="list", length=N); names(temp) = cN
-      if(grepl("\\.",colnames(Ex))){
+      if(all(grepl("\\.",colnames(Ex)))){
         for(cc in 1:ExN){
-          if(any(grepl(ExcN[cc],colnames(Ex)))){
-            temp[[cc]] = Ex[,grepl(ExcN[cc],colnames(Ex)),drop=FALSE]
-            colnames(temp[[cc]]) <- unlist(lapply(strsplit(colnames(temp[[cc]]),".",fixed=TRUE),function(l)l[2]))
+          if(ExcN[cc] %in% cN){
+            temp[[ExcN[cc]]] = Ex[,vapply(strsplit(colnames(Ex), ".", fixed=TRUE), `[`, "", 1L) == ExcN[cc],drop=FALSE]
+            colnames(temp[[ExcN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[ExcN[cc]]]),".",fixed=TRUE),function(l)l[2]))
           }
         }
       }else{
@@ -381,7 +395,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       ExN <- length(Ex)
       # check names
       if(is.null(names(Ex))){
-        names(Ex)<-paste(c,1:length(Ex),sep="")
+        stop("Please provide entity names for every element of Ex.")
       }
       ExcN <- names(Ex)
       if(!all(nchar(ExcN)>1)){
@@ -454,7 +468,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
                             lambda1=0.1, shrink1=0.1,lambda2=0.2, shrink2=0.2,lambda3=0.1, shrink3=0.1,lambda4=100, shrink4=100, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
                             d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=TRUE,tau_log=TRUE) # NG
-  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3","shrink4","lambda1","lambda2","lambda3","lambda4",
+  paras     <- c("a_1","b_1","prmean","Bsigma","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3","shrink4","lambda1","lambda2","lambda3","lambda4",
                  "tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
     printtext <- paste0(printtext, "\t No hyperparameters are chosen, default setting applied.\n")
@@ -466,17 +480,30 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
         warning(paste0(para," no valid hyperparameter. Please check.\n"))
         next
       }
-      default_hyperpara[para] <- hyperpara[para]
+      target <- if(para == "Bsigma_sv") "Bsigma" else para
+      if(para != "Bsigma_sv" || !("Bsigma" %in% names(hyperpara)))
+        default_hyperpara[target] <- hyperpara[para]
       if(para=="tau_theta") default_hyperpara["tau_log"] <- FALSE
     }
     printtext <- paste0(printtext, "Default values for chosen hyperparamters overwritten.\n")
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
     if(any(grepl("shrink",names(hyperpara)))){
       warning(paste0("Note that parameters 'shrink1', 'shrink2', 'shrink3', and 'shrink4' are depreciated. Use 'lambda1', 'lambda2', 'lambda3', or 'lambda4' instead. Values from shrink are taken over to lambda."))
-      default_hyerpara["lambda1"] = default_hyperpara["shrink1"]
-      default_hyerpara["lambda2"] = default_hyperpara["shrink2"]
-      default_hyerpara["lambda3"] = default_hyperpara["shrink3"]
-      default_hyerpara["lambda4"] = default_hyperpara["shrink4"]
+      for(i in seq_len(4L)){
+        alias <- paste0("shrink", i)
+        target <- paste0("lambda", i)
+        if(alias %in% names(hyperpara) && !(target %in% names(hyperpara)))
+          default_hyperpara[target] <- hyperpara[alias]
+      }
+    }
+  }
+  if(prior=="SSVS"){
+    for(parameter in c("p_i", "q_ij")){
+      probability <- default_hyperpara[[parameter]]
+      if(!is.numeric(probability) || length(probability)!=1L ||
+         !is.finite(probability) || probability<0 || probability>1){
+        stop(paste0("'",parameter,"' must be a finite probability between 0 and 1."))
+      }
     }
   }
   # store setting
@@ -899,14 +926,13 @@ vcov.bgvar<-function(object, ..., quantile=.50){
     return(invisible(object))
   }
   
-  S_qu <- apply(object$stacked.results$S_large,c(1,2),quantile,quantile,na.rm=TRUE)
-  Ginv_qu <- apply(object$stacked.results$Ginv_large,c(1,2),quantile,quantile,na.rm=TRUE)
-  if(length(quantile)==1){
-    out <- Ginv_qu%*%S_qu%*%t(Ginv_qu)
-  }else{
-    out <- sapply(1:length(quantile),function(qq)Ginv_qu[qq,,]%*%S_qu[qq,,]%*%t(Ginv_qu[qq,,]),simplify="array")
-    out <- aperm(out,c(3,1,2))
-  }
+  .validate_quantiles(quantile)
+  S <- object$stacked.results$S_large
+  G <- object$stacked.results$Ginv_large
+  covariance <- array(NA_real_, dim(S), dimnames=dimnames(S))
+  for(draw in seq_len(dim(S)[3]))
+    covariance[,,draw] <- G[,,draw] %*% S[,,draw] %*% t(G[,,draw])
+  out <- apply(covariance, c(1,2), stats::quantile, probs=quantile, na.rm=TRUE)
   return(out)
 }
 
@@ -987,7 +1013,10 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     stop("Please provide only one quantile.")
   }
   
-  temp <- object$args$logLik
+  .validate_quantiles(quantile)
+  bigT <- nrow(object$xglobal)
+  bigK <- ncol(object$xglobal)
+  temp <- object$args$logLik_draws
   if(is.null(temp)){
     xglobal   = object$xglobal
     lags      = object$args$lags
@@ -999,7 +1028,7 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     bigK      = ncol(xglobal)
     thindraws = object$args$thindraws
     X_large   = cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large = cbind(X_large,seq(1:bigT))
+    if(trend) X_large = cbind(X_large,seq_len(bigT)-pmax)
     if(exo) X_large = cbind(X_large,eglobal)
     Y_large    = xglobal[(pmax+1):bigT,,drop=FALSE]
     X_large    = X_large[(pmax+1):bigT,,drop=FALSE]
@@ -1026,8 +1055,10 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     }else{
       out <- quantile(globalLik,quantile,na.rm=TRUE)
     }
-    eval.parent(substitute(object$args$logLik<-out))
+    temp <- if(is(globalLik,"try-error")) -Inf else as.numeric(globalLik)
+    eval.parent(substitute(object$args$logLik_draws <- temp))
   }
+  out <- stats::quantile(temp, probs=quantile, na.rm=TRUE)
   attributes(out) <- list(nall=bigT, nobs=bigT, df=bigK)
   class(out) <- "logLik"
   return(out)
@@ -1080,7 +1111,7 @@ dic.bgvar <- function(object, ...){
     bigK      = ncol(xglobal)
     thindraws = object$args$thindraws
     X_large   = cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large = cbind(X_large,seq(1:bigT))
+    if(trend) X_large = cbind(X_large,seq_len(bigT)-pmax)
     if(exo) X_large = cbind(X_large,eglobal)
     Y_large    = xglobal[(pmax+1):bigT,,drop=FALSE]
     X_large    = X_large[(pmax+1):bigT,,drop=FALSE]

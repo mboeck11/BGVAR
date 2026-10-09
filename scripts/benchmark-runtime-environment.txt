@@ -1,0 +1,9 @@
+Build: installed package; use an optimized local install for release timings
+R: R version 4.4.2 (2024-10-31)
+Platform: aarch64-apple-darwin20
+Package: 2.7.0
+Library: /private/tmp/bgvar-runtime-library/BGVAR
+Synthetic data; Minnesota prior; one domestic/foreign lag; sequential country estimation.
+Compilation, data creation, warm-up and explicit garbage collection excluded from timing.
+Complete bgvar includes R preprocessing, C++ estimation, summaries and global stacking.
+returned_MiB is retained object size, not peak process memory.

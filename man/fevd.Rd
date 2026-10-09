@@ -49,7 +49,8 @@ shockinfo <- get_shockinfo("sign")
 shockinfo <- add_shockinfo(shockinfo, shock="US.stir", 
                            restriction=c("US.y","US.Dp"), 
                            sign=c("<","<"), horizon=c(1,1), 1, 100)
-irf.sign.us.mp<-irf(model.eer,n.ahead=24,shockinfo=shockinfo)
+irf.sign.us.mp<-irf(model.eer,n.ahead=24,shockinfo=shockinfo,
+                    expert=list(MaxTries=1000))
 
 # calculates FEVD for variables US.Dp and EA.y
 fevd.us.mp=fevd(irf.sign.us.mp,var.slct=c("US.Dp","EA.y"))

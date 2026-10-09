@@ -48,6 +48,9 @@
 predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, quantiles=NULL, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  if(!.is_integer_count(n.ahead, minimum=1)){
+    stop("'n.ahead' must be a finite positive integer.")
+  }
   # check if posterior draws are available
   if(object$args$thindraws == 0){
     cat("Computation of BGVAR has yielded no stable posterior draws!")
@@ -56,9 +59,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   if(is.null(quantiles)){
     quantiles <- c(.05,.10,.16,.50,.84,.90,.95)
   }
-  if(!is.numeric(quantiles)){
-    stop("Please provide 'quantiles' as numeric vector.")
-  }
+  .validate_quantiles(quantiles)
   exo        = !is.null(object$args$Ex)
   if(exo & n.ahead>1){
     warning("Note that n.ahead=1 as multi-step ahead forecasting is not available in the presence of truly exogenous regressors.")
@@ -89,11 +90,11 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   flag_cond  = FALSE
   #---------------------check conditional predictions--------------------------------#
   if(!is.null(constr)){
-    if(!all(dim(constr)==c(n.ahead,bigK))){
+    if(!is.matrix(constr) || !identical(dim(constr), as.integer(c(n.ahead,bigK)))){
       stop("Please respecify dimensions of 'constr'.")
     }
     if(!is.null(constr_sd)){
-      if(!all(dim(constr_sd)==c(n.ahead,bigK))){
+      if(!is.matrix(constr_sd) || !identical(dim(constr_sd), as.integer(c(n.ahead,bigK)))){
         stop("Please respecify dimensions of 'constr_sd'.")
       }
       constr_sd[is.na(constr_sd)] <- 0
@@ -223,10 +224,12 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   if(hold.out>n.ahead) hold.out <- n.ahead
   yfull <- object$args$yfull
   if(hold.out>0){
-    lps.stats = array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
-    lps.stats[,"mean",] = apply(pred_store[,,1:hold.out,drop=FALSE],c(2:3),mean,na.rm=TRUE)
-    lps.stats[,"sd",]   = apply(pred_store[,,1:hold.out,drop=FALSE],c(2:3),sd,na.rm=TRUE)
-    hold.out.sample<-yfull[(nrow(yfull)+1-hold.out):nrow(yfull),,drop=FALSE]
+    lps.stats <- array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
+    evaluation_draws <- pred_store[,,seq_len(hold.out),drop=FALSE]
+    lps.stats[,"mean",] <- apply(evaluation_draws,c(2,3),mean,na.rm=TRUE)
+    lps.stats[,"sd",]   <- apply(evaluation_draws,c(2,3),sd,na.rm=TRUE)
+    evaluation_rows <- nrow(xglobal)+seq_len(hold.out)
+    hold.out.sample<-yfull[evaluation_rows,,drop=FALSE]
   }else{
     lps.stats<-NULL
     hold.out.sample<-NULL

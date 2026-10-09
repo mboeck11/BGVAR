@@ -1,3 +1,22 @@
+Change in Version 2.7.0
+- Fixed FEVD handling of explicitly supplied rotations and empty variable selections; historical decomposition now reports its identification scheme correctly.
+- Corrected vcov() posterior quantiles by transforming covariance matrices for each posterior draw before summarizing. Fixed repeated logLik() calls and quantile-specific likelihood summaries; aligned likelihood and DIC trends with estimation.
+- Fixed country-column matching in matrix inputs, unnamed data-list error messages, numeric Excel sheet exclusions, and conditional-forecast dimension validation.
+- Fixed plotting with unequal lag orders, single forecast quantiles, and histories shorter than the plotting window.
+- Fixed deprecated Minnesota shrinkage aliases and SV variance hyperparameter names (Bsigma_sv is accepted as an alias for Bsigma; explicitly supplied canonical names take precedence). Implemented documented all/half core presets with core-count validation.
+- Fixed shock-information defaults and validation for signs, identification schemes, and row counts; added regression tests for these audit findings.
+- Improved estimation performance using weighted cross-products, cached constant-variance cross-products, and precision Cholesky solves. Covariance summaries now use bounded buffers and exploit symmetry without changing median definitions; disabled Normal-Gamma diagnostics no longer inherit SSVS storage dimensions.
+- Fixed a covariance-coefficient row assignment in the C++ sampler that failed for models with more than two equations; added direct Rcpp regression tests for three and four equations under all four priors.
+- Corrected cumulative Normal-Gamma shrinkage updates in both samplers: full conditionals now include all affected lag blocks, exclude the sampled factor from the rate product, use actual coefficient counts, and start from positive factors.
+- Corrected Minnesota shrinkage acceptance targets, foreign-shrinkage proposals, deterministic-row variances, and auxiliary AR scaling with higher or unequal lag orders.
+- Corrected Horseshoe auxiliary rates, C++ Gamma shapes, and shrinkage around nonzero prior means. SSVS component probabilities now use stable log odds, including probability endpoints.
+- Added conditional-distribution and R/C++ agreement regression tests for these sampler corrections, including constant-variance storage.
+- Change of mailing address of maintainer due to change of affiliation: maximilian.boeck@wu.ac.at
+- Added testthat regression tests for bgvar() inputs and numerical boundaries; Minnesota, SSVS, Normal-Gamma, and Horseshoe priors in both the C++ and R samplers; impulse responses, FEVD, historical decomposition, prediction and forecast evaluation; higher lag orders and trends; and eigenvalue calculations and stability trimming.
+- Fixed input validation for missing values in W and Ex: bgvar() now reports the intended validation messages instead of a generic missing-value error.
+- fixed issue with Calls to Rf_error() in Rcpp
+- Fixed reversed SSVS mixture weights for p_i and q_ij. These parameters now represent prior inclusion probabilities, as documented. Results using the default values of 0.5 are unaffected. To reproduce the previous prior specification with nondefault values, replace each probability by its complement (1-p_i and 1-q_ij).
+
 Change in Version 2.6.0
 - added new argument in function 'bgvar', within the 'expert' settings of 'OE.weights': OE.exo
 - this new argument manipulates the 'getweights' function to allow other entities exogenous variables to influence other entities as well

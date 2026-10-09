@@ -143,7 +143,7 @@ List gvar_stacking(const arma::mat xglobal, const int plag, const Rcpp::List glo
       arma::mat MM(bigK*plag, bigK*plag, fill::zeros); MM.submat(0,0,bigK-1,bigK*plag-1) = F;
       if(plag>1) MM.submat(bigK,0,bigK*plag-1,bigK*plag-bigK-1).eye();
       cx_vec eigval; cx_mat eigvec; eig_gen(eigval, eigvec, MM);
-      F_eigen(irep) = abs(real(eigval)).max();
+      F_eigen(irep) = abs(eigval).max();
     }
     
     //if(verbose){

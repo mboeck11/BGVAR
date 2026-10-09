@@ -14,6 +14,18 @@ double draw_bernoulli(double p){
   return ret;
 }
 
+double ssvs_spike_probability(double value, double mean, double spike, double slab, double inclusion){
+  if(inclusion == 0) return 1;
+  if(inclusion == 1) return 0;
+  // Difference of log densities avoids underflow in the component densities.
+  double z0 = (value-mean)/spike, z1 = (value-mean)/slab;
+  double log_odds = log(inclusion) - log1p(-inclusion) + log(spike/slab)
+    + 0.5*(z0-z1)*(z0+z1);
+  if(spike == slab) return 1-inclusion;
+  if(log_odds >= 0) return exp(-log_odds)/(1+exp(-log_odds));
+  return 1/(1+exp(log_odds));
+}
+
 double tau_post(double tau, double lambda, arma::vec theta, double rat){
   double priorval = R::dexp(tau, rat, true);
   int d = theta.n_elem;
@@ -171,22 +183,20 @@ List BVAR_linear(arma::mat Yraw,
   // initialize stuff for MN prior
   mat V_prop1(k,M), V_prop2(k,M), V_prop3(k,M); 
   double lambda_prop1, lambda_prop2, lambda_prop3;
-  double post_old1=0.0, post_prop1=0.0, post_old2=0.0, post_prop2=0.0, post_old3=0.0, post_prop3=0.0;
-  for(int i=0; i<k; i++){
-    for(int j=0; j<M; j++){
-      post_old1 = post_old1 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
-      post_old2 = post_old2 + R::dnorm(A_draw(i,j),A_prior(i,j),  std::sqrt(V_prior(i,j)),true);
-      post_old3 = post_old3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prior(i,j)), true);
-    }
-  }
-  post_old1 = post_old1 + R::dgamma(lambda1,0.01,1/0.01,true) + log(lambda1); // add prior - shape scale parameterization!!!! + correction term
-  post_old2 = post_old2 + R::dgamma(lambda2,0.01,1/0.01,true) + log(lambda2); // add prior - shape scale parameterization!!!! + correction term
-  post_old3 = post_old3 + R::dgamma(lambda3,0.01,1/0.01,true) + log(lambda4); // add prior - shape scale parameterization!!!! + correction term
-  
+  // Recompute conditional targets for every proposal and current coefficient draw.
+  auto mn_target = [&](const mat& variance, double shrinkage) {
+    double value = R::dgamma(shrinkage, 0.01, 1/0.01, true) + log(shrinkage);
+    for(int i=0; i<k; i++) for(int j=0; j<M; j++)
+      value += R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(variance(i,j)), true);
+    return value;
+  };
+
   // SSVS stuff
   mat gamma(k,M, fill::ones);
-  mat temp = kron(SIGMA_OLS,XtXinv);
-  vec sigma_alpha = arma::sqrt(diagvec(kron(SIGMA_OLS,XtXinv))); // scale with OLS standard deviation
+  // PERFORMANCE: old full Kronecker allocation (only its diagonal is needed).
+  // vec sigma_alpha = arma::sqrt(diagvec(kron(SIGMA_OLS,XtXinv)));
+  // END old Kronecker allocation.
+  vec sigma_alpha = arma::sqrt(kron(SIGMA_OLS.diag(), XtXinv.diag()));
   mat tau0(k, M, fill::zeros); mat tau1(k, M, fill::zeros);
   int ii=0;
   for(int j=0; j < M; j++){
@@ -198,7 +208,7 @@ List BVAR_linear(arma::mat Yraw,
   }
   
   // NG stuff
-  mat lambda2_A(pmax+1,2,fill::zeros);
+  mat lambda2_A(pmax+1,2,fill::ones);
   mat A_tau(pmax+1,2); A_tau.fill(tau_theta); A_tau(0,0)=0;
   mat A_tuning(pmax+1,2); A_tuning.fill(0.43);
   mat A_accept(pmax+1,2, fill::zeros);
@@ -305,6 +315,11 @@ List BVAR_linear(arma::mat Yraw,
   }
   arma::cube gamma_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
   arma::cube omega_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
+  // PERFORMANCE: old NG allocation inherited SSVS dimensions when disabled.
+  // No reset of size_of_cube1 or size_of_cube2 here.
+  // END old inherited allocation.
+  size_of_cube1 = {0, 0, 0};
+  size_of_cube2 = {0, 0, 0};
   // NG
   if(save_shrink_NG){
     size_of_cube1 = {k, M, thindraws};
@@ -336,6 +351,8 @@ List BVAR_linear(arma::mat Yraw,
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
+  mat constant_XtX;
+  if(!sv) constant_XtX = X.t()*X;
   for(int irep = 0; irep < ntot; irep++){
     // Step 1: Sample coefficients
     // Step 1a: Sample coefficients in A
@@ -344,33 +361,40 @@ List BVAR_linear(arma::mat Yraw,
       mat Linv_0 = L_drawinv.rows(mm,M-1);
       mat S_0    = exp(-0.5*Sv_draw.cols(mm,M-1));
       mat zmat   = (Y - X * A_0) * Linv_0.t() ;
-      vec ztilde = vectorise(zmat) % vectorise(S_0);
-      mat xtilde = kron(Linv_0.col(mm), X) % repmat(vectorise(S_0),1,k);
-      mat Vinv_m = diagmat(1/V_prior.col(mm));
-      colvec a_m = A_prior.col(mm);
-      
-      mat V_p = (xtilde.t() * xtilde + Vinv_m).i();
-      mat A_p = V_p * (xtilde.t() * ztilde + Vinv_m * a_m);
-      
+      // PERFORMANCE: old expanded design and explicit covariance inverse.
+      // vec ztilde = vectorise(zmat) % vectorise(S_0);
+      // mat xtilde = kron(Linv_0.col(mm), X) % repmat(vectorise(S_0),1,k);
+      // mat Vinv_m = diagmat(1/V_prior.col(mm));
+      // colvec a_m = A_prior.col(mm);
+      //
+      // mat V_p = (xtilde.t() * xtilde + Vinv_m).i();
+      // mat A_p = V_p * (xtilde.t() * ztilde + Vinv_m * a_m);
+      // END old expanded design and inverse.
+      vec c = Linv_0.col(mm);
+      mat squared_scales = square(S_0);
+      vec weights = squared_scales * square(c);
+      mat precision;
+      if(sv){
+        mat weighted_X = X;
+        weighted_X.each_col() %= sqrt(weights);
+        precision = weighted_X.t()*weighted_X;
+      }else{
+        precision = weights(0)*constant_XtX;
+      }
+      precision.diag() += 1/V_prior.col(mm);
+      vec rhs = X.t()*((zmat % squared_scales)*c)
+        + A_prior.col(mm)/V_prior.col(mm);
+
       colvec rand_normal(k);
       for(int i=0; i<k; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower = robust_chol(V_p);
-      /*
-      bool chol_success = chol(V_p_chol_lower, V_p, "lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-       */
-      colvec A_m = A_p + V_p_chol_lower*rand_normal;
-      
+      // PERFORMANCE: old covariance factorization and draw.
+      // mat V_p_chol_lower = robust_chol(V_p);
+      // colvec A_m = A_p + V_p_chol_lower*rand_normal;
+      // END old covariance factorization and draw.
+      colvec A_m = sample_gaussian_precision(precision, rhs, rand_normal);
+
       A_draw.col(mm) = A_m;
       Em_draw.col(mm) = Y.col(mm) - X * A_m;
     }
@@ -384,29 +408,25 @@ List BVAR_linear(arma::mat Yraw,
       mat Vinv_m = diagmat(1/L_prior.submat(mm,0,mm,mm-1));
       colvec a_m = l_prior.submat(mm,0,mm,mm-1).t();
       
-      mat V_p = (eps_x.t() * eps_x + Vinv_m).i();
-      mat A_p = V_p * (eps_x.t() * eps_m + Vinv_m * a_m);
-      
+      // PERFORMANCE: old covariance inverse for the triangular coefficients.
+      // mat V_p = (eps_x.t() * eps_x + Vinv_m).i();
+      // mat A_p = V_p * (eps_x.t() * eps_m + Vinv_m * a_m);
+      // END old triangular-coefficient inverse.
+      mat precision = eps_x.t()*eps_x;
+      precision.diag() += Vinv_m.diag();
+      vec rhs = eps_x.t()*eps_m + Vinv_m*a_m;
+
       colvec rand_normal(mm);
       for(int i=0; i< mm; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower = robust_chol(V_p);
-      /*
-      bool chol_success = chol(V_p_chol_lower, V_p,"lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-       */
-      colvec L_m = A_p + V_p_chol_lower*rand_normal;
-      
-      L_draw.submat(mm,0,mm,mm-1) = L_m;
+      // PERFORMANCE: old covariance factorization and draw.
+      // mat V_p_chol_lower = robust_chol(V_p);
+      // colvec L_m = A_p + V_p_chol_lower*rand_normal;
+      // END old covariance factorization and draw.
+      colvec L_m = sample_gaussian_precision(precision, rhs, rand_normal);
+
+      L_draw.submat(mm,0,mm,mm-1) = L_m.t();
     }
     L_drawinv = L_draw.i();
     Em_str_draw = Y * L_drawinv.t() - X * A_draw * L_drawinv.t();
@@ -488,54 +508,33 @@ List BVAR_linear(arma::mat Yraw,
       // first shrinkage parameter (own lags)
       lambda_prop1 = exp(R::rnorm(0,scale1))*lambda1;
       get_Vminnesota(V_prop1, sigmas, lambda_prop1, lambda2, lambda3, lambda4, cons, Mstar, plag, plagstar, trend);
-      // likelihood of each coefficient
-      for(int i=0; i<k; i++){
-        for(int j=0; j<M; j++){
-          post_prop1 = post_prop1 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop1(i,j)), true);
-        }
-      }
-      // total likelihood 
-      post_prop1 = post_prop1 + R::dgamma(lambda_prop1,0.01,1/0.01,true) + log(lambda_prop1);  // add prior - shape scale parameterization!!!! + correction term
+      double post_old1 = mn_target(V_prior, lambda1);
+      double post_prop1 = mn_target(V_prop1, lambda_prop1);
       if((post_prop1-post_old1) > log(R::runif(0,1))){
         lambda1 = lambda_prop1;
         V_prior = V_prop1;
-        post_old1 = post_prop1;
         accept1 += 1;
       }
       
       // second shrinkage parameter (cross equations)
       lambda_prop2 = exp(R::rnorm(0,scale2))*lambda2;
       get_Vminnesota(V_prop2, sigmas, lambda1, lambda_prop2, lambda3, lambda4, cons, Mstar, plag, plagstar, trend);
-      // likelihood of each coefficient
-      for(int i=0; i<k; i++){
-        for(int j=0; j<M; j++){
-          post_prop2 = post_prop2 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop2(i,j)), true);
-        }
-      }
-      // total likelihood 
-      post_prop2 = post_prop2 + R::dgamma(lambda_prop2,0.01,1/0.01,true) + log(lambda_prop2);  // add prior - shape scale parameterization!!!! + correction term
+      double post_old2 = mn_target(V_prior, lambda2);
+      double post_prop2 = mn_target(V_prop2, lambda_prop2);
       if((post_prop2-post_old2) > log(R::runif(0,1))){
         lambda2 = lambda_prop2;
         V_prior = V_prop2;
-        post_old2 = post_prop2; 
         accept2 += 1;
       }
       
       // third shrinkage parameter (weakly exogenous)
       lambda_prop3 = exp(R::rnorm(0,scale3))*lambda3;
-      get_Vminnesota(V_prop3, sigmas, lambda1, lambda2, lambda3, lambda_prop3, cons, Mstar, plag, plagstar, trend);
-      // likelihood of each coefficient
-      for(int i=0; i<k; i++){
-        for(int j=0; j<M; j++){
-          post_prop3 = post_prop3 + R::dnorm(A_draw(i,j), A_prior(i,j), std::sqrt(V_prop3(i,j)), true);
-        }
-      }
-      // total likelihood 
-      post_prop3 = post_prop3 + R::dgamma(lambda_prop3,0.01,1/0.01,true) + log(lambda_prop3);  // add prior - shape scale parameterization!!!! + correction term
+      get_Vminnesota(V_prop3, sigmas, lambda1, lambda2, lambda_prop3, lambda4, cons, Mstar, plag, plagstar, trend);
+      double post_old3 = mn_target(V_prior, lambda3);
+      double post_prop3 = mn_target(V_prop3, lambda_prop3);
       if((post_prop3-post_old3) > log(R::runif(0,1))){
         lambda3 = lambda_prop3;
         V_prior = V_prop3;
-        post_old3 = post_prop3;
         accept3 += 1;
       }
       
@@ -553,10 +552,7 @@ List BVAR_linear(arma::mat Yraw,
       // coefficients A matrix
       for(int j=0; j < M; j++){
         for(int i=0; i < k; i++){
-          double u_i1 = R::dnorm(A_draw(i,j), A_prior(i,j), tau0(i,j),false) * p_i;
-          double u_i2 = R::dnorm(A_draw(i,j), A_prior(i,j), tau1(i,j),false) * (1-p_i);
-          double ast  = u_i1/(u_i1+u_i2);
-          if(NumericVector::is_na(ast)) ast = 0;
+          double ast = ssvs_spike_probability(A_draw(i,j), A_prior(i,j), tau0(i,j), tau1(i,j), p_i);
           gamma(i,j) = draw_bernoulli(ast);
           if(gamma(i,j)==0) {V_prior(i,j) = tau0(i,j)*tau0(i,j);}
           if(gamma(i,j)==1) {V_prior(i,j) = tau1(i,j)*tau1(i,j);}
@@ -565,10 +561,7 @@ List BVAR_linear(arma::mat Yraw,
       // coefficients H matrix
       for(int i=1; i < M; i++){
         for(int j=0; j < i; j++){
-          double u_ij1 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa00,false) * q_ij;
-          double u_ij2 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa11,false) * (1-q_ij);
-          double hst = u_ij1/(u_ij1+u_ij2);
-          if(NumericVector::is_na(hst)) hst = 1;
+          double hst = ssvs_spike_probability(L_draw(i,j), l_prior(i,j), kappa00, kappa11, q_ij);
           omega(i,j) = draw_bernoulli(hst);
           if(omega(i,j)==0) {L_prior(i,j) = kappa00*kappa00;}
           if(omega(i,j)==1) {L_prior(i,j) = kappa11*kappa11;}
@@ -585,16 +578,19 @@ List BVAR_linear(arma::mat Yraw,
         V_exo = V_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1); 
         P_exo = A_prior.rows(plag*M+pp*Mstar, plag*M+(pp+1)*Mstar-1);
         
-        // sample lambda
-        if(pp == 0){
-          prodlambda = 1.0;
-        }else{
-          prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp-1,1)));
+        // Every subsequent block depends on this cumulative factor.
+        dl = d_lambda;
+        el = e_lambda;
+        for(int block=pp; block<=plagstar; block++){
+          double other_factors = 1.0;
+          for(int factor=0; factor<=block; factor++)
+            if(factor != pp) other_factors *= lambda2_A(factor,1);
+          dl += A_tau(block,1)*M*Mstar;
+          el += 0.5*A_tau(block,1)*other_factors*
+            accu(V_prior.rows(plag*M+block*Mstar, plag*M+(block+1)*Mstar-1));
         }
-        dl = d_lambda + A_tau(pp,1)*M*Mstar;
-        el = e_lambda + 0.5*A_tau(pp,1)*arma::accu(V_exo)*prodlambda;
         lambda2_A(pp,1) = R::rgamma(dl, 1/el);
-        
+
         // sample theta
         prodlambda = as_scalar(prod(lambda2_A.submat(0,1,pp,1)));
         for(int ii=0; ii < Mstar; ii++){
@@ -638,16 +634,18 @@ List BVAR_linear(arma::mat Yraw,
         V_end = V_prior.rows(pp*M, (pp+1)*M-1); 
         P_end = A_prior.rows(pp*M, (pp+1)*M-1);
         
-        // sample lambda
-        if(pp == 0){
-          prodlambda = 1.0;
-        }else{
-          prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp,0)));
+        dl = d_lambda;
+        el = e_lambda;
+        for(int block=pp; block<plag; block++){
+          double other_factors = 1.0;
+          for(int factor=0; factor<=block; factor++)
+            if(factor != pp) other_factors *= lambda2_A(factor+1,0);
+          dl += A_tau(block+1,0)*M*M;
+          el += 0.5*A_tau(block+1,0)*other_factors*
+            accu(V_prior.rows(block*M, (block+1)*M-1));
         }
-        dl = d_lambda + A_tau(pp+1,0)*std::pow(M,2);
-        el = e_lambda + 0.5*A_tau(pp+1,0)*arma::accu(V_end)*prodlambda;
         lambda2_A(pp+1,0) = R::rgamma(dl, 1/el);
-        
+
         // sample theta
         prodlambda = as_scalar(prod(lambda2_A.submat(1,0,pp+1,0)));
         for(int ii=0; ii < M; ii++){
@@ -741,35 +739,35 @@ List BVAR_linear(arma::mat Yraw,
         nu_L(vv)     = 1/R::rgamma(1, 1/(1 + 1/lambda_L(vv)));
       }
       // sample global shrinkage parameter
-      tau_L  = 1/R::rgamma((v+1)/2, 1/(1/zeta_L + 0.5*sum(pow(L_draw(lower_indices),2)/lambda_L)));
+      tau_L  = 1/R::rgamma((v+1)/2.0, 1/(1/zeta_L + 0.5*sum(pow(L_draw(lower_indices),2)/lambda_L)));
       zeta_L = 1/R::rgamma(1, 1/(1 + 1 / tau_L));
       // update prior VCV
       L_prior(lower_indices) = tau_L * lambda_L;
       
       //------------------------------------------
       // coefficients A matrix - endogenous
-      A_end = A_draw.rows(0, plag*M-1);
+      A_end = A_draw.rows(0, plag*M-1) - A_prior.rows(0, plag*M-1);
       // sample local shrinkage parameter
       for(int nn=0; nn < n; nn++){
         lambda_A_endo(nn) = 1.0 / R::rgamma(1, 1/(1 / nu_A_endo(nn) + 0.5*pow(A_end(nn),2) / tau_A_endo));
         nu_A_endo(nn)     = 1.0 / R::rgamma(1, 1/(1 + 1/lambda_A_endo(nn)));
       }
       // sample global shrinkage parameter
-      tau_A_endo  = 1.0/R::rgamma((n+1)/2, 1/(1/zeta_A_endo + 0.5*sum(pow(vectorise(A_end),2)/lambda_A_endo)));
-      zeta_A_endo = 1.0/R::rgamma(1, 1 + 1/(1 / tau_A_endo));
+      tau_A_endo  = 1.0/R::rgamma((n+1)/2.0, 1/(1/zeta_A_endo + 0.5*sum(pow(vectorise(A_end),2)/lambda_A_endo)));
+      zeta_A_endo = 1.0/R::rgamma(1, 1/(1 + 1 / tau_A_endo));
       // update prior VCV
       V_prior.rows(0, plag*M-1) = reshape(tau_A_endo * lambda_A_endo, plag*M, M);
       
       //------------------------------------------
       // coefficients A matrix - exogenous
-      A_exo = A_draw.rows(plag*M, plag*M+(plagstar+1)*Mstar-1);
+      A_exo = A_draw.rows(plag*M, plag*M+(plagstar+1)*Mstar-1) - A_prior.rows(plag*M, plag*M+(plagstar+1)*Mstar-1);
       // sample local shrinkage parameter
       for(int nn=0; nn < nstar; nn++){
         lambda_A_exo(nn) = 1/R::rgamma(1, 1/(1 / nu_A_exo(nn) + 0.5*pow(A_exo(nn),2) / tau_A_exo));
         nu_A_exo(nn)     = 1/R::rgamma(1, 1/(1 + 1/lambda_A_exo(nn)));
       }
       // sample global shrinkage parameter
-      tau_A_exo  = 1/R::rgamma((nstar+1)/2, 1/(1/zeta_A_exo + 0.5*sum(pow(vectorise(A_exo),2)/lambda_A_exo)));
+      tau_A_exo  = 1/R::rgamma((nstar+1)/2.0, 1/(1/zeta_A_exo + 0.5*sum(pow(vectorise(A_exo),2)/lambda_A_exo)));
       zeta_A_exo = 1/R::rgamma(1, 1/(1 + 1 / tau_A_exo));
       // update prior VCV
       V_prior.rows(plag*M, plag*M+(plagstar+1)*Mstar-1) = reshape(tau_A_exo * lambda_A_exo, (plagstar+1)*Mstar, M);
@@ -792,7 +790,7 @@ List BVAR_linear(arma::mat Yraw,
         a_full = a_1 + 0.5 * T;
         b_full = b_1 + 0.5 * as_scalar(data_sv.t() * data_sv);
         sig2 = 1/R::rgamma(a_full, 1/b_full);
-        cur_sv.fill(sig2);
+        cur_sv.fill(log(sig2));
         //Sv_draw.col(mm) = log(cur_sv);
       }
     }

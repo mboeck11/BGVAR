@@ -45,12 +45,12 @@ bgvar(Data, W, plag=1, draws=5000, burnin=5000, prior="NG", SV=TRUE, hold.out=0,
       \item{\code{lambda4}}{ Starting value of \code{lambda4}. Default set to 0.1.}
       }}
 \item{"SSVS"}{\describe{
-      \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
-      \item{\code{tau1}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is  included (slab, tau1 should be large).}
-      \item{\code{kappa0}}{ is the prior variance associated with the normal prior on the covariances if a covariance equals zero (spike, kappa0 should be close to zero).}
-      \item{\code{kappa1}}{  is the prior variance associated with the normal prior on the covariances if a covariance is  unequal to zero (slab, kappa1 should be large).}
-      \item{\code{p_i}}{ is the prior inclusion probability for each regression coefficient whether it is included in the model (default set to \code{p_i=0.5}).}
-      \item{\code{q_ij}}{ is the prior inclusion probability for each covariance whether it is included in the model (default set to \code{q_ij=0.5}).}
+      \item{\code{tau0}}{ Standard deviation multiplier for the spike component of the regression coefficient prior. The component’s standard deviation is \code{tau0} times the coefficient’s OLS standard error. Choose a small positive value to impose strong shrinkage toward the prior mean.}
+      \item{\code{tau1}}{ Standard deviation multiplier for the slab component of the regression coefficient prior. The component’s standard deviation is \code{tau1} times the coefficient’s OLS standard error. Choose a value larger than tau0 to allow weaker shrinkage.}
+      \item{\code{kappa0}}{ Prior standard deviation for the spike component of the off-diagonal coefficients in the triangular decomposition of the error covariance matrix. Choose a small positive value to impose strong shrinkage toward zero.}
+      \item{\code{kappa1}}{ Prior standard deviation for the slab component of these coefficients. Choose a value larger than kappa0 to allow weaker shrinkage.}
+      \item{\code{p_i}}{ Prior probability that a regression coefficient belongs to the slab component (gamma = 1). The spike probability is \code{1-p_i}. Larger values favor inclusion and weaker shrinkage. Default: \code{p_i=0.5}.}
+      \item{\code{q_ij}}{ Prior probability that an off-diagonal coefficient in the triangular decomposition of the error covariance matrix belongs to the slab component (omega = 1). The spike probability is \code{1-q_ij}. Larger values favor inclusion and weaker shrinkage. Default: \code{q_ij=0.5}.}
       }}
 \item{"NG":}{\describe{
       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
