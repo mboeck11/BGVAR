@@ -230,12 +230,49 @@
       }
     }
   }
-  k_end = M*plag + Mstar*(plagstar+1)
+  k_end = M*plag + if(wexo) Mstar*(plagstar+1) else 0
   # deterministics
-  for(i in 1:M){
-    V_i[k_end:k,i] = lambda4 * sigma_sq[i]
+  if(k > k_end){
+    for(i in 1:M) V_i[seq.int(k_end+1L,k),i] <- lambda4 * sigma_sq[i]
   }
   return(V_i)
+}
+
+# Conditional target includes the Jacobian for a log-scale random walk.
+.mn_log_target <- function(coefficients, mean, variance, shrinkage) {
+  sum(dnorm(coefficients, mean, sqrt(variance), log=TRUE)) +
+    dgamma(shrinkage, shape=0.01, rate=0.01, log=TRUE) + log(shrinkage)
+}
+
+# Full conditional for a factor in cumulative Normal-Gamma lag shrinkage.
+.ng_factor_conditional <- function(index, factors, shapes, variances,
+                                   d_lambda, e_lambda) {
+  shape <- d_lambda
+  rate <- e_lambda
+  for(block in seq.int(index, length(factors))) {
+    other <- setdiff(seq_len(block), index)
+    shape <- shape + length(variances[[block]]) * shapes[block]
+    rate <- rate + shapes[block]/2 * prod(factors[other]) * sum(variances[[block]])
+  }
+  c(shape=unname(shape), rate=unname(rate))
+}
+
+.ar_residual_variance <- function(y, lag) {
+  rows <- seq.int(lag+1L, length(y))
+  x <- cbind(.mlag(y, lag)[rows,,drop=FALSE], seq_along(rows))
+  residual <- y[rows] - x %*% solve(crossprod(x), crossprod(x, y[rows]))
+  sum(residual^2) / (length(rows)-ncol(x))
+}
+
+.ssvs_spike_probability <- function(value, mean, spike, slab, inclusion) {
+  if(inclusion == 0) return(1)
+  if(inclusion == 1) return(0)
+  if(spike == slab) return(1-inclusion)
+  z0 <- (value-mean)/spike
+  z1 <- (value-mean)/slab
+  log_odds <- log(inclusion)-log1p(-inclusion)+log(spike/slab) +
+    0.5*(z0-z1)*(z0+z1)
+  stats::plogis(-log_odds)
 }
 
 #' @name .bernoulli
@@ -421,8 +458,9 @@
     theta_store   <- bvar$NG$theta_store; dimnames(theta_store)[[1]] <- colnames(X); dimnames(theta_store)[[2]] <- colnames(Y)
     lambda2_store <- bvar$NG$lambda2_store
     tau_store     <- bvar$NG$tau_store
-    dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
-    dimnames(lambda2_store) <- list(paste("lag",0:plag,sep="_"),c("endogenous","weakly exogenous","covariance"),NULL)
+    dimnames(lambda2_store) <- dimnames(tau_store) <- list(
+      paste0("lag_", seq_len(dim(lambda2_store)[1])-1L),
+      c("endogenous","weakly exogenous","covariance"),NULL)
     theta_post  <- apply(theta_store,c(1,2),median)
     lambda2_post  <- apply(lambda2_store,c(1,2),median)
     tau_post      <- apply(tau_store,c(1,2),median)
@@ -660,35 +698,13 @@
   scale1  <- .43
   scale2  <- .43
   scale3  <- .43
-  sigma_sq  <- matrix(0,M,1) #vector which stores the residual variance
-  for (i in 1:M){
-    Ylag_i        <- .mlag(Yraw[,i],plag)
-    Ylag_i        <- Ylag_i[(plag+1):nrow(Ylag_i),,drop=FALSE]
-    Y_i           <- Yraw[(plag+1):nrow(Yraw),i,drop=FALSE]
-    Ylag_i        <- cbind(Ylag_i,seq(1,nrow(Y_i)))
-    alpha_i       <- solve(crossprod(Ylag_i))%*%crossprod(Ylag_i,Y_i)
-    sigma_sq[i,1] <- (1/(nrow(Y_i)-plag-1))*t(Y_i-Ylag_i%*%alpha_i)%*%(Y_i-Ylag_i%*%alpha_i)
-  }
-  if(wexo){
-    sigma_wex <- matrix(0,Mstar,1)
-    for (j in 1:Mstar){
-      Ywex_i <- .mlag(Wraw[,j],plagstar)
-      Ywex_i <- Ywex_i[(plag+1):Traw,]
-      Yw_i   <- Wraw[(plag+1):Traw,j,drop=FALSE]
-      Ywex_i <- cbind(Ywex_i,seq(1,nrow(Yw_i)))
-      alpha_w <- solve(crossprod(Ywex_i))%*%t(Ywex_i)%*%Yw_i
-      sigma_wex[j,1] <- (1/(nrow(Yw_i)-plag-1))*t(Yw_i-Ywex_i%*%alpha_w)%*%(Yw_i-Ywex_i%*%alpha_w)
-    }
-  }else{
-    sigma_wex <- NULL
-  }
-  
+  sigma_sq <- vapply(seq_len(M), function(i) .ar_residual_variance(Yraw[,i], plag), numeric(1))
+  sigma_wex <- if(wexo) vapply(seq_len(Mstar), function(j)
+    .ar_residual_variance(Wraw[,j], plagstar), numeric(1)) else NULL
+
   # MN prior
   if(prior == 1){
     theta <- .get_V(k=k,M=M,Mstar,Mex=Mex,plag,plagstar,lambda1,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
-    post1 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda1,0.01,0.01,log=TRUE)+log(lambda1) # correction term
-    post2 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda2,0.01,0.01,log=TRUE)+log(lambda2) # correction term
-    post3 <- sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta)),log=TRUE))+dgamma(lambda3,0.01,0.01,log=TRUE)+log(lambda3) # correction term
   }
   
   # SSVS prior
@@ -708,7 +724,7 @@
   
   # NG stuff
   if(prior == 3){
-    lambda2_A       <- matrix(0.01,pmax+1,2)
+    lambda2_A       <- matrix(1,pmax+1,2)
     A_tau           <- matrix(tau_theta,pmax+1,2)
     colnames(A_tau) <- colnames(lambda2_A) <- c("endo","exo")
     rownames(A_tau) <- rownames(lambda2_A) <- paste("lag.",seq(0,pmax),sep="")
@@ -896,11 +912,11 @@
       lambda1.prop = ifelse(lambda1.prop<1e-16,1e-16,lambda1.prop)
       lambda1.prop = ifelse(lambda1.prop>1e+16,1e+16,lambda1.prop)
       theta1.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1.prop,lambda2,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
-      post1.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta1.prop)),log=TRUE))+dgamma(lambda1.prop,0.01,0.01,log=TRUE)+log(lambda1.prop) # correction term
+      post1.prop <- .mn_log_target(A_draw, A_prior, theta1.prop, lambda1.prop)
+      post1 <- .mn_log_target(A_draw, A_prior, theta, lambda1)
       if((post1.prop-post1)>log(runif(1,0,1))){
         lambda1    = lambda1.prop
         theta      = theta1.prop
-        post1      = post1.prop
         accept1    = accept1+1
       }
       
@@ -909,11 +925,11 @@
       lambda2.prop = ifelse(lambda2.prop<1e-16,1e-16,lambda2.prop)
       lambda2.prop = ifelse(lambda2.prop>1e+16,1e+16,lambda2.prop)
       theta2.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1,lambda2.prop,lambda3,lambda4,sigma_sq,sigma_wex,trend,wexo)
-      post2.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta2.prop)),log=TRUE))+dgamma(lambda2.prop,0.01,0.01,log=TRUE)+log(lambda2.prop) # correction term
+      post2.prop <- .mn_log_target(A_draw, A_prior, theta2.prop, lambda2.prop)
+      post2 <- .mn_log_target(A_draw, A_prior, theta, lambda2)
       if((post2.prop-post2)>log(runif(1,0,1))){
         lambda2    = lambda2.prop
         theta      = theta2.prop
-        post2      = post2.prop
         accept2    = accept2+1
       }
       
@@ -922,12 +938,12 @@
         lambda3.prop = exp(rnorm(1,0,scale3))*lambda3
         lambda3.prop = ifelse(lambda3.prop<1e-16,1e-16,lambda3.prop)
         lambda3.prop = ifelse(lambda3.prop>1e+16,1e+16,lambda3.prop)
-        theta3.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1,lambda2,lambda3,lambda3.prop,sigma_sq,sigma_wex,trend,wexo)
-        post3.prop   = sum(dnorm(as.vector(A_draw),a_prior,sqrt(as.vector(theta3.prop)),log=TRUE))+dgamma(lambda3.prop,0.01,0.01,log=TRUE)+log(lambda3.prop)
+        theta3.prop  = .get_V(k,M,Mstar,Mex,plag,plagstar,lambda1,lambda2,lambda3.prop,lambda4,sigma_sq,sigma_wex,trend,wexo)
+        post3.prop <- .mn_log_target(A_draw, A_prior, theta3.prop, lambda3.prop)
+        post3 <- .mn_log_target(A_draw, A_prior, theta, lambda3)
         if((post3.prop-post3)>log(runif(1,0,1))){
           lambda3    = lambda3.prop
           theta      = theta3.prop
-          post3      = post3.prop
           accept3    = accept3+1
         }
       }
@@ -945,10 +961,7 @@
     if(prior==2){
       for(mm in 1:M){
         for(kk in 1:k){
-          u_i1  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau0[kk,mm]) * (1-p_i)
-          u_i2  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau1[kk,mm]) * p_i
-          gst  <-  u_i1/(u_i1 + u_i2)
-          if(gst=="NaN") gst <- 0
+          gst <- .ssvs_spike_probability(A_draw[kk,mm], A_prior[kk,mm], tau0[kk,mm], tau1[kk,mm], p_i)
           gamma[kk,mm]  <-  .bernoulli(gst)
           gamma[is.na(gamma)] <- 1
           if (gamma[kk,mm] == 0){
@@ -961,10 +974,7 @@
       if(M>1){
         for(mm in 2:M){
           for(ii in 1:(mm-1)){
-            u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * (1-q_ij)
-            u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * q_ij
-            ost  <-  u_ij1/(u_ij1 + u_ij2)
-            if(is.na(ost)) ost <- 1
+            ost <- .ssvs_spike_probability(L_draw[mm,ii], l_prior[mm,ii], kappa0, kappa1, q_ij)
             omega[mm,ii] <-  .bernoulli(ost)
             if (is.na(omega[mm,ii])) omega[mm,ii] <- 1
             if(omega[mm,ii]==1){
@@ -1018,15 +1028,14 @@
           A.lag.prior <- A_prior[slct.i,,drop=FALSE]
           theta.lag   <- theta[slct.i,,drop=FALSE]
           
-          if (ss==0){
-            lambda2_A[ss+1,2] <- rgamma(n     = 1,
-                                        shape = d_lambda + A_tau[ss+1,2]*Mstar*M,
-                                        rate  = e_lambda + A_tau[ss+1,2]/2*sum(theta.lag))
-          }else{
-            lambda2_A[ss+1,2] <- rgamma(n     = 1,
-                                        shape = d_lambda + A_tau[ss+1,2]*Mstar^2,
-                                        rate  = e_lambda + A_tau[ss+1,2]*0.5*prod(lambda2_A[1:ss,2])*sum(theta.lag))
-          }
+          blocks <- lapply(0:plagstar, function(lag) {
+            name <- if(lag==0) "Wex" else paste0("Wexlag",lag)
+            theta[which(rownames(A_draw)==name),,drop=FALSE]
+          })
+          conditional <- .ng_factor_conditional(ss+1L,
+            lambda2_A[seq_len(plagstar+1L),2], A_tau[seq_len(plagstar+1L),2],
+            blocks, d_lambda, e_lambda)
+          lambda2_A[ss+1,2] <- rgamma(1, shape=conditional["shape"], rate=conditional["rate"])
           for(ii in 1:Mstar){
             for(mm in 1:M){
               temp <- do_rgig1(lambda = A_tau[ss+1,2]-0.5,
@@ -1065,15 +1074,12 @@
         A.prior   <- A_prior[slct.i,,drop=FALSE]
         theta.lag <- theta[slct.i,,drop=FALSE]
         
-        if(ss==1){
-          lambda2_A[ss+1,1] <- rgamma(n     = 1,
-                                      shape = d_lambda + A_tau[ss+1,1]*M^2,
-                                      rate  = e_lambda + A_tau[ss+1,1]/2*sum(theta.lag))
-        }else{
-          lambda2_A[ss+1,1] <- rgamma(n     = 1,
-                                      shape = d_lambda + A_tau[ss+1,1]*M^2,
-                                      rate  = e_lambda + A_tau[ss+1,1]/2*prod(lambda2_A[2:(ss+1),1])*sum(theta.lag))
-        }
+        blocks <- lapply(seq_len(plag), function(lag)
+          theta[which(rownames(A_draw)==paste0("Ylag",lag)),,drop=FALSE])
+        conditional <- .ng_factor_conditional(ss,
+          lambda2_A[2:(plag+1),1], A_tau[2:(plag+1),1],
+          blocks, d_lambda, e_lambda)
+        lambda2_A[ss+1,1] <- rgamma(1, shape=conditional["shape"], rate=conditional["rate"])
         for(ii in 1:M){
           for(mm in 1:M){
             temp <- do_rgig1(lambda = A_tau[ss+1,1] - 0.5,
@@ -1128,12 +1134,12 @@
       # local shrinkage parameter - A endo
       lambda_A_endo = 1 / rgamma(n     = n, 
                                  shape = 1,
-                                 rate  = 1 / nu_A_endo + 0.5 * as.vector(A_draw[slct.i,])^2 / tau_A_endo)
+                                 rate  = 1 / nu_A_endo + 0.5 * as.vector(A_draw[slct.i,,drop=FALSE] - A_prior[slct.i,,drop=FALSE])^2 / tau_A_endo)
       nu_A_endo     = 1 / rgamma(n     = n, 
                                  shape = 1,
                                  rate  = 1 + 1 / lambda_A_endo)
       # global shrinkage parameter - A endo
-      WSSR_A_endo = sum(as.vector(A_draw[slct.i,])^2 / lambda_A_endo)
+      WSSR_A_endo = sum(as.vector(A_draw[slct.i,,drop=FALSE] - A_prior[slct.i,,drop=FALSE])^2 / lambda_A_endo)
       tau_A_endo  = 1 / rgamma(n     = 1,
                                shape = (n + 1)/2,
                                rate  = 1 / zeta_A_endo + 0.5*WSSR_A_endo)
@@ -1149,15 +1155,15 @@
         # local shrinkage parameter - A exo
         lambda_A_exo = 1 / rgamma(n     = nstar, 
                                   shape = 1,
-                                  rate  = 1 / nu_A_exo + 0.5 * as.vector(A_draw[slct.w,])^2 / tau_A_exo)
+                                  rate  = 1 / nu_A_exo + 0.5 * as.vector(A_draw[slct.w,,drop=FALSE] - A_prior[slct.w,,drop=FALSE])^2 / tau_A_exo)
         nu_A_exo     = 1 / rgamma(n     = nstar, 
                                   shape = 1,
                                   rate  = 1 + 1 / lambda_A_exo)
         # global shrinkage parameter - A exo
-        WSSR_A_exo = sum(as.vector(A_draw[slct.w,])^2 / lambda_A_exo)
+        WSSR_A_exo = sum(as.vector(A_draw[slct.w,,drop=FALSE] - A_prior[slct.w,,drop=FALSE])^2 / lambda_A_exo)
         tau_A_exo  = 1 / rgamma(n     = 1,
                                 shape = (nstar + 1)/2,
-                                rate  = 1 / zeta_A_endo + 0.5*WSSR_A_exo)
+                                rate  = 1 / zeta_A_exo + 0.5*WSSR_A_exo)
         zeta_A_exo = 1 / rgamma(n     = 1,
                                 shape = 1,
                                 rate  = 1 + 1 / tau_A_exo)
@@ -1235,9 +1241,9 @@
       if(save_shrink_NG){
         theta_store[,,count]                = theta
         lambda2_store[1,3,count]            = lambda2_L
-        lambda2_store[1:(plag+1),1:2,count] = lambda2_A
+        lambda2_store[seq_len(pmax+1L),1:2,count] = lambda2_A
         tau_store[1,3,count]                = L_tau
-        tau_store[1:(plag+1),1:2,count]     = A_tau
+        tau_store[seq_len(pmax+1L),1:2,count]     = A_tau
       }
       # HS
       if(save_shrink_HS){

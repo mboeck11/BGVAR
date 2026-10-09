@@ -40,7 +40,7 @@ void gen_compMat(mat& Cm, const mat& A, const int M, const int p) {
 double get_ar(mat& Yraw, int p){
   int Traw = Yraw.n_rows;
   mat Xraw = mlag(Yraw,p,Traw,1);
-  mat X = Xraw.submat(p,0,Traw-1,0);
+  mat X = Xraw.submat(p,0,Traw-1,p-1);
   mat Y = Yraw.submat(p,0,Traw-1,0);
   
   int T = Y.n_rows;

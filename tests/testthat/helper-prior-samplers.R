@@ -1,10 +1,11 @@
 # Call each implementation directly: the public wrapper can silently fall back
 # from C++ to R, which would otherwise hide compiled-sampler failures.
 prior_sample <- function(implementation, prior, hyperpara = list(),
-                         save = TRUE, thin = 1L) {
+                         save = TRUE, thin = 1L, draws = 60L,
+                         lags = c(1L, 1L), Mstar = 1L) {
   set.seed(2718)
   defaults <- list(
-    Mstar = 1L, crit_eig = 1, prmean = 0, a_1 = 3, b_1 = 0.3,
+    Mstar = Mstar, crit_eig = 1, prmean = 0, a_1 = 3, b_1 = 0.3,
     Bsigma = 1, a0 = 25, b0 = 1.5, bmu = 0, Bmu = 100^2,
     lambda1 = 0.1, lambda2 = 0.2, lambda3 = 0.1, lambda4 = 100,
     tau0 = 0.1, tau1 = 3, kappa0 = 0.1, kappa1 = 7,
@@ -17,8 +18,8 @@ prior_sample <- function(implementation, prior, hyperpara = list(),
   store[[paste0("shrink_", prior)]] <- save
   args <- list(
     Yraw = matrix(rnorm(160), 80, 2),
-    Wraw = matrix(rnorm(80), 80, 1), Exraw = matrix(0, 1, 1),
-    lags = c(1L, 1L), draws = 60L, burnin = 20L, thin = thin,
+    Wraw = matrix(rnorm(80*Mstar), 80, Mstar), Exraw = matrix(0, 1, 1),
+    lags = lags, draws = draws, burnin = 20L, thin = thin,
     cons = TRUE, trend = FALSE, sv = FALSE,
     prior = unname(c(MN = 1L, NG = 3L, HS = 4L)[prior]),
     setting_store = store

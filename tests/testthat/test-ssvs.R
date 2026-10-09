@@ -1,7 +1,7 @@
 # Exercise the country samplers directly so a C++ failure cannot silently
 # fall back to R and leave the compiled implementation untested.
 ssvs_sample <- function(implementation, p_i, q_ij, equal_scales = FALSE,
-                        draws = 100L) {
+                        draws = 100L, burnin = 20L, hyperpara_override = list()) {
   set.seed(2718)
   Yraw <- matrix(rnorm(160), 80, 2)
   Wraw <- matrix(rnorm(80), 80, 1)
@@ -17,9 +17,10 @@ ssvs_sample <- function(implementation, p_i, q_ij, equal_scales = FALSE,
     hyperpara$tau0 <- hyperpara$tau1 <- 1
     hyperpara$kappa0 <- hyperpara$kappa1 <- 1
   }
+  hyperpara[names(hyperpara_override)] <- hyperpara_override
   args <- list(
     Yraw = Yraw, Wraw = Wraw, Exraw = matrix(0, 1, 1),
-    lags = c(1L, 1L), draws = draws, burnin = 20L, thin = 1L,
+    lags = c(1L, 1L), draws = draws, burnin = burnin, thin = 1L,
     cons = TRUE, trend = FALSE, sv = FALSE, prior = 2L,
     setting_store = list(shrink_MN = FALSE, shrink_SSVS = TRUE,
                          shrink_NG = FALSE, shrink_HS = FALSE,
@@ -64,5 +65,16 @@ for (implementation in c("C++", "R")) {
       expect_lt(abs(mean(result$gamma) - p), 0.08)
       expect_lt(abs(mean(result$omega) - (1 - p)), 0.08)
     }
+  })
+}
+
+for (implementation in c("C++", "R")) {
+  test_that(paste(implementation, "SSVS covariance probabilities survive underflow"), {
+    # At the first sampled covariance coefficient both ordinary densities are
+    # zero. Log odds still select the wider component with probability ~1.
+    result <- ssvs_sample(implementation, p_i=.3, q_ij=.7,
+                          draws=1L, burnin=0L,
+                          hyperpara_override=list(kappa0=1e-8, kappa1=1e-7))
+    expect_equal(as.numeric(result$omega), 1)
   })
 }
