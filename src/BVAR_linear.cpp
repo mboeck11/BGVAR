@@ -553,8 +553,8 @@ List BVAR_linear(arma::mat Yraw,
       // coefficients A matrix
       for(int j=0; j < M; j++){
         for(int i=0; i < k; i++){
-          double u_i1 = R::dnorm(A_draw(i,j), A_prior(i,j), tau0(i,j),false) * p_i;
-          double u_i2 = R::dnorm(A_draw(i,j), A_prior(i,j), tau1(i,j),false) * (1-p_i);
+          double u_i1 = R::dnorm(A_draw(i,j), A_prior(i,j), tau0(i,j),false) * (1-p_i);
+          double u_i2 = R::dnorm(A_draw(i,j), A_prior(i,j), tau1(i,j),false) * p_i;
           double ast  = u_i1/(u_i1+u_i2);
           if(NumericVector::is_na(ast)) ast = 0;
           gamma(i,j) = draw_bernoulli(ast);
@@ -565,8 +565,8 @@ List BVAR_linear(arma::mat Yraw,
       // coefficients H matrix
       for(int i=1; i < M; i++){
         for(int j=0; j < i; j++){
-          double u_ij1 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa00,false) * q_ij;
-          double u_ij2 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa11,false) * (1-q_ij);
+          double u_ij1 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa00,false) * (1-q_ij);
+          double u_ij2 = R::dnorm(L_draw(i,j),l_prior(i,j),kappa11,false) * q_ij;
           double hst = u_ij1/(u_ij1+u_ij2);
           if(NumericVector::is_na(hst)) hst = 1;
           omega(i,j) = draw_bernoulli(hst);

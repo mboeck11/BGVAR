@@ -945,8 +945,8 @@
     if(prior==2){
       for(mm in 1:M){
         for(kk in 1:k){
-          u_i1  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau0[kk,mm]) * p_i
-          u_i2  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau1[kk,mm]) * (1-p_i)
+          u_i1  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau0[kk,mm]) * (1-p_i)
+          u_i2  <-  dnorm(A_draw[kk,mm],A_prior[kk,mm],tau1[kk,mm]) * p_i
           gst  <-  u_i1/(u_i1 + u_i2)
           if(gst=="NaN") gst <- 0
           gamma[kk,mm]  <-  .bernoulli(gst)
@@ -961,8 +961,8 @@
       if(M>1){
         for(mm in 2:M){
           for(ii in 1:(mm-1)){
-            u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * q_ij
-            u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * (1-q_ij)
+            u_ij1  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa0) * (1-q_ij)
+            u_ij2  <-  dnorm(L_draw[mm,ii],l_prior[mm,ii],kappa1) * q_ij
             ost  <-  u_ij1/(u_ij1 + u_ij2)
             if(is.na(ost)) ost <- 1
             omega[mm,ii] <-  .bernoulli(ost)
@@ -1363,7 +1363,7 @@
         }
         message("\n In any case, increasin the thinning factor (argument 'thin' of 'bgvar') reduces memory requirements.")
       }
-      return(NULL)
+      stop(cond)
     },
     warning=function(cond){},
     finally={}
@@ -1436,7 +1436,7 @@
     if(eigen){
       MM  <- .get_companion(ALPHA,c(ncol(xglobal),ifelse(trend,2,1),plag))$MM
       aux <- suppressWarnings(eigen(MM[1:(bigK*plag),1:(bigK*plag)]))
-      F.eigen[irep] <- max(abs(Re(aux$values)))
+      F.eigen[irep] <- max(Mod(aux$values))
     }
     # if(stats){
     #   X_large         <- cbind(.mlag(xglobal,plag),1)
@@ -1559,6 +1559,22 @@
   
 }
 
+#' @name .is_integer_count
+#' @noRd
+.is_integer_count <- function(x, minimum=0) {
+  is.numeric(x) && length(x)==1L && is.finite(x) &&
+    x>=minimum && x==floor(x)
+}
+
+#' @name .validate_quantiles
+#' @noRd
+.validate_quantiles <- function(quantiles) {
+  if(!is.numeric(quantiles) || length(quantiles)==0L ||
+     any(!is.finite(quantiles)) || any(quantiles<0 | quantiles>1)){
+    stop("Please provide 'quantiles' as a nonempty numeric vector of finite probabilities between 0 and 1.")
+  }
+}
+
 #' @name .construct.arglist
 #' @noRd
 .construct.arglist = function (funobj, envir = NULL){
@@ -1580,8 +1596,8 @@
       }
     }
   }
-  namedlist = lapply(namedlist,function(x) if (any(x=="list(NULL)blabla")) NULL else x)
-  lapply(namedlist, function(l) if(any(l=="list(NULL)blabla")){NULL}else{l})
+  namedlist = lapply(namedlist,function(x) if (identical(x,"list(NULL)blabla")) NULL else x)
+  lapply(namedlist, function(l) if(identical(l,"list(NULL)blabla")){NULL}else{l})
   return(namedlist)
 }
 

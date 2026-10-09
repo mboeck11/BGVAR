@@ -37,12 +37,12 @@
 #'       \item{\code{lambda4}}{ Starting value of \code{lambda4}. Default set to 0.1.}
 #'       }}
 #' \item{"SSVS"}{\describe{
-#'       \item{\code{tau0}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is NOT included (spike, tau0 should be close to zero).}
-#'       \item{\code{tau1}}{ is the prior variance associated with the normal prior on the regression coefficients if a variable is  included (slab, tau1 should be large).}
-#'       \item{\code{kappa0}}{ is the prior variance associated with the normal prior on the covariances if a covariance equals zero (spike, kappa0 should be close to zero).}
-#'       \item{\code{kappa1}}{  is the prior variance associated with the normal prior on the covariances if a covariance is  unequal to zero (slab, kappa1 should be large).}
-#'       \item{\code{p_i}}{ is the prior inclusion probability for each regression coefficient whether it is included in the model (default set to \code{p_i=0.5}).}
-#'       \item{\code{q_ij}}{ is the prior inclusion probability for each covariance whether it is included in the model (default set to \code{q_ij=0.5}).}
+#'       \item{\code{tau0}}{ Standard deviation multiplier for the spike component of the regression coefficient prior. The component’s standard deviation is \code{tau0} times the coefficient’s OLS standard error. Choose a small positive value to impose strong shrinkage toward the prior mean.}
+#'       \item{\code{tau1}}{ Standard deviation multiplier for the slab component of the regression coefficient prior. The component’s standard deviation is \code{tau1} times the coefficient’s OLS standard error. Choose a value larger than tau0 to allow weaker shrinkage.}
+#'       \item{\code{kappa0}}{ Prior standard deviation for the spike component of the off-diagonal coefficients in the triangular decomposition of the error covariance matrix. Choose a small positive value to impose strong shrinkage toward zero.}
+#'       \item{\code{kappa1}}{ Prior standard deviation for the slab component of these coefficients. Choose a value larger than kappa0 to allow weaker shrinkage.}
+#'       \item{\code{p_i}}{ Prior probability that a regression coefficient belongs to the slab component (gamma = 1). The spike probability is \code{1-p_i}. Larger values favor inclusion and weaker shrinkage. Default: \code{p_i=0.5}.}
+#'       \item{\code{q_ij}}{ Prior probability that an off-diagonal coefficient in the triangular decomposition of the error covariance matrix belongs to the slab component (omega = 1). The spike probability is \code{1-q_ij}. Larger values favor inclusion and weaker shrinkage. Default: \code{q_ij=0.5}.}
 #'       }}
 #' \item{"NG":}{\describe{
 #'       \item{\code{e_lambda}}{ Prior hyperparameter for the Gamma prior on the lag-specific shrinkage components, standard value is \code{e_lambda=1.5}.}
@@ -191,11 +191,24 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   if(!length(plag)%in%c(1,2)){
     stop("Please specify number of lags accordingly. One lag length parameter for the whole model.")
   }
+  if(any(!is.finite(plag)) || any(plag<1 | plag!=floor(plag))){
+    stop("Please specify number of lags as finite positive integers.")
+  }
   if(!is.numeric(draws) | !is.numeric(burnin)){
     stop("Please specify number of draws and burnin as numeric.")
   }
-  if(length(draws)>1 || draws<0 || length(burnin)>1 || burnin<0){
-    stop("Please specify number of draws and burnin accordingly. One draws and burnin parameter for the whole model.")
+  if(!.is_integer_count(draws, minimum=1) || !.is_integer_count(burnin)){
+    stop("Please specify number of draws and burnin accordingly: draws must be a finite positive integer and burnin a finite nonnegative integer.")
+  }
+  if(!.is_integer_count(hold.out)){
+    stop("'hold.out' must be a finite nonnegative integer.")
+  }
+  if(!is.numeric(thin) || length(thin)!=1L || !is.finite(thin) || thin<=0){
+    stop("'thin' must be a finite positive thinning interval.")
+  }
+  normalized_thin <- if(thin<1) 1/thin else thin
+  if(!.is_integer_count(normalized_thin, minimum=1)){
+    stop("'thin' must be a positive integer or the reciprocal of a positive integer.")
   }
   if(!prior%in%c("MN","SSVS","NG","HS")){
     stop("Please selecte one of the following prior options: MN, SSVS, NG, or HS.")
@@ -296,6 +309,9 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     args$Traw <- length(timeindex)
   }
   args$Data <- Data
+  if(any(vapply(Data, nrow, integer(1))-hold.out <= max(lags))){
+    stop("'hold.out' must leave more observations than the maximum lag order.")
+  }
   # check Weight matrix if matrix
   if(is.matrix(W)){
     W.aux<-list();W.aux$W<-W;W<-W.aux;rm(W.aux) # convert W into a list
@@ -457,6 +473,15 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       default_hyerpara["lambda2"] = default_hyperpara["shrink2"]
       default_hyerpara["lambda3"] = default_hyperpara["shrink3"]
       default_hyerpara["lambda4"] = default_hyperpara["shrink4"]
+    }
+  }
+  if(prior=="SSVS"){
+    for(parameter in c("p_i", "q_ij")){
+      probability <- default_hyperpara[[parameter]]
+      if(!is.numeric(probability) || length(probability)!=1L ||
+         !is.finite(probability) || probability<0 || probability>1){
+        stop(paste0("'",parameter,"' must be a finite probability between 0 and 1."))
+      }
     }
   }
   # store setting

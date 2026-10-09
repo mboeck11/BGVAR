@@ -1,5 +1,7 @@
 Change in Version 2.7.0
+- Fixed input validation for missing values in W and Ex: bgvar() now reports the intended validation messages instead of a generic missing-value error.
 - fixed issue with Calls to Rf_error() in Rcpp
+- Fixed reversed SSVS mixture weights for p_i and q_ij. These parameters now represent prior inclusion probabilities, as documented. Results using the default values of 0.5 are unaffected. To reproduce the previous prior specification with nondefault values, replace each probability by its complement (1-p_i and 1-q_ij).
 
 Change in Version 2.6.0
 - added new argument in function 'bgvar', within the 'expert' settings of 'OE.weights': OE.exo

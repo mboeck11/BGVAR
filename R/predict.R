@@ -48,6 +48,9 @@
 predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, quantiles=NULL, save.store=FALSE, verbose=TRUE){
   start.pred <- Sys.time()
   if(!inherits(object, "bgvar")) {stop("Please provide a `bgvar` object.")}
+  if(!.is_integer_count(n.ahead, minimum=1)){
+    stop("'n.ahead' must be a finite positive integer.")
+  }
   # check if posterior draws are available
   if(object$args$thindraws == 0){
     cat("Computation of BGVAR has yielded no stable posterior draws!")
@@ -56,9 +59,7 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   if(is.null(quantiles)){
     quantiles <- c(.05,.10,.16,.50,.84,.90,.95)
   }
-  if(!is.numeric(quantiles)){
-    stop("Please provide 'quantiles' as numeric vector.")
-  }
+  .validate_quantiles(quantiles)
   if(verbose) cat("Start computing predictions of Bayesian Global Vector Autoregression.\n\n")
   thindraws  <- object$args$thindraws
   lags       <- object$args$lags
@@ -216,9 +217,11 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   yfull <- object$args$yfull
   if(hold.out>0){
     lps.stats <- array(0,dim=c(bigK,2,hold.out), dimnames=list(colnames(xglobal),c("mean","sd"),seq(1,hold.out)))
-    lps.stats[,"mean",] <- apply(pred_store[,,1:hold.out],c(2:3),mean,na.rm=TRUE)
-    lps.stats[,"sd",]   <- apply(pred_store[,,1:hold.out],c(2:3),sd,na.rm=TRUE)
-    hold.out.sample<-yfull[(nrow(yfull)+1-hold.out):nrow(yfull),,drop=FALSE]
+    evaluation_draws <- pred_store[,,seq_len(hold.out),drop=FALSE]
+    lps.stats[,"mean",] <- apply(evaluation_draws,c(2,3),mean,na.rm=TRUE)
+    lps.stats[,"sd",]   <- apply(evaluation_draws,c(2,3),sd,na.rm=TRUE)
+    evaluation_rows <- nrow(xglobal)+seq_len(hold.out)
+    hold.out.sample<-yfull[evaluation_rows,,drop=FALSE]
   }else{
     lps.stats<-NULL
     hold.out.sample<-NULL

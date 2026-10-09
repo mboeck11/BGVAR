@@ -55,10 +55,15 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   Sigma_u <- Ginv%*%Smat%*%t(Ginv)
   varNames<- colnames(xglobal)
   trend   <- FALSE
-  if(!is.null(rotation.matrix)){
-    rotation.matrix<-x$struc.obj$Rmed
-  }else{
-    rotation.matrix<-diag(bigK)
+  if(is.null(rotation.matrix)){
+    if(ident=="sign"){
+      rotation.matrix<-x$struc.obj$Rmed
+    }else{
+      rotation.matrix<-diag(bigK)
+    }
+  }
+  if(is.null(rotation.matrix) || anyNA(rotation.matrix)){
+    stop("No rotation matrix available. Supply a rotation matrix or re-estimate IRFs with sign restrictions.")
   }
   rownames(rotation.matrix) <- colnames(rotation.matrix) <- varNames
   #------------------------checks-------------------------------------------------------------------#
@@ -142,10 +147,10 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
       HDtrend[,nn] <- Icomp%*%HDtrend_big[,nn]
     }
   }
-  hd_array[,,1:bigK]   <- HDshock_big
-  hd_array[,,(bigK+1)] <- HDconst_big
-  if(trend) hd_array[,,(bigK+1+trend)] <- HDtrend_big
-  hd_array[,,(bigK+2+trend)] <- HDinit_big
+  hd_array[,,1:bigK]   <- HDshock
+  hd_array[,,(bigK+1)] <- HDconst
+  if(trend) hd_array[,,(bigK+1+trend)] <- HDtrend
+  hd_array[,,(bigK+2+trend)] <- HDinit
   hd_array[,,(bigK+3+trend)] <- (t(xdat)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))

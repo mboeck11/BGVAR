@@ -94,6 +94,9 @@
 #' @importFrom RcppParallel RcppParallelLibs setThreadOptions defaultNumThreads
 irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,verbose=TRUE){
   start.irf <- Sys.time()
+  if(!.is_integer_count(n.ahead, minimum=1)){
+    stop("'n.ahead' must be a finite positive integer.")
+  }
   # get identification
   ident <- attr(shockinfo, "ident")
   if(is.null(ident)){
@@ -109,9 +112,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   if(is.null(quantiles)){
     quantiles <- c(.05,.10,.16,.50,.84,.90,.95)
   }
-  if(!is.numeric(quantiles)){
-    stop("Please provide 'quantiles' as numeric vector.")
-  }
+  .validate_quantiles(quantiles)
   if(!is.null(shockinfo)){ # delete double entries
     shockinfo<-shockinfo[!duplicated(shockinfo),]
   }
@@ -577,6 +578,12 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
     }else{
       Rmed<-NULL
     }
+    if(is.null(Rmed) || anyNA(Rmed)){
+      warning("No valid rotation matrix was obtained at the posterior median. ",
+              "Posterior impulse responses remain available, but FEVD and other ",
+              "functions requiring the median rotation matrix cannot proceed. ",
+              "Try rerunning irf() with a higher expert$MaxTries.", call.=FALSE)
+    }
   }
   struc.obj <- list(A=A,Fmat=Fmat,Ginv=Ginv,Smat=Smat,Rmed=Rmed)
   model.obj <- list(xglobal=xglobal,lags=lags)
@@ -752,4 +759,3 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
   shockinfo<-shockinfo[!duplicated(shockinfo),]
   return(shockinfo)
 }
- 
