@@ -83,11 +83,11 @@ predict.bgvar <- function(object, ..., n.ahead=1, constr=NULL, constr_sd=NULL, q
   flag_cond  <- FALSE
   #---------------------check conditional predictions--------------------------------#
   if(!is.null(constr)){
-    if(!all(dim(constr)==c(n.ahead,bigK))){
+    if(!is.matrix(constr) || !identical(dim(constr), as.integer(c(n.ahead,bigK)))){
       stop("Please respecify dimensions of 'constr'.")
     }
     if(!is.null(constr_sd)){
-      if(!all(dim(constr_sd)==c(n.ahead,bigK))){
+      if(!is.matrix(constr_sd) || !identical(dim(constr_sd), as.integer(c(n.ahead,bigK)))){
         stop("Please respecify dimensions of 'constr_sd'.")
       }
       constr_sd[is.na(constr_sd)] <- 0

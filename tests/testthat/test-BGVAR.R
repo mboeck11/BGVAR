@@ -177,3 +177,17 @@ test_that("verbose changes progress output without changing estimates", {
   expect_true(any(grepl("Stacking of global model", attr(loud, "test_output"))))
   expect_false(any(grepl("Stacking of global model", attr(quiet, "test_output"))))
 })
+
+test_that("hyperparameter aliases and unnamed inputs are handled consistently", {
+  canonical <- bgvar_fit(hyperpara=list(lambda1=.3, lambda2=.4))
+  alias <- suppressWarnings(bgvar_fit(hyperpara=list(shrink1=.3, lambda2=.4)))
+  expect_equal(alias$stacked.results, canonical$stacked.results)
+  precedence <- suppressWarnings(bgvar_fit(hyperpara=list(shrink1=.8, lambda1=.3, lambda2=.4)))
+  expect_equal(precedence$stacked.results, canonical$stacked.results)
+  sv <- bgvar_fit(SV=TRUE, hyperpara=list(Bsigma=2))
+  sv_alias <- bgvar_fit(SV=TRUE, hyperpara=list(Bsigma_sv=2))
+  expect_equal(sv_alias$stacked.results, sv$stacked.results)
+  expect_equal(bgvar_fit(SV=TRUE, hyperpara=list(Bsigma=2, Bsigma_sv=5))$stacked.results,
+               sv$stacked.results)
+  expect_error(bgvar_fit(Data=unname(bgvar_inputs()$Data)), "country names")
+})

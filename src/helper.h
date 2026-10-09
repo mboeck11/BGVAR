@@ -24,4 +24,6 @@ arma::vec dmvnrm_arma_old(arma::mat& x, arma::mat& mean, arma::mat& sigma, bool 
 
 arma::mat robust_chol(const arma::mat& V);
 
+arma::vec sample_gaussian_precision(const arma::mat& precision, const arma::vec& rhs, const arma::vec& normal);
+
 #endif

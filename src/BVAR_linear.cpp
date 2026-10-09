@@ -193,7 +193,10 @@ List BVAR_linear(arma::mat Yraw,
 
   // SSVS stuff
   mat gamma(k,M, fill::ones);
-  vec sigma_alpha = arma::sqrt(diagvec(kron(SIGMA_OLS,XtXinv))); // scale with OLS standard deviation
+  // PERFORMANCE: old full Kronecker allocation (only its diagonal is needed).
+  // vec sigma_alpha = arma::sqrt(diagvec(kron(SIGMA_OLS,XtXinv)));
+  // END old Kronecker allocation.
+  vec sigma_alpha = arma::sqrt(kron(SIGMA_OLS.diag(), XtXinv.diag()));
   mat tau0(k, M, fill::zeros); mat tau1(k, M, fill::zeros);
   int ii=0;
   for(int j=0; j < M; j++){
@@ -312,6 +315,11 @@ List BVAR_linear(arma::mat Yraw,
   }
   arma::cube gamma_store(size_of_cube1(0), size_of_cube1(1), size_of_cube1(2));
   arma::cube omega_store(size_of_cube2(0), size_of_cube2(1), size_of_cube2(2));
+  // PERFORMANCE: old NG allocation inherited SSVS dimensions when disabled.
+  // No reset of size_of_cube1 or size_of_cube2 here.
+  // END old inherited allocation.
+  size_of_cube1 = {0, 0, 0};
+  size_of_cube2 = {0, 0, 0};
   // NG
   if(save_shrink_NG){
     size_of_cube1 = {k, M, thindraws};
@@ -343,6 +351,8 @@ List BVAR_linear(arma::mat Yraw,
   //---------------------------------------------------------------------------------------------
   // MCMC LOOP
   //---------------------------------------------------------------------------------------------
+  mat constant_XtX;
+  if(!sv) constant_XtX = X.t()*X;
   for(int irep = 0; irep < ntot; irep++){
     // Step 1: Sample coefficients
     // Step 1a: Sample coefficients in A
@@ -351,33 +361,40 @@ List BVAR_linear(arma::mat Yraw,
       mat Linv_0 = L_drawinv.rows(mm,M-1);
       mat S_0    = exp(-0.5*Sv_draw.cols(mm,M-1));
       mat zmat   = (Y - X * A_0) * Linv_0.t() ;
-      vec ztilde = vectorise(zmat) % vectorise(S_0);
-      mat xtilde = kron(Linv_0.col(mm), X) % repmat(vectorise(S_0),1,k);
-      mat Vinv_m = diagmat(1/V_prior.col(mm));
-      colvec a_m = A_prior.col(mm);
-      
-      mat V_p = (xtilde.t() * xtilde + Vinv_m).i();
-      mat A_p = V_p * (xtilde.t() * ztilde + Vinv_m * a_m);
-      
+      // PERFORMANCE: old expanded design and explicit covariance inverse.
+      // vec ztilde = vectorise(zmat) % vectorise(S_0);
+      // mat xtilde = kron(Linv_0.col(mm), X) % repmat(vectorise(S_0),1,k);
+      // mat Vinv_m = diagmat(1/V_prior.col(mm));
+      // colvec a_m = A_prior.col(mm);
+      //
+      // mat V_p = (xtilde.t() * xtilde + Vinv_m).i();
+      // mat A_p = V_p * (xtilde.t() * ztilde + Vinv_m * a_m);
+      // END old expanded design and inverse.
+      vec c = Linv_0.col(mm);
+      mat squared_scales = square(S_0);
+      vec weights = squared_scales * square(c);
+      mat precision;
+      if(sv){
+        mat weighted_X = X;
+        weighted_X.each_col() %= sqrt(weights);
+        precision = weighted_X.t()*weighted_X;
+      }else{
+        precision = weights(0)*constant_XtX;
+      }
+      precision.diag() += 1/V_prior.col(mm);
+      vec rhs = X.t()*((zmat % squared_scales)*c)
+        + A_prior.col(mm)/V_prior.col(mm);
+
       colvec rand_normal(k);
       for(int i=0; i<k; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower = robust_chol(V_p);
-      /*
-      bool chol_success = chol(V_p_chol_lower, V_p, "lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-       */
-      colvec A_m = A_p + V_p_chol_lower*rand_normal;
-      
+      // PERFORMANCE: old covariance factorization and draw.
+      // mat V_p_chol_lower = robust_chol(V_p);
+      // colvec A_m = A_p + V_p_chol_lower*rand_normal;
+      // END old covariance factorization and draw.
+      colvec A_m = sample_gaussian_precision(precision, rhs, rand_normal);
+
       A_draw.col(mm) = A_m;
       Em_draw.col(mm) = Y.col(mm) - X * A_m;
     }
@@ -391,28 +408,24 @@ List BVAR_linear(arma::mat Yraw,
       mat Vinv_m = diagmat(1/L_prior.submat(mm,0,mm,mm-1));
       colvec a_m = l_prior.submat(mm,0,mm,mm-1).t();
       
-      mat V_p = (eps_x.t() * eps_x + Vinv_m).i();
-      mat A_p = V_p * (eps_x.t() * eps_m + Vinv_m * a_m);
-      
+      // PERFORMANCE: old covariance inverse for the triangular coefficients.
+      // mat V_p = (eps_x.t() * eps_x + Vinv_m).i();
+      // mat A_p = V_p * (eps_x.t() * eps_m + Vinv_m * a_m);
+      // END old triangular-coefficient inverse.
+      mat precision = eps_x.t()*eps_x;
+      precision.diag() += Vinv_m.diag();
+      vec rhs = eps_x.t()*eps_m + Vinv_m*a_m;
+
       colvec rand_normal(mm);
       for(int i=0; i< mm; i++){
         rand_normal(i) = R::rnorm(0,1);
       }
-      mat V_p_chol_lower = robust_chol(V_p);
-      /*
-      bool chol_success = chol(V_p_chol_lower, V_p,"lower");
-      // Fall back on Rs chol if armadillo fails (it suppports pivoting)
-      if(chol_success == false){
-        NumericMatrix tmp = Rchol(V_p, true);
-        int d = V_p.n_cols;
-        mat cholV_tmp = mat(tmp.begin(), d, d, false);
-        uvec piv = sort_index(as<vec>(tmp.attr("pivot")));
-        V_p_chol_lower = cholV_tmp.cols(piv);
-        V_p_chol_lower = V_p_chol_lower.t();
-      }
-       */
-      colvec L_m = A_p + V_p_chol_lower*rand_normal;
-      
+      // PERFORMANCE: old covariance factorization and draw.
+      // mat V_p_chol_lower = robust_chol(V_p);
+      // colvec L_m = A_p + V_p_chol_lower*rand_normal;
+      // END old covariance factorization and draw.
+      colvec L_m = sample_gaussian_precision(precision, rhs, rand_normal);
+
       L_draw.submat(mm,0,mm,mm-1) = L_m.t();
     }
     L_drawinv = L_draw.i();

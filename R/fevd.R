@@ -82,17 +82,21 @@ fevd.bgvar.irf <- function(x, rotation.matrix=NULL, var.slct=NULL, verbose=TRUE)
     stop("FEVD implemented for shocks identified via cholesky ordering or sign restrictions only.")
   }
   if(!is.null(var.slct)){
-    if(!all(var.slct%in%varNames)){
+    if(length(var.slct)==0L || !all(var.slct%in%varNames)){
       stop("One of the variables you want to decompose is not contained in the system. Please re-specify!")
     }
   }
-  if((is.null(Rmed) || any(is.na(Rmed))) && ident == "sign"){
-    stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
-  }else if(ident=="sign" && !is.null(Rmed)){
-    rotation.matrix = Rmed
-  }else{
-    rotation.matrix = diag(bigK)
+  if(is.null(rotation.matrix)){
+    if(ident == "sign"){
+      if(is.null(Rmed) || anyNA(Rmed))
+        stop("No rotation matrix available. Please supply rotation matrix or re-estimate IRFs with sign-restrictions.")
+      rotation.matrix <- Rmed
+    }else rotation.matrix <- diag(bigK)
   }
+  if(!is.matrix(rotation.matrix) || !identical(dim(rotation.matrix), c(bigK,bigK)) ||
+     any(!is.finite(rotation.matrix)) ||
+     !isTRUE(all.equal(crossprod(rotation.matrix), diag(bigK), check.attributes=FALSE)))
+    stop("Please supply a finite orthogonal rotation matrix with dimensions K by K.")
   if(is.null(var.slct)){
     if(verbose) cat("FEVD computed for all variables.\n\n")
     var.slct<-varNames

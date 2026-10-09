@@ -198,3 +198,25 @@ arma::mat robust_chol(const arma::mat& V){
     return arma::mat(arma::size(V), arma::fill::none);
   }
 }
+
+// Factor the precision once; reverse coordinates so the resulting covariance
+// factor is lower triangular, preserving the previous seeded draw convention.
+arma::vec sample_gaussian_precision(const arma::mat& precision,
+                                    const arma::vec& rhs,
+                                    const arma::vec& normal){
+  arma::mat reversed = arma::flipud(arma::fliplr(precision));
+  arma::mat upper;
+  bool success = arma::chol(upper, reversed);
+  double jitter = 1e-12*arma::mean(reversed.diag());
+  for(int attempt=0; !success && attempt<1000 && std::isfinite(jitter); attempt++){
+    arma::mat regularized = reversed;
+    regularized.diag() += jitter;
+    success = arma::chol(upper, regularized);
+    jitter *= 1.1;
+  }
+  if(!success) Rcpp::stop("Posterior precision Cholesky factorization failed.");
+  arma::vec mean = arma::solve(arma::trimatu(upper),
+    arma::solve(arma::trimatl(upper.t()), arma::reverse(rhs)));
+  arma::vec deviation = arma::solve(arma::trimatu(upper), arma::reverse(normal));
+  return arma::reverse(mean+deviation);
+}

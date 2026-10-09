@@ -25,7 +25,7 @@ plot.bgvar <- function(x, ..., resp=NULL, global=TRUE){
   # reset user par settings on exit
   oldpar   <- par(no.readonly=TRUE)
   on.exit(par(oldpar))
-  plag     <- x$args$plag
+  plag     <- rep(max(x$args$lags), 2L)
   xglobal  <- x$xglobal
   trend    <- x$args$trend
   XX       <- .mlag(xglobal,plag[1])
@@ -266,10 +266,12 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
   if(!all(paste0("Q",quantiles*100)%in%dimnames(fcast)[[3]])){
     stop("Please provide available quantiles.")
   }
-  thin<-nrow(Xdata)-hstep
+  if(!.is_integer_count(cut, minimum=1)) stop("cut must be a positive integer.")
+  thin<-nrow(Xdata)
   if(thin>cut){
-    Xdata<-Xdata[(nrow(Xdata)-cut+1):nrow(Xdata),]
+    Xdata<-Xdata[(nrow(Xdata)-cut+1):nrow(Xdata),,drop=FALSE]
   }
+  cut <- nrow(Xdata)
   varNames  <- colnames(Xdata)
   cN        <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[1]))
   vars      <- unique(sapply(strsplit(varNames,".",fixed=TRUE),function(x) x[2]))
@@ -294,12 +296,12 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
       for(kk in 1:K){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
-        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),matrix(fcast[idx,,paste0("Q",quantiles*100),drop=FALSE], nrow=hstep, ncol=Q))
         b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
-        for(qq in 1:floor(Q/2)){
+        for(qq in seq_len(floor(Q/2))){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
         }
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
@@ -319,12 +321,12 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
       for(kk in 1:K){
         idx <- which(paste0(cN[cc],".",vars[kk])==varNames)
         if(length(idx) == 0) next
-        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),matrix(fcast[idx,,paste0("Q",quantiles*100),drop=FALSE], nrow=hstep, ncol=Q))
         b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
-        for(qq in 1:floor(Q/2)){
+        for(qq in seq_len(floor(Q/2))){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
         }
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
@@ -344,12 +346,12 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
       for(kk in 1:Ki[vv]){
         idx <- which(paste0(cN[kk],".",vars[vv])==varNames)
         if(length(idx)==0) next
-        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+        x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),matrix(fcast[idx,,paste0("Q",quantiles*100),drop=FALSE], nrow=hstep, ncol=Q))
         b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
         plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
                 lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
                 cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
-        for(qq in 1:floor(Q/2)){
+        for(qq in seq_len(floor(Q/2))){
           polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
         }
         lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)
@@ -367,12 +369,12 @@ plot.bgvar.pred<-function(x, ..., resp=NULL, cut=40, quantiles=c(.10,.16,.50,.84
     par(mar=bgvar.env$mar,mfrow=c(nrc[1],nrc[2]))
     for(kk in 1:Ki){
       idx <- ridx[kk]
-      x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),fcast[idx,,paste0("Q",quantiles*100)])
+      x <- rbind(cbind(matrix(NA,nrow(Xdata),floor(Q/2)),Xdata[,idx],matrix(NA,nrow(Xdata),floor(Q/2))),matrix(fcast[idx,,paste0("Q",quantiles*100),drop=FALSE], nrow=hstep, ncol=Q))
       b <- range(x,na.rm=TRUE); b1<-b[1];b2<-rev(b)[1]
       plot.ts(x[,median(seq(Q))], col=bgvar.env$plot$col.50, lty=1, yaxt="n", xaxt="n",
               lwd=bgvar.env$plot$lwd.line,ylab="",main=varNames[idx],cex.main=bgvar.env$plot$cex.main,
               cex.axis=bgvar.env$plot$cex.axis,cex.lab=bgvar.env$plot$cex.lab,ylim=c(b1,b2))
-      for(qq in 1:floor(Q/2)){
+      for(qq in seq_len(floor(Q/2))){
         polygon(c(1:nrow(x),rev(1:nrow(x))),c(x[,qq],rev(x[,Q-qq+1])),col=bgvar.env$plot$col.unc[qq],border=NA)
       }
       lines(c(rep(NA,cut),x[seq(cut+1,cut+hstep),median(seq(Q))]),col=bgvar.env$plot$col.50,lwd=4)

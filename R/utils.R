@@ -244,6 +244,39 @@
     dgamma(shrinkage, shape=0.01, rate=0.01, log=TRUE) + log(shrinkage)
 }
 
+# Exact covariance medians with one T-by-draws entry buffer, using symmetry.
+.covariance_summaries <- function(L, log_variances, constant_variance=FALSE,
+                                  variable_names=NULL) {
+  T <- dim(log_variances)[1]
+  M <- dim(log_variances)[2]
+  draws <- dim(log_variances)[3]
+  draw_medians <- array(0, c(M,M,draws),
+    dimnames=list(variable_names,variable_names,NULL))
+  posterior_medians <- array(0, c(T,M,M),
+    dimnames=list(NULL,variable_names,variable_names))
+  variances <- if(constant_variance)
+    matrix(exp(log_variances[1,,,drop=FALSE]), M, draws) else exp(log_variances)
+  for(i in seq_len(M)) for(j in seq_len(i)) {
+    if(constant_variance) {
+      values <- numeric(draws)
+      for(h in seq_len(j)) values <- values + L[i,h,]*L[j,h,]*variances[h,]
+      time_median <- values
+      draw_median <- rep(median(values), T)
+    } else {
+      values <- matrix(0,T,draws)
+      for(h in seq_len(j)) {
+        scales <- matrix(variances[,h,],T,draws)
+        values <- values + sweep(scales,2L,as.numeric(L[i,h,]*L[j,h,]), `*`)
+      }
+      time_median <- apply(values,2L,median)
+      draw_median <- apply(values,1L,median)
+    }
+    draw_medians[i,j,] <- draw_medians[j,i,] <- time_median
+    posterior_medians[,i,j] <- posterior_medians[,j,i] <- draw_median
+  }
+  list(draw_medians=draw_medians,posterior_medians=posterior_medians)
+}
+
 # Full conditional for a factor in cumulative Normal-Gamma lag shrinkage.
 .ng_factor_conditional <- function(index, factors, shapes, variances,
                                    d_lambda, e_lambda) {
@@ -410,18 +443,25 @@
                                  dimnames=list(rep(paste0("Wexlag",pp),Mstar),colnames(Y),NULL))
     }
   }
-  SIGMA_store <- array(NA, c(bigT,M,M,draws/thin)); dimnames(SIGMA_store) <- list(NULL,colnames(Y),colnames(Y),NULL)
+  # PERFORMANCE: old full time-by-equation-by-equation-by-draw covariance cube.
+  # SIGMA_store <- array(NA, c(bigT,M,M,draws/thin)); dimnames(SIGMA_store) <- list(NULL,colnames(Y),colnames(Y),NULL)
+  # L_store <- bvar$L_store
+  # for(irep in 1:(draws/thin)){
+  # for(tt in 1:bigT){
+  # if(M>1){
+  # SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%diag(exp(bvar$Sv_store[tt,,irep]))%*%t(L_store[,,irep])
+  # }else{
+  # SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%exp(bvar$Sv_store[tt,,irep])%*%t(L_store[,,irep])
+  # }
+  # }
+  # }
+  # SIGMAmed_store <- apply(SIGMA_store, c(2,3,4), median)
+  # END old full covariance cube and time medians.
+  covariance <- .covariance_summaries(bvar$L_store, bvar$Sv_store,
+    constant_variance=!SV, variable_names=colnames(Y))
+  SIGMAmed_store <- covariance$draw_medians
+  SIGMA_post <- covariance$posterior_medians
   L_store <- bvar$L_store
-  for(irep in 1:(draws/thin)){
-    for(tt in 1:bigT){
-      if(M>1){
-        SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%diag(exp(bvar$Sv_store[tt,,irep]))%*%t(L_store[,,irep])
-      }else{
-        SIGMA_store[tt,,,irep] <- L_store[,,irep]%*%exp(bvar$Sv_store[tt,,irep])%*%t(L_store[,,irep])
-      }
-    }
-  }
-  SIGMAmed_store <- apply(SIGMA_store, c(2,3,4), median)
   res_store     <- bvar$res_store; dimnames(res_store) <- list(NULL,colnames(Y),NULL)
   if(SV){
     vola_store  <- bvar$Sv_store; dimnames(vola_store) <- list(NULL,colnames(Y),NULL)
@@ -506,7 +546,9 @@
   #------------------------------------ compute posteriors -------------------------------------------#
   A_post      <- apply(A_store, c(1,2), median)
   L_post      <- apply(L_store, c(1,2), median)
-  SIGMA_post  <- apply(SIGMA_store,c(1,2,3),median)
+  # PERFORMANCE: old summary required the full covariance cube.
+  # SIGMA_post <- apply(SIGMA_store,c(1,2,3),median)
+  # END old full-cube posterior median; computed above in blocks.
   S_post      <- apply(SIGMA_post,c(1,2),mean)
   Sig         <- S_post/(bigT-K)
   res_post    <- apply(res_store,c(1,2),median)
@@ -1936,4 +1978,18 @@
   ## dimnames(response)[2] <- dimnames(smat)[1]
   ## dimnames(response)[1] <- dimnames(B)[2]
   return(response)
+}
+
+# Resolve documented parallel presets and reject invalid core counts.
+.normalize_cores <- function(cores) {
+  if (is.null(cores)) return(NULL)
+  if (is.character(cores) && length(cores) == 1L && !is.na(cores) &&
+      cores %in% c("all", "half")) {
+    available <- parallel::detectCores()
+    if (is.na(available)) available <- 1L
+    return(max(1L, floor(available / if (cores == "half") 2 else 1)))
+  }
+  if (!.is_integer_count(cores, minimum = 1))
+    stop("Please provide the expert argument 'cores' as a positive integer, 'all', or 'half'.")
+  cores
 }

@@ -154,7 +154,7 @@ hd.bgvar.irf<-function(x, rotation.matrix=NULL, verbose=TRUE){
   hd_array[,,(bigK+3+trend)] <- (t(xdat)-apply(hd_array,c(1,2),sum)) # residual part
   #----------------------------------------------------------------------------------#
   hd_array <- aperm(hd_array,c(2,1,3))
-  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=xdat, R=NULL), class="bgvar.hd")
+  out      <- structure(list(hd_array=hd_array,struc_shock=vv,xglobal=xdat, R=rotation.matrix, ident=ident), class="bgvar.hd")
   if(verbose) cat(paste("Size of object:", format(object.size(out),unit="MB")))
   end.hd <- Sys.time()
   diff.hd <- difftime(end.hd,start.hd,units="mins")
@@ -175,7 +175,7 @@ print.bgvar.hd <- function(x, ...){
   cat(paste0("Size of struc_shock containing structural errors: ",dim(x$struc_shock)[[1]]," x ",dim(x$struc_shock)[[2]],"."))
   cat("\n")
   cat("Identification scheme: ")
-  if(is.null(x$R)){
+  if(identical(x$ident, "chol") || (is.null(x$ident) && is.null(x$R))){
     cat("Short-run restrictions via Cholesky decomposition.")
   }else{
     cat("Sign-restrictions.")

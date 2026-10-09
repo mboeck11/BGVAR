@@ -217,9 +217,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
   # expert settings
   expert.list <- list(variable.list=NULL, OE.weights=NULL, Wex.restr=NULL, save.country.store=FALSE, save.shrink.store = FALSE, save.vola.store = FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
-    if(!(is.null(expert$cores) || is.numeric(expert$cores))){
-      stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
-    }
+    expert$cores <- .normalize_cores(expert$cores)
     for(n in names(expert))
       expert.list[[n]] <- expert[[n]]
   }
@@ -260,7 +258,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     }
     temp <- list()
     for(cc in 1:N){
-      temp[[cN[cc]]] <- Data[,grepl(cN[cc],colnames(Data))]
+      temp[[cN[cc]]] <- Data[,vapply(strsplit(colnames(Data), ".", fixed=TRUE), `[`, "", 1L) == cN[cc],drop=FALSE]
       colnames(temp[[cN[cc]]]) <- unlist(lapply(strsplit(colnames(temp[[cN[cc]]]),".",fixed=TRUE),function(l)l[2]))
     }
     Data <- temp
@@ -274,7 +272,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
     N <- length(Data)
     # check names
     if(is.null(names(Data))){
-      names(Data)<-paste(c,1:length(Data),sep="")
+      stop("Please provide country names for every element of Data.")
     }
     cN <- names(Data)
     if(!all(nchar(cN)==2)){
@@ -375,7 +373,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       }
       temp <- list()
       for(cc in 1:ExN){
-        temp[[cc]] <- Ex[,grepl(ExcN[cc],colnames(Ex)),drop=FALSE]
+        temp[[cc]] <- Ex[,vapply(strsplit(colnames(Ex), ".", fixed=TRUE), `[`, "", 1L) == ExcN[cc],drop=FALSE]
         colnames(temp[[cc]]) <- unlist(lapply(strsplit(colnames(temp[[cc]]),".",fixed=TRUE),function(l)l[2]))
       }
       names(temp)<-ExcN
@@ -388,7 +386,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
       ExN <- length(Ex)
       # check names
       if(is.null(names(Ex))){
-        names(Ex)<-paste(c,1:length(Ex),sep="")
+        stop("Please provide entity names for every element of Ex.")
       }
       ExcN <- names(Ex)
       if(!all(nchar(ExcN)>1)){
@@ -450,7 +448,7 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
                             lambda1=0.1, shrink1=0.1,lambda2=0.2, shrink2=0.2,lambda3=0.1, shrink3=0.1,lambda4=100, shrink4=100, # MN
                             tau0=.1,tau1=3,kappa0=0.1,kappa1=7,p_i=0.5,q_ij=0.5,   # SSVS
                             d_lambda=0.01,e_lambda=0.01,tau_theta=0.7,sample_tau=TRUE,tau_log=TRUE) # NG
-  paras     <- c("a_1","b_1","prmean","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3","shrink4","lambda1","lambda2","lambda3","lambda4",
+  paras     <- c("a_1","b_1","prmean","Bsigma","Bsigma_sv","a0","b0","bmu","Bmu","shrink1","shrink2","shrink3","shrink4","lambda1","lambda2","lambda3","lambda4",
                  "tau0","tau1","kappa0","kappa1","p_i","q_ij","d_lambda","e_lambda","tau_theta","sample_tau","tau_log")
   if(is.null(hyperpara)){
     printtext <- paste0(printtext, "\t No hyperparameters are chosen, default setting applied.\n")
@@ -462,17 +460,21 @@ bgvar<-function(Data,W,plag=1,draws=5000,burnin=5000,prior="NG",SV=TRUE,hold.out
         warning(paste0(para," no valid hyperparameter. Please check.\n"))
         next
       }
-      default_hyperpara[para] <- hyperpara[para]
+      target <- if(para == "Bsigma_sv") "Bsigma" else para
+      if(para != "Bsigma_sv" || !("Bsigma" %in% names(hyperpara)))
+        default_hyperpara[target] <- hyperpara[para]
       if(para=="tau_theta") default_hyperpara["tau_log"] <- FALSE
     }
     printtext <- paste0(printtext, "Default values for chosen hyperparamters overwritten.\n")
     if(verbose) cat("Default values for chosen hyperparamters overwritten.\n")
     if(any(grepl("shrink",names(hyperpara)))){
       warning(paste0("Note that parameters 'shrink1', 'shrink2', 'shrink3', and 'shrink4' are depreciated. Use 'lambda1', 'lambda2', 'lambda3', or 'lambda4' instead. Values from shrink are taken over to lambda."))
-      default_hyerpara["lambda1"] = default_hyperpara["shrink1"]
-      default_hyerpara["lambda2"] = default_hyperpara["shrink2"]
-      default_hyerpara["lambda3"] = default_hyperpara["shrink3"]
-      default_hyerpara["lambda4"] = default_hyperpara["shrink4"]
+      for(i in seq_len(4L)){
+        alias <- paste0("shrink", i)
+        target <- paste0("lambda", i)
+        if(alias %in% names(hyperpara) && !(target %in% names(hyperpara)))
+          default_hyperpara[target] <- hyperpara[alias]
+      }
     }
   }
   if(prior=="SSVS"){
@@ -895,14 +897,13 @@ vcov.bgvar<-function(object, ..., quantile=.50){
     return(invisible(object))
   }
   
-  S_qu <- apply(object$stacked.results$S_large,c(1,2),quantile,quantile,na.rm=TRUE)
-  Ginv_qu <- apply(object$stacked.results$Ginv_large,c(1,2),quantile,quantile,na.rm=TRUE)
-  if(length(quantile)==1){
-    out <- Ginv_qu%*%S_qu%*%t(Ginv_qu)
-  }else{
-    out <- sapply(1:length(quantile),function(qq)Ginv_qu[qq,,]%*%S_qu[qq,,]%*%t(Ginv_qu[qq,,]),simplify="array")
-    out <- aperm(out,c(3,1,2))
-  }
+  .validate_quantiles(quantile)
+  S <- object$stacked.results$S_large
+  G <- object$stacked.results$Ginv_large
+  covariance <- array(NA_real_, dim(S), dimnames=dimnames(S))
+  for(draw in seq_len(dim(S)[3]))
+    covariance[,,draw] <- G[,,draw] %*% S[,,draw] %*% t(G[,,draw])
+  out <- apply(covariance, c(1,2), stats::quantile, probs=quantile, na.rm=TRUE)
   return(out)
 }
 
@@ -980,7 +981,10 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     stop("Please provide only one quantile.")
   }
   
-  temp <- object$args$logLik
+  .validate_quantiles(quantile)
+  bigT <- nrow(object$xglobal)
+  bigK <- ncol(object$xglobal)
+  temp <- object$args$logLik_draws
   if(is.null(temp)){
     xglobal   <- object$xglobal
     lags      <- object$args$lags
@@ -990,7 +994,7 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
+    if(trend) X_large <- cbind(X_large,seq_len(bigT)-pmax)
     Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
     X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large
@@ -1015,8 +1019,10 @@ logLik.bgvar<-function(object, ..., quantile=.50){
     }else{
       out <- quantile(globalLik,quantile,na.rm=TRUE)
     }
-    eval.parent(substitute(object$args$logLik<-out))
+    temp <- if(is(globalLik,"try-error")) -Inf else as.numeric(globalLik)
+    eval.parent(substitute(object$args$logLik_draws <- temp))
   }
+  out <- stats::quantile(temp, probs=quantile, na.rm=TRUE)
   attributes(out) <- list(nall=bigT, nobs=bigT, df=bigK)
   class(out) <- "logLik"
   return(out)
@@ -1067,7 +1073,7 @@ dic.bgvar <- function(object, ...){
     bigK      <- ncol(xglobal)
     thindraws <- object$args$thindraws
     X_large   <- cbind(.mlag(xglobal,pmax),1)
-    if(trend) X_large <- cbind(X_large,seq(1:bigT))
+    if(trend) X_large <- cbind(X_large,seq_len(bigT)-pmax)
     Y_large   <- xglobal[(pmax+1):bigT,,drop=FALSE]
     X_large   <- X_large[(pmax+1):bigT,,drop=FALSE]
     A_large   <- object$stacked.results$A_large

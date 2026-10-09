@@ -144,9 +144,7 @@ irf.bgvar <- function(x,n.ahead=24,shockinfo=NULL,quantiles=NULL,expert=NULL,ver
   # expert settings
   expert.list <- list(MaxTries=100, save.store=FALSE, use_R=FALSE, applyfun=NULL, cores=NULL)
   if(!is.null(expert)){
-    if(!(is.null(expert$cores) || is.numeric(expert$cores) || expert$cores%in%c("all","half"))){
-      stop("Please provide the expert argument 'cores' in appropriate form. Please recheck.")
-    }
+    expert$cores <- .normalize_cores(expert$cores)
     for(n in names(expert))
       expert.list[[n]] <- expert[[n]]
   }
@@ -644,6 +642,8 @@ print.bgvar.irf <- function(x, ...){
 #' @seealso \code{\link{irf}}
 #' @export
 get_shockinfo <- function(ident="chol", nr_rows=1){
+  ident <- match.arg(ident, c("chol", "girf", "sign"))
+  if(!.is_integer_count(nr_rows, minimum=1)) stop("nr_rows must be a positive integer.")
   if(ident == "chol"){
     df <- data.frame(shock=rep(NA,nr_rows),scale=rep(1,nr_rows),global=rep(FALSE,nr_rows))
     attr(df, "ident") <- "chol"
@@ -691,15 +691,15 @@ add_shockinfo <- function(shockinfo=NULL, shock=NULL, restriction=NULL, sign=NUL
   if(length(restriction)!=length(sign)){
     stop("Please provide the arguments 'restriction' and 'sign' with equal length. Please respecify.")
   }
-  if(length(restriction)!=length(horizon)){
-    if(length(horizon)!=1) stop("Please provide the argument 'horizon' either with length equal to one for all shocks or with an equal length of the restrictions.")
-  }
   nr <- length(sign)
   if(!(is.null(restriction) && is.null(sign)) && is.null(horizon)){
     warning("No horizon specified, is set to one, i.e., a shock restriction on impact.")
     horizon <- rep(1,nr)
   }
-  if(!any(sign%in%c(">","<","0","ratio.H","ratio.avg"))){
+  if(length(restriction)!=length(horizon)){
+    if(length(horizon)!=1) stop("Please provide the argument 'horizon' either with length equal to one for all shocks or with an equal length of the restrictions.")
+  }
+  if(!all(sign%in%c(">","<","0","ratio.H","ratio.avg"))){
     stop("Misspecification in 'sign'. Only the following is allowed: <, >, 0, ratio.H, ratio.avg")
   }
   if(is.null(scale)){
